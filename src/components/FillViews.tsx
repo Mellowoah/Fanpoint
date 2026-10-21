@@ -10,6 +10,7 @@ import type { RankMode, RankedGap } from "@/lib/route/rank";
 import { scoreLine } from "@/lib/route/score-line";
 import type { Marker } from "./MapView";
 import WhyPopover from "./WhyPopover";
+import { HoldDraftButton } from "./HoldDraft";
 import { CYAN } from "./palette";
 import ScoreLineText from "./ScoreLineText";
 
@@ -146,7 +147,7 @@ function WhyFacts({ s }: { s: FillStop }) {
   );
 }
 
-export function FillStopCard({ s }: { s: FillStop }) {
+export function FillStopCard({ s, q }: { s: FillStop; q: FillPlan }) {
   return (
     <article className="card bg-panel p-4 grid gap-2.5 min-w-0 [&>*]:min-w-0">
       <header className="flex justify-between gap-2">
@@ -167,6 +168,7 @@ export function FillStopCard({ s }: { s: FillStop }) {
       {s.promo.map((p) => (
         <div key={p.entity.id} className="text-sm flex gap-2"><span className="text-[10px] mt-0.5 px-1.5 rounded bg-accent/15 text-accent-text h-fit">{KIND[p.entity.kind] ?? p.entity.kind}</span>{p.angleBy === "ai" ? <span className="flex items-center gap-1.5"><span className="text-[10px] text-plain">(AI)</span><WhyPopover label={`promo angle: ${p.entity.name}`} title="Angle">{p.angle}</WhyPopover></span> : <span>{p.angle}</span>}</div>
       ))}
+      <HoldDraftButton q={q} s={s} />
     </article>
   );
 }

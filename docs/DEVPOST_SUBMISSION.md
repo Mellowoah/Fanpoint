@@ -14,6 +14,23 @@
 
 **Try it out:** Live demo https://routed-kt93.onrender.com · Repo https://github.com/Mellowoah/Fanpoint (MIT license, visible in About) · (no demo video required)
 
+
+## Benchmark: Fanpoint vs plain AI
+
+Measured 2026-10-21, 10 artists, live Qloo + Gemini. Same anchors for every act, 13 open days each. Aggregates only; the per-artist runs stay in the gitignored `baselines/` (Qloo terms). The numbers in the app come from `src/lib/benchmark.ts`.
+
+| | Fanpoint + Qloo | Plain AI (same LLM, no tools) |
+|---|---|---|
+| Nights booked (of 13) | 5–10, median 7 | 4–13, median 5 |
+| Radius-clause breaks per plan | 0 | 0–3 (8 in total) |
+| Backtracking legs per plan | 0 | 0–5 (10 in total) |
+| Longest run of consecutive shows | 3–6 (cap 6) | 1–16 |
+| Plans breaking at least one hard rule | 0 of 10 | 3 of 10 |
+
+With vs without Qloo, on the same hard-filtered cities: the demo routing books 8 of 13 open days with Qloo and 0 without (no fan signal, so no schedule is built). On the 34 legs with more than 5 eligible cities, the Qloo top 5 was identical to the population/venues top 5 on only 2; the median overlap was 2 of 5 cities.
+
+**Method.** The hard rules are the same filters in both modes: radius clause, no backtracking, the daily drive cap, at most 6 shows in a row. Plain AI is the same LLM with no tools and no Qloo, answering from general knowledge; its picks are audited by Fanpoint's own checker on OSRM road data. Fanpoint only books cities that already pass those filters, so its zero comes from that design, not from a separate audit. Reproduce with `npm run eval` (plain vs Fanpoint) and `npm run baseline` (with vs without Qloo) against a live server; see [DEPLOY.md](DEPLOY.md#live-re-run-mock-vs-live-baseline).
+
 ---
 
 ## Summary for judges

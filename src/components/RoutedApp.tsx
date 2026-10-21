@@ -16,6 +16,8 @@ import type { RankMode } from "@/lib/route/rank";
 import SourcesPanel from "./SourcesPanel";
 import PromoterView from "./PromoterView";
 import { CYAN, PLAIN } from "./palette";
+import BenchmarkCard from "./BenchmarkCard";
+import { PlanActions } from "./HoldDraft";
 
 type Tab = "fill" | "cohead";
 /** Two sides of the same system: the booking agent's routing tools, or the promoter's city-first view. */
@@ -135,6 +137,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
           <PromoterView onPlan={planFor} live={modes?.qloo === "live"} onSources={openSources} />
         </main>
       ) : (<>
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-5"><BenchmarkCard /></div>
       <section id="planner" aria-label="Planner" className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-6 scroll-mt-16">
         <div className="card">
           <div className="flex items-center justify-between gap-3 flex-wrap border-b border-line px-4 sm:px-5 py-3">
@@ -177,7 +180,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             {qErr && <ErrorPanel error={qErr} context="Fanpoint + Qloo" onRetry={busy ? undefined : () => runFill(fill)} />}
             {q && <WarningList warnings={q.warnings} />}
             {q && <RankedLists ranked={q.ranked} mode={rank} picked={new Set(q.stops.map((x) => x.city))} />}
-            {q && rank === "with" && <FillSummary q={q} />}
+            {q && rank === "with" && <div className="grid gap-3"><FillSummary q={q} /><PlanActions q={q} /></div>}
             {rank === "with" && (
               <div className="grid lg:grid-cols-[1fr_370px] gap-5">
                 <div className="grid gap-4 content-start min-w-0">
@@ -186,7 +189,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
                     <MapView rings={qMap?.rings} cells={qMap?.cells} paths={qMap?.paths} markers={qMap?.markers} fit={qMap?.fit} height={420} />
                   </MapCard>
                   {q && <CandidateFilter gaps={q.result.gaps} maxDriveMi={q.params.maxDriveMi} />}
-                  <div className="grid md:grid-cols-2 gap-4">{q?.stops.map((s) => <FillStopCard key={s.date} s={s} />)}</div>
+                  <div className="grid md:grid-cols-2 gap-4">{q?.stops.map((s) => <FillStopCard key={s.date} s={s} q={q} />)}</div>
                 </div>
                 <AgentTrace events={qEv} title="Agent trace · Qloo calls" />
               </div>
