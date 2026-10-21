@@ -64,7 +64,10 @@ describe("hold drafts", () => {
     expect(h.body).toContain(scoreLine("with", s.affinity));
     expect(h.body).toContain(`coming from ${s.prevCity} (${s.driveMi} road mi`);
     expect(h.body).toMatch(/going on to /);
-    if (s.support[0]) expect(h.body).toContain(`Possible support: ${s.support[0].name}.`);
+    expect(q.support).toBeDefined();
+    expect(h.body).toContain(`Support: ${q.support!.entity.name}, opening the whole run.`);
+    // Without a run-wide act, the city's own match is offered as "possible support".
+    if (s.support[0]) expect(holdDraft({ ...q, support: undefined }, s).body).toContain(`Possible support: ${s.support[0].name}.`);
     expect(holdText(h).startsWith(`Subject: ${h.subject}\n\n`)).toBe(true);
     const m = holdMailto(h);
     expect(m.startsWith("mailto:?subject=")).toBe(true);

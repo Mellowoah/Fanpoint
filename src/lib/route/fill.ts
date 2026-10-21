@@ -39,6 +39,8 @@ export interface FillParams {
   maxDriveHours?: number;
   /** Max show days in a row before a day off (anchors count). */
   maxConsecutiveShows?: number;
+  /** 1 = never fill Thanksgiving Day, Dec 24 or Dec 25 (see holidayName); 0 = allow. */
+  holidaysOff?: number;
 }
 export interface Day {
   date: string; dow: string; kind: "anchor" | "fill" | "off";
@@ -46,6 +48,8 @@ export interface Day {
   affinity?: number; dowWeight?: number; driveMi?: number; driveHours?: number; driveDays?: number; rankInCorridor?: number;
   /** Show days in a row up to and including this one. */
   run?: number;
+  /** Off days only: kept off because of the holidays rule (the holiday's name). */
+  holiday?: string;
 }
 export type CandidateStatus = "picked" | "below heat floor" | "radius clause" | "off route / backtrack" | "no mapped venue" | "used elsewhere" | "no road route" | "didn't fit schedule";
 export interface Considered { name: string; affinity: number; status: CandidateStatus; detail?: string }
@@ -66,6 +70,7 @@ export interface FillResult {
 export const DEFAULT_PARAMS: Required<FillParams> = {
   maxDriveMi: R.maxDriveMi, minAffinity: R.minAffinity, dowWeights: R.dowWeights, nightFloor: R.nightFloor,
   radiusMi: R.radiusMi, spacingMi: R.spacingMi, maxDriveHours: R.maxDriveHours, maxConsecutiveShows: R.maxConsecutiveShows,
+  holidaysOff: R.holidaysOff,
 };
 export const PROGRESS_MI = R.progressMi;
 export const DEPART_MI = R.departMi;
@@ -83,6 +88,18 @@ const dowName = (iso: string) => DOW[dowOf(iso)] ?? "?";
 /** true for a real calendar date in yyyy-mm-dd form (rejects 2026-02-30). */
 export const isIsoDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && Number.isFinite(noon(s)) && addDays(s, 0) === s;
 
+/**
+ * US major travel holidays Fanpoint keeps off by default: Thanksgiving Day (4th Thursday of November), Christmas Eve,
+ * Christmas Day. New Year's Eve is deliberately not on the list (a big show night).
+ */
+export function holidayName(iso: string): string | undefined {
+  const [, m, d] = iso.split("-").map(Number);
+  if (m === 12 && d === 24) return "Christmas Eve";
+  if (m === 12 && d === 25) return "Christmas Day";
+  if (m === 11 && dowOf(iso) === 4 && d! >= 22 && d! <= 28) return "Thanksgiving";
+  return undefined;
+}
+
 /** Throws on parameter values that would make the DP meaningless (programmer error, not user input). */
 export function assertParams(p: FillParams): void {
   if (!(p.maxDriveMi > 0)) throw new RangeError("maxDriveMi must be > 0");
@@ -92,8 +109,11 @@ export function assertParams(p: FillParams): void {
   if (p.maxConsecutiveShows !== undefined && !(Number.isInteger(p.maxConsecutiveShows) && p.maxConsecutiveShows >= 1)) throw new RangeError("maxConsecutiveShows must be an integer >= 1");
 }
 
-const offDay = (date: string): Day => ({ date, dow: dowName(date), kind: "off" });
-const offDays = (start: string, n: number): Day[] => Array.from({ length: Math.max(0, n) }, (_, k) => offDay(addDays(start, k + 1)));
+const offDay = (date: string, p?: Pick<FillParams, "holidaysOff">): Day => {
+  const h = p?.holidaysOff ? holidayName(date) : undefined;
+  return h ? { date, dow: dowName(date), kind: "off", holiday: h } : { date, dow: dowName(date), kind: "off" };
+};
+const offDays = (start: string, n: number, p?: Pick<FillParams, "holidaysOff">): Day[] => Array.from({ length: Math.max(0, n) }, (_, k) => offDay(addDays(start, k + 1), p));
 /** Does a leg fit in `days` days under both drive limits? */
 export const fits = (l: Leg, days: number, p: Required<FillParams>) => l.mi <= p.maxDriveMi * days && l.hours <= p.maxDriveHours * days;
 
@@ -131,9 +151,9 @@ export function fillGap(A: Anchor, B: Anchor, cands: Candidate[], params: FillPa
   const directMi = Math.round(direct.mi), directHours = Math.round(direct.hours * 10) / 10;
   const base = { from: A.city, to: B.city, directMi, directHours, offDays: Math.max(0, n), filled: 0, feasible: true, days: [] as Day[], considered: [] as Considered[], runAtB: 1 };
   if (span <= 0) return { ...base, feasible: false, note: `${B.city} is not after ${A.city}.` };
-  if (!Number.isFinite(direct.mi)) return { ...base, feasible: false, days: offDays(A.date, n), note: `No road route is known between ${A.city} and ${B.city}.` };
+  if (!Number.isFinite(direct.mi)) return { ...base, feasible: false, days: offDays(A.date, n, p), note: `No road route is known between ${A.city} and ${B.city}.` };
   if (!fits(direct, span, p))
-    return { ...base, feasible: false, days: offDays(A.date, n), note: `${A.city} to ${B.city} is ${directMi} road mi / ${directHours} h in ${span} day(s), over the ${p.maxDriveMi} mi or ${p.maxDriveHours} h per day limit.` };
+    return { ...base, feasible: false, days: offDays(A.date, n, p), note: `${A.city} to ${B.city} is ${directMi} road mi / ${directHours} h in ${span} day(s), over the ${p.maxDriveMi} mi or ${p.maxDriveHours} h per day limit.` };
   if (n === 0) return { ...base, runAtB: runAtA + 1, note: runAtA + 1 > p.maxConsecutiveShows ? `Back-to-back anchors make ${runAtA + 1} shows in a row (limit ${p.maxConsecutiveShows}).` : undefined };
 
   const considered: Considered[] = [];
@@ -151,6 +171,7 @@ export function fillGap(A: Anchor, B: Anchor, cands: Candidate[], params: FillPa
   const locOf = (i: number): Anchor | Candidate => (i < 0 ? A : pool[i] ?? A);
 
   for (let d = 1; d <= n; d++) {
+    if (p.holidaysOff && holidayName(addDays(A.date, d))) continue; // holidays rule: this day stays off
     const w = p.dowWeights[dowOf(addDays(A.date, d))] ?? 0;
     pool.forEach((c, i) => {
       if (!fits(legOf(c, B), span - d, p)) return; // B must stay reachable
@@ -193,7 +214,7 @@ export function fillGap(A: Anchor, B: Anchor, cands: Candidate[], params: FillPa
     const date = addDays(A.date, d);
     const node = chosen.get(d);
     const c = node ? pool[node.i] : undefined;
-    if (!node || !c) { days.push(offDay(date)); continue; }
+    if (!node || !c) { days.push(offDay(date, p)); continue; }
     used.add(c.name.toLowerCase());
     const hop = legOf(lastLoc, c);
     days.push({ date, dow: dowName(date), kind: "fill", id: c.id, city: c.name, region: c.region, lat: c.lat, lon: c.lon, affinity: c.affinity,

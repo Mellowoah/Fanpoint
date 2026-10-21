@@ -1,4 +1,5 @@
 /** Deterministic hold-request drafts for filled stops. Template only: no LLM, nothing is sent. Client-safe. */
+import { cityLabel } from "@/lib/route/city-label";
 import type { FillPlan, FillStop } from "@/lib/agent/types";
 import { scoreLine } from "@/lib/route/score-line";
 
@@ -13,15 +14,16 @@ function nextShow(q: FillPlan, date: string) {
 }
 
 export function holdDraft(q: FillPlan, s: FillStop): HoldDraft {
-  const city = `${s.city}${s.region ? `, ${s.region}` : ""}`;
+  const city = cityLabel(s.city, s.region);
   const next = nextShow(q, s.date);
-  const support = s.support[0]?.name;
+  // The run-wide support act first (one opener for every date); this city's local match only as a fallback.
+  const support = q.support?.entity.name ?? s.support[0]?.name;
   // The top Qloo room when there is one; the [Venue] placeholder otherwise (the user fills it in).
   const v = s.venues[0];
   const venueName = v ? v.name : "[Venue]";
   const at = v?.place?.address ? `${venueName} (${v.place.address})` : venueName;
   // A room across a city line (Camden stop, Philadelphia room) is named with its own city.
-  const where = v?.city && v.city.toLowerCase() !== s.city.toLowerCase() ? `${v.city}${v.region ? `, ${v.region}` : ""} (our ${s.city} stop)` : city;
+  const where = v?.city && v.city.toLowerCase() !== s.city.toLowerCase() ? `${cityLabel(v.city, v.region)} (our ${s.city} stop)` : city;
   const subject = `Hold request: ${q.artist.name}, ${v ? `${v.name}, ` : ""}${city}, ${longDate(s.date)}`;
   const lines = [
     "Hi Talent buyer,",
@@ -35,7 +37,7 @@ export function holdDraft(q: FillPlan, s: FillStop): HoldDraft {
     const h = s.room?.hood;
     lines.push(`Why your room: it is one of the closest Qloo matches for ${q.artist.name}'s audience in the area${h ? `, ${h.how === "named" ? "in" : "near"} ${h.name}, where those fans cluster` : ""}.`);
   }
-  if (support) lines.push(`Possible support: ${support}.`);
+  if (support) lines.push(q.support ? `Support: ${support}, opening the whole run.` : `Possible support: ${support}.`);
   lines.push("", "Could you let me know if the date is open and what a first or second hold would look like? Happy to share more details on the run.", "", "Thanks,", "[Your name]", "[Agency] · [Phone]");
   return { subject, body: lines.join("\n") };
 }

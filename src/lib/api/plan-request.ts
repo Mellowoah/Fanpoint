@@ -14,6 +14,7 @@ export const RuleOverrides = z.strictObject({
   radiusMi: z.number().min(0).max(300).optional(), // 300 mi = festival-scale clauses
   nightFloor: z.number().min(0).max(0.95).optional(),
   dowWeights: z.array(z.number().min(0).max(1)).length(7).optional(),
+  holidaysOff: z.union([z.literal(0), z.literal(1)]).optional(),
 });
 export type RuleOverrides = z.infer<typeof RuleOverrides>;
 

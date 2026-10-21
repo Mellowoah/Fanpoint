@@ -13,7 +13,7 @@ export interface FillFormState { artist: string; anchors: AnchorInput[]; maxDriv
 
 export const DEFAULT_RULES: Required<RuleOverrides> = {
   maxDriveHours: RULE_VALUES.maxDriveHours, maxConsecutiveShows: RULE_VALUES.maxConsecutiveShows, radiusMi: RULE_VALUES.radiusMi,
-  nightFloor: RULE_VALUES.nightFloor, dowWeights: [...RULE_VALUES.dowWeights],
+  nightFloor: RULE_VALUES.nightFloor, dowWeights: [...RULE_VALUES.dowWeights], holidaysOff: RULE_VALUES.holidaysOff,
 };
 /** The fixed demo anchors (scripts/baseline/inputs.v1.json, date set "east-demo"). */
 export const EAST_DEMO: AnchorInput[] = [
@@ -29,12 +29,12 @@ export const DEMO_FILL: FillFormState = {
   rules: DEFAULT_RULES,
 };
 /**
- * Live-mode default: a real act on the same three anchors. Picked from the 2026-10-21 live baseline by a stated rule
- * (docs/DEVPOST_SUBMISSION.md, "Default demo"): most With/Without divergence, then clear separation, then most fills.
+ * Live-mode default: a real act on the same three anchors, picked from the 2026-10-21 live baseline (most With/Without
+ * divergence, then clear separation, then most fills).
  */
 export const DEMO_FILL_LIVE: FillFormState = { ...DEMO_FILL, artist: "Japanese Breakfast" };
 export const demoFill = (qloo: "live" | "mock" | undefined): FillFormState => (qloo === "live" ? DEMO_FILL_LIVE : DEMO_FILL);
-/** Co-headliner defaults per mode (the live pair is picked by the same baseline, see DEVPOST_SUBMISSION.md). */
+/** Co-headliner defaults per mode (the live pair is picked from the same baseline). */
 export const demoCohead = (qloo: "live" | "mock" | undefined) => (qloo === "live" ? { artist: "Black Pumas", partner: "Men I Trust" } : { artist: "Marigold Static", partner: "Saltwater Hymnal (mock)" });
 
 /** Date sets from scripts/baseline/inputs.v1.json (tests keep them identical). */
@@ -157,7 +157,7 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
         <summary className="cursor-pointer text-sm flex items-center gap-2 flex-wrap list-none [&::-webkit-details-marker]:hidden">
           <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" className="text-plain transition-transform group-open:rotate-90"><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" /></svg>
           <span className="font-semibold">Touring rules</span>
-          <span className="text-xs text-plain">≤{value.maxDriveMi} mi and ≤{value.rules.maxDriveHours} h a day · ≤{value.rules.maxConsecutiveShows} shows in a row · {value.rules.radiusMi} mi radius clause · fan heat ≥ {Math.round(value.minAffinity * 100)}</span>
+          <span className="text-xs text-plain">≤{value.maxDriveMi} mi and ≤{value.rules.maxDriveHours} h a day · ≤{value.rules.maxConsecutiveShows} shows in a row · {value.rules.radiusMi} mi radius clause{value.rules.holidaysOff ? " · holidays off" : ""} · fan heat ≥ {Math.round(value.minAffinity * 100)}</span>
           {changed && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-text">changed</span>}
           {onSources && <button type="button" onClick={(e) => { e.preventDefault(); onSources(); }} className="ml-auto text-xs text-accent-text underline underline-offset-2">Where these numbers come from</button>}
         </summary>
@@ -168,6 +168,10 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
           <Num k="radiusMi" value={value.rules.radiusMi} min={0} max={300} step={5} onChange={(n) => setR({ radiusMi: n })} />
           <Num k="minAffinity" value={value.minAffinity} min={0} max={1} step={0.01} onChange={(n) => onChange({ ...value, minAffinity: n })} />
           <Num k="nightFloor" value={value.rules.nightFloor} min={0} max={0.95} step={0.05} onChange={(n) => setR({ nightFloor: n })} />
+          <label className="field flex-row items-center gap-2 sm:col-span-2 lg:col-span-2">
+            <input type="checkbox" checked={value.rules.holidaysOff === 1} onChange={(e) => setR({ holidaysOff: e.target.checked ? 1 : 0 })} className="size-4 accent-[var(--accent)]" />
+            <span className="flex items-center gap-1.5 flex-wrap">{RULES.holidaysOff.label} <span className="text-plain font-normal">(Thanksgiving, Dec 24, Dec 25)</span> <HelpTip label={RULES.holidaysOff.label}>{RULES.holidaysOff.why}</HelpTip> <KindBadge kind={RULES.holidaysOff.kind} /></span>
+          </label>
           <div className="field sm:col-span-2">
             <span className="flex items-center gap-1.5">{RULES.dowWeights.label} <HelpTip label={RULES.dowWeights.label}>{RULES.dowWeights.why}</HelpTip> <KindBadge kind={RULES.dowWeights.kind} /></span>
             <div className="grid grid-cols-7 gap-1">

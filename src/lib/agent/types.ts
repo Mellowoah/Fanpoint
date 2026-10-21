@@ -12,7 +12,7 @@ import type { FanHood } from "../qloo/venues";
 import type { Demographics, TagScore } from "../qloo/taste";
 
 /** Overrides for adjustable touring assumptions (validated in api/plan-request.ts). */
-export interface RuleOverrides { maxDriveHours?: number; maxConsecutiveShows?: number; radiusMi?: number; nightFloor?: number; dowWeights?: number[] }
+export interface RuleOverrides { maxDriveHours?: number; maxConsecutiveShows?: number; radiusMi?: number; nightFloor?: number; dowWeights?: number[]; holidaysOff?: 0 | 1 }
 
 export interface AnchorInput { city: string; date: string; label?: string }
 export interface FillRequest { task: "fill"; artist: string; anchors: AnchorInput[]; maxDriveMi: number; minAffinity: number; rules?: RuleOverrides }
@@ -41,7 +41,7 @@ export interface FillStop {
   headline: string; why: string;
   /** Model-written note, shown labelled as AI text; only kept if every number in it matches the data. */
   aiNote?: string;
-  /** Qloo results, top-ranked first (chosen by code, not by the model). */
+  /** Qloo results, top-ranked first (chosen by code, not by the model). `support`: this city's own top opener match, a local alternative to the run-wide act. */
   support: Entity[]; venues: Entity[]; promo: { entity: Entity; angle: string; angleBy: "ai" | "routed" }[];
   /** Neighborhoods of the stop city where the artist's fans cluster (Qloo locality heat), strongest first. */
   neighborhoods?: FanHood[];
@@ -55,8 +55,22 @@ export interface RoomNote {
   hood?: { name: string; how: "named" | "near"; mi?: number };
   why: string;
 }
+/** One support act for the whole run (chosen by code from Qloo results, see Tools.runSupport). */
+export interface RunSupport {
+  entity: Entity;
+  /** Filled cities where Qloo also lists it as a local support match, and how many cities were filled. */
+  stops: string[]; fills: number;
+  /** Qloo affinity to the headliner's audience, nationally (undefined if only seen in local lists). */
+  national?: number;
+  /** Popularity ceiling it had to be under (headliner minus openerPopularityGap). */
+  ceiling?: number;
+  shared: TagScore[];
+  why: string;
+}
 export interface FillPlan {
-  task: "fill"; mode: "qloo"; artist: Entity; anchors: Anchor[]; params: FillParams; result: FillResult; stops: FillStop[];
+  task: "fill"; mode: "qloo"; artist: Entity;
+  /** The run-wide support act; per-stop `support` lists are local alternatives. */
+  support?: RunSupport; anchors: Anchor[]; params: FillParams; result: FillResult; stops: FillStop[];
   corridors: Corridor[];
   /** Ranked gap-city lists, With Qloo (affinity) and Without Qloo (population/venues proxy), same hard-filtered set. */
   ranked: RankedGap[];

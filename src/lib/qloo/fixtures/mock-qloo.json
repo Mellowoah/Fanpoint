@@ -51,7 +51,7 @@
     { "name": "The Lantern Room (mock)", "tags": ["Music Venue", "Listening Room"], "category": "bar", "description": "Fictional listening-room bar (mock)." },
     { "name": "Hollow Pine Social (mock)", "tags": ["Bar", "Live Music"], "category": "night_club", "description": "Fictional late-night club (mock)." },
     { "name": "Riverlight Ballroom (mock)", "tags": ["Music Venue", "Ballroom"], "category": "performing_arts_theater", "description": "Fictional restored theatre with a 1,400-seat auditorium (mock)." },
-    { "name": "The Static Attic (mock)", "tags": ["Music Venue", "DIY Space"], "category": "live_music_venue", "description": "Fictional DIY room (mock)." },
+    { "name": "The Static Attic (mock)", "tags": ["Music Venue", "DIY Space"], "category": "live_music_venue", "description": "Fictional DIY room that holds 180 people (mock)." },
     { "name": "Copper Kettle Stage (mock)", "tags": ["Live Music", "Cafe"], "category": "coffee_shop", "description": "Fictional cafe with an open-mic corner (mock). Not a show room: dropped by the category whitelist." },
     { "name": "Gallery of Quiet Things (mock)", "tags": ["Museum"], "category": "art_museum", "description": "Fictional museum (mock). Dropped by the category whitelist." }
   ],

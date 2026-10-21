@@ -39,6 +39,7 @@ export const RawEntitySchema = z.preprocess(withEntityId, z.object({
     address: optStr, website: optStr, phone: optStr, neighborhood: optStr,
     primary_genre: z.object({ id: optStr, name: optStr }).optional().catch(undefined),
     physical_setting_description: optStr, unique_selling_points: optStr,
+    overall_description: optStr, amenities_description: optStr, ambience_description: optStr,
     /** Entity image, when Qloo has one (used only for the autocomplete thumbnail). */
     image: z.object({ url: optStr }).optional().catch(undefined),
   }).optional().catch(undefined),

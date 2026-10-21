@@ -1,7 +1,7 @@
 "use client";
 /** Venue, neighborhood and audience panels built from Qloo place, locality, compare and demographics data. */
 import type { Entity } from "@/lib/qloo/types";
-import type { RoomNote } from "@/lib/agent/types";
+import type { RoomNote, RunSupport } from "@/lib/agent/types";
 import { safeUrl, TIER_LABEL, TIER_NOTE, tierOf, type FanHood } from "@/lib/qloo/venues";
 import { AGE_LABEL, SKEW_NOTE, type Demographics, type TagScore } from "@/lib/qloo/taste";
 import WhyPopover from "./WhyPopover";
@@ -101,6 +101,27 @@ export function SkewTable({ rows }: { rows: { name: string; color: string; d?: D
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+/** The one support act for the whole run, with the taste it shares with the headliner. */
+export function RunSupportCard({ s, headliner }: { s: RunSupport; headliner: string }) {
+  return (
+    <div className="card bg-panel p-4 grid gap-2" data-run-support>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className={label}>Support act for the whole run</div>
+          <div className="text-lg font-semibold break-words">{s.entity.name}</div>
+          <div className="text-xs text-plain">Opening for {headliner} on every filled date{s.stops.length ? ` · local Qloo match in ${s.stops.length} of ${s.fills} cities` : ""}</div>
+        </div>
+        {s.national !== undefined && <div className="text-right shrink-0 leading-none"><div className="font-mono text-lg text-accent-text">{pct(s.national)}</div><div className="text-[9px] uppercase tracking-wide text-plain">Qloo fit</div></div>}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        {s.shared.map((t) => <span key={t.id} className="rounded-full border px-2 py-0.5" style={{ borderColor: `${CYAN}66` }}>{t.name}</span>)}
+        {s.shared.length > 0 && <span className="text-plain">shared taste</span>}
+        <WhyPopover label={`why ${s.entity.name}`} title="Why this act">{s.why} Ranked in code: most filled cities first, then national fit. Per-city alternatives are listed on each stop.</WhyPopover>
       </div>
     </div>
   );

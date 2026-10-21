@@ -51,9 +51,18 @@ export const tierOf = (category?: string): VenueTier | undefined => (category ? 
 export const isShowRoom = (category?: string) => tierOf(category) !== undefined;
 
 const NUM = String.raw`(\d{1,3}(?:,\d{3})+|\d{2,6})`;
+const WHO = String.raw`(?:people|persons|guests|fans|patrons|concertgoers|attendees|standing|seated)`;
+/**
+ * Phrasings seen in Qloo venue text, or common in venue copy: "1,016-seat", "750 seats", "a 2,500-capacity hall",
+ * "capacity of up to 750", "capacity: 900", "holds 1,200 people", "seats 400", "accommodates up to 300 guests",
+ * "for up to 500 guests". A number with no capacity word next to it is never read.
+ */
 const CAPACITY = [
-  new RegExp(String.raw`\b${NUM}[- ](?:seats?|seater|seat(?:ed|ing)|person|people|capacity)\b`, "i"),
-  new RegExp(String.raw`\bcapacity (?:of |for )?(?:up to |about |around |over |nearly |roughly )?${NUM}\b`, "i"),
+  new RegExp(String.raw`\b${NUM}[- ](?:seats?|seater|seat(?:ed|ing)|person|people|capacity|cap)\b`, "i"),
+  new RegExp(String.raw`\bcapacity(?: is)?(?: of| for|:)? (?:up to |about |around |over |nearly |roughly |approximately |some |~)?${NUM}\b`, "i"),
+  new RegExp(String.raw`\b(?:seats|accommodates) (?:up to |about |around |over |nearly |roughly |approximately |some )?${NUM}(?! (?:events|shows|nights|days|years|times)\b)\b`, "i"),
+  new RegExp(String.raw`\b(?:holds|fits|welcomes) (?:up to |about |around |over |nearly |roughly |approximately |some )?${NUM} ${WHO}\b`, "i"),
+  new RegExp(String.raw`\b(?:for|of) up to ${NUM} ${WHO}\b`, "i"),
 ];
 /** A capacity a description actually states, with the words around it. Out-of-range numbers are ignored. */
 export function statedCapacity(texts: (string | undefined)[]): { capacity: number; quote: string } | undefined {

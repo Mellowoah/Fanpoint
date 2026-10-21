@@ -37,7 +37,7 @@ tool results; a pitch with any other number is discarded. No ticket forecasts.`;
 const LABELS: Record<string, string> = {
   resolve_artist: "Resolve artist in Qloo", scan_corridor: "Scan fan heat along each drive corridor", fill_gaps: "Fill off days (drive, no-backtrack, night-of-week rules)",
   get_city_intel: "Support acts, rooms & promo hooks per fill", submit_fill: "Grounding & number check, final routing",
-  find_peer_acts: "Find peer acts in your popularity band", compare_fan_geography: "Compare nationwide fan geography", submit_cohead: "Grounding & number check, recommendation", cohead_extras: "Shared taste, audience skews & joint rooms",
+  find_peer_acts: "Find peer acts in your popularity band", compare_fan_geography: "Compare nationwide fan geography", submit_cohead: "Grounding & number check, recommendation", cohead_extras: "Shared taste, audience skews & joint rooms", run_support: "One support act for the whole run",
 };
 /** Tool results longer than this are summarized before they go back to the model (keeps prompts bounded). */
 const MAX_TOOL_CHARS = 12000;
@@ -115,6 +115,13 @@ async function* loop(req: PlanRequest, { qloo: q, llm, maxTurns, deadlineMs }: A
             const r = await tools.call("get_city_intel", { artist_id: reg.artist.id, city: d.city });
             yield { type: "tool", name: "get_city_intel", args: { artist_id: reg.artist.id, city: d.city, auto: true }, summary: `${r.summary} (fetched by Fanpoint: the model skipped it)`, qlooCalls: q.calls.slice(before) };
           }
+          if (reg.runSupport === undefined) {
+            // One opener for the whole run, chosen in code across every filled city.
+            const cities = reg.fill.calendar.flatMap((d) => (d.kind === "fill" && d.city ? [d.city] : []));
+            const before = q.calls.length;
+            const r = await tools.runSupport(reg.artist.id, cities);
+            yield { type: "tool", name: "run_support", args: { artist_id: reg.artist.id, cities, auto: true }, summary: `${r.summary} (chosen by Fanpoint)`, qlooCalls: q.calls.slice(before) };
+          }
         }
         if (name === "submit_cohead" && req.task === "cohead" && reg.artist && reg.matches.length && !reg.cohead) {
           // Shared taste, audience skews and a joint room for the peers the plan recommends (plus the partner).
@@ -168,7 +175,8 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
     const a = anchors[i - 1], b = anchors[i];
     return a && b ? reg.corridors.get(`${a.city}>${b.city}`) : undefined;
   };
-  const tourFacts = [fill.fills, fill.offBefore, fill.offAfter, fill.offBefore - fill.offAfter, fill.gaps.length, fill.maxDayDrive, fill.maxDayHours, fill.totalMi, fill.totalHours, fill.longestRun,
+  const runAct = reg.runSupport ?? undefined;
+  const tourFacts = [runAct?.national, runAct?.entity.popularity, runAct?.entity.affinity, runAct?.stops.length, fill.fills, fill.offBefore, fill.offAfter, fill.offBefore - fill.offAfter, fill.gaps.length, fill.maxDayDrive, fill.maxDayHours, fill.totalMi, fill.totalHours, fill.longestRun,
     p.maxDriveMi, p.maxDriveHours, p.maxConsecutiveShows, p.radiusMi, p.minAffinity, anchors.length, ...anchors.map((a) => a.date)];
   const allFacts: (number | string | undefined)[] = [...tourFacts];
   let prevCity = anchors[0]?.city ?? "";
@@ -179,7 +187,8 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
     const m = findCity(d.city);
     const intel = reg.intel.get(d.city.toLowerCase());
     const size = corridorOf(d.date)?.candidates.length;
-    const support = (intel?.support ?? []).slice(0, 1), venues = (intel?.venues ?? []).slice(0, 2);
+    // Local alternative: this city's own top opener match, unless it is the run-wide act.
+    const support = (intel?.support ?? []).filter((e) => e.id !== runAct?.entity.id).slice(0, 1), venues = (intel?.venues ?? []).slice(0, 2);
     const promoEntities = [intel?.brands[0], intel?.podcasts[0]].filter((e): e is Entity => !!e && !!g.pick(e.id));
     const facts = [...tourFacts, d.date, d.affinity, d.rankInCorridor, size, d.driveMi, d.driveHours, d.driveDays, d.dowWeight, d.run,
       m?.population, m?.metro.population, m?.venues.total, m?.venues.theatre, m?.venues.nightclub, m?.venues.music_venue, m?.venues.live_music,
@@ -204,7 +213,7 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
         `${d.driveMi ?? 0} road mi / ${d.driveHours ?? "?"} h from ${prevCity}${(d.driveDays ?? 1) > 1 ? ` over ${d.driveDays} days` : ""} (OSRM).`,
         m ? `City population ${fmtPop(m.population)}, metro ${fmtPop(m.metro.population)} (Census 2025).` : "",
         m ? `${m.venues.total} mapped live-music venues and theatres within 10 mi (OSM).` : "",
-        support[0] ? `Top Qloo support match: ${support[0].name}.` : "",
+        runAct && intel?.support.some((e) => e.id === runAct.entity.id) ? `The run's support act, ${runAct.entity.name}, is also a local Qloo match here.` : "",
       ].filter(Boolean).join(" "),
       aiNote: note.ok && note.text ? note.text : undefined,
       support: g.pickAll(support.map((e) => e.id)), venues: g.pickAll(venues.map((e) => e.id)), promo,
@@ -217,7 +226,7 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
   const ai = vetText(parsed.data.summary, allFacts);
   if (!ai.ok) warnings.push(`AI text dropped for the summary: it used numbers not in the data (${ai.offending.join(", ")}).`);
   return {
-    task: "fill", mode: "qloo", artist: reg.artist, anchors, params: p, result: fill, stops, corridors: [...reg.corridors.values()], ranked: reg.ranked ?? [], rules: { ...RULE_VALUES },
+    task: "fill", mode: "qloo", artist: reg.artist, support: runAct && g.pick(runAct.entity.id) ? runAct : undefined, anchors, params: p, result: fill, stops, corridors: [...reg.corridors.values()], ranked: reg.ranked ?? [], rules: { ...RULE_VALUES },
     summary, aiSummary: ai.ok && ai.text ? ai.text : undefined, routing, grounding: g.report(), warnings, qlooCalls: [...q.calls], providers,
   };
 }

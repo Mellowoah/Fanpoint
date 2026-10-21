@@ -36,7 +36,9 @@ export function FillCalendar({ days, plain, flagged }: { days: Day[]; plain?: bo
           return (
             <div key={d.date} className={`border rounded-md p-1.5 text-[11px] leading-tight h-[92px] flex flex-col ${cls}`}>
               <div className="flex justify-between text-plain"><span>{d.dow}</span><span>{md(d.date)}</span></div>
-              {d.kind === "off" ? <div className="m-auto text-plain/70 font-mono">OFF</div> : (
+              {d.kind === "off" ? (d.holiday
+                ? <div className="m-auto text-center leading-tight" title={`${d.holiday}: kept off by the holidays rule (adjustable in Touring rules)`}><div className="text-plain/70 font-mono">OFF</div><div className="text-[10px] text-amber-300/90">holiday</div><div className="text-[9px] text-plain truncate max-w-[60px]">{d.holiday}</div></div>
+                : <div className="m-auto text-plain/70 font-mono">OFF</div>) : (
                 <>
                   <div className="font-semibold mt-1 truncate" title={d.city}>{d.city}</div>
                   {d.kind === "anchor" ? <div className="text-[10px] text-plain truncate">{d.label ?? "anchor"}</div>
@@ -59,7 +61,7 @@ export function FillStats({ q }: { q: FillPlan }) {
     ["Fills", `${r.fills}`],
     ["Longest drive day", `${r.maxDayDrive} mi · ${r.maxDayHours} h`],
     ["Most shows in a row", `${r.longestRun}`],
-    ["Rules", `≤${q.params.maxDriveMi} mi & ≤${q.params.maxDriveHours} h/day · ≤${q.params.maxConsecutiveShows} in a row · no backtracking · ${q.params.radiusMi} mi radius`],
+    ["Rules", `≤${q.params.maxDriveMi} mi & ≤${q.params.maxDriveHours} h/day · ≤${q.params.maxConsecutiveShows} in a row · no backtracking · ${q.params.radiusMi} mi radius${q.params.holidaysOff ? " · holidays off" : ""}`],
   ];
   return (
     <div className="grid gap-2">
@@ -121,7 +123,8 @@ export function useFillMap(q?: FillPlan) {
 
 // ---------- Stop card ----------
 function Chip({ e }: { e: Entity }) {
-  return <span title={e.id} className="inline-flex items-center gap-1 bg-black/30 border border-line rounded-full px-2 py-0.5 text-xs">{e.name}{e.affinity !== undefined && <span className="text-accent-text font-mono shrink-0">{pct(e.affinity)}</span>}</span>;
+  const cap = e.place?.capacity;
+  return <span title={cap ? `Capacity ${cap.toLocaleString("en-US")}, stated by Qloo: "${e.place?.capacityQuote}"` : e.id} className="inline-flex items-center gap-1 bg-black/30 border border-line rounded-full px-2 py-0.5 text-xs">{e.name}{cap ? <span className="text-plain shrink-0">· cap {cap.toLocaleString("en-US")}</span> : null}{e.affinity !== undefined && <span className="text-accent-text font-mono shrink-0">{pct(e.affinity)}</span>}</span>;
 }
 const KIND: Record<string, string> = { brand: "Brand", podcast: "Podcast", tv_show: "TV" };
 const num = (n: number) => n.toLocaleString("en-US");
@@ -154,7 +157,7 @@ export function FillStopCard({ s, q }: { s: FillStop; q: FillPlan }) {
       <header className="flex justify-between gap-2">
         <div className="min-w-0 break-words">
           <div className="text-xs text-plain">{s.dow} {md(s.date)} · {s.driveMi} road mi / {s.driveHours ?? "–"} h from {s.prevCity}{s.driveDays > 1 ? ` over ${s.driveDays} days` : ""}</div>
-          <h4 className="text-lg font-semibold">{s.city}{s.region && <span className="text-plain font-normal">, {s.region}</span>}</h4>
+          <h4 className="text-lg font-semibold">{s.city}{s.region && !s.city.endsWith(`, ${s.region}`) && <span className="text-plain font-normal">, {s.region}</span>}</h4>
         </div>
         <div className="text-right shrink-0">
           <div className="text-2xl font-bold text-accent-text font-mono">{pct(s.affinity)}</div>
@@ -164,7 +167,8 @@ export function FillStopCard({ s, q }: { s: FillStop; q: FillPlan }) {
       <div className="text-xs font-mono text-accent-text" data-score-line><ScoreLineText text={scoreLine("with", s.affinity)} /></div>
       <div className="grid gap-1"><div className="text-[10px] uppercase tracking-wide text-plain">Why this stop</div><WhyFacts s={s} /></div>
       {s.aiNote && <div className="text-sm leading-snug flex items-center gap-1.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-line text-plain" title="Written by the LLM; every number in it was checked against the data above">AI note</span><WhyPopover label={`AI note for ${s.city}`}>{s.aiNote}</WhyPopover></div>}
-      <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Support</span>{s.support.map((e) => <Chip key={e.id} e={e} />)}<Src>top Qloo match</Src></div>
+      {q.support && <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Support</span><Chip e={q.support.entity} /><Src>whole run</Src></div>}
+      {s.support.length > 0 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">{q.support ? "Local alt." : "Support"}</span>{s.support.map((e) => <Chip key={e.id} e={e} />)}<Src>{q.support ? "this city's own top match" : "top Qloo match"}</Src></div>}
       {s.venues[0] ? <RoomCard v={s.venues[0]} note={s.room} stopCity={s.city} /> : <div className="text-xs text-plain">No Qloo show room matched near {s.city}.</div>}
       {s.venues.length > 1 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Also</span>{s.venues.slice(1).map((e) => <Chip key={e.id} e={e} />)}<Src>next Qloo matches</Src></div>}
       <FanHoods hoods={s.neighborhoods} city={s.city} />

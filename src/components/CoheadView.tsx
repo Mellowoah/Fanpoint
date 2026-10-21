@@ -100,7 +100,7 @@ function CoheadWith({ plan }: { plan: CoheadPlan }) {
                 <SkewTable rows={[{ name: plan.artist.name, color: YOU_TEXT, d: plan.artistSkew }, { name: peer.entity.name, color: THEM, d: peer.skew }]} />
                 {peer.joint && (
                   <div className="grid gap-1">
-                    <div className="text-xs">Best shared city: <b>{peer.joint.city}</b>{peer.joint.region ? `, ${peer.joint.region}` : ""} <span className="text-plain">(fan heat <span style={{ color: YOU_TEXT }}>{pct(peer.joint.you)}</span> / <span style={{ color: THEM }}>{pct(peer.joint.them)}</span>; the weaker of the two is highest here)</span></div>
+                    <div className="text-xs">Best shared city: <b>{peer.joint.city}</b>{peer.joint.region && !peer.joint.city.endsWith(`, ${peer.joint.region}`) ? `, ${peer.joint.region}` : ""} <span className="text-plain">(fan heat <span style={{ color: YOU_TEXT }}>{pct(peer.joint.you)}</span> / <span style={{ color: THEM }}>{pct(peer.joint.them)}</span>; the weaker of the two is highest here)</span></div>
                     {peer.joint.venue ? <RoomCard v={peer.joint.venue} heading="Joint room (both acts as the Qloo signal)" stopCity={peer.joint.city} /> : <div className="text-xs text-plain">No Qloo show room matched there.</div>}
                   </div>
                 )}

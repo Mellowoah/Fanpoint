@@ -41,9 +41,10 @@ With vs without Qloo on the same filtered cities: on the 34 legs with more than 
 ## What it does
 **Fill the gaps.** Enter the act, 2–3 booked dates and a max drive per day.
 - For each drive, Fanpoint reads the act's Qloo fan heatmap in a corridor around the route and scores the markets in it (385 U.S. cities).
-- Code removes cities that break a rule and says why: inside a 60 mi radius clause, doubling back, no mapped venue within 10 mi, over 7.5 h of driving a day (OSRM), more than 6 shows in a row, or below the heat floor.
+- Code removes cities that break a rule and says why: inside a 60 mi radius clause, doubling back, no mapped venue within 10 mi, over 7.5 h of driving a day (OSRM), more than 6 shows in a row, or below the heat floor. Thanksgiving, Christmas Eve and Christmas Day stay off by default (an adjustable rule; New Year's Eve stays bookable).
 - An optimiser fills open days by fan heat × night-of-week weight, and leaves a night off when no city beats it.
-- Each stop names a Qloo venue (address, website, size tier), the top 3 fan neighbourhoods, a local support act and promo partners. **Why this stop** cites a source for every line.
+- One support act opens the whole run: the Qloo match that is a local fit in the most filled cities and clearly smaller than the headliner, with the taste they share.
+- Each stop names a Qloo venue (address, website, size tier, capacity where Qloo's text states one), the top 3 fan neighbourhoods and promo partners. **Why this stop** cites a source for every line.
 - Each stop gets a hold-request draft (nothing is sent); the run exports to `.ics`.
 
 **Co-headliner match.** Fanpoint takes peers in your Qloo popularity band and ranks them by complementarity: they're strong where you're weak, and the reverse, with overlap penalised. The map shows which act carries each city. The most similar peer is shown on purpose; it shares your strong cities, so it ranks low. Each pair shows shared taste tags, age/gender skews and a joint room.
@@ -61,7 +62,7 @@ The agent trace shows every Qloo request. **Plain AI** sends the same dates to t
 | Where are the fans along this drive? | `/v2/insights` `filter.type=urn:heatmap`, `signal.interests.entities`, `filter.location=POLYGON(corridor)` | Ranking corridor cities |
 | Which room? | `urn:entity:place` + `filter.location=POINT(market centre)` + `filter.location.radius` + venue `filter.tags` | Named top room per stop |
 | Which neighbourhoods? | `urn:heatmap` + `output.heatmap.boundary=urn:entity:locality` + same POINT | Top 3 fan neighbourhoods per stop |
-| Who supports? | `urn:entity:artist` + `signal.location.query` + `filter.popularity.max` | Local support no bigger than the headliner |
+| Who supports? | `urn:entity:artist` + `filter.popularity.max` (headliner − 0.02), nationally and per city with `signal.location.query`; `/v2/analysis/compare` | One opener for the run (most filled cities, then national fit), shared taste; per-city alternatives |
 | Promo hooks | `urn:entity:brand`, `urn:entity:podcast` + `signal.location.query` | Partner ideas |
 | Who could co-headline? | `urn:entity:artist` + `filter.popularity.min/max` | Peers in the same band |
 | Do their markets complement ours? | `urn:heatmap` per act over the lower 48 | City-by-city complementarity |

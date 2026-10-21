@@ -11,6 +11,7 @@ import MapView from "./MapView";
 import FillForm, { DEMO_FILL, Spinner, demoCohead, demoFill, type FillFormState } from "./FillForm";
 import ArtistInput from "./ArtistInput";
 import CoheadView from "./CoheadView";
+import { RunSupportCard } from "./QlooPlus";
 import { CandidateFilter, FillCalendar, FillCompare, FillStats, FillStopCard, FillSummary, PlainAudit, RankedLists, plainCalendar, useFillMap } from "./FillViews";
 import type { RankMode } from "@/lib/route/rank";
 import SourcesPanel from "./SourcesPanel";
@@ -189,6 +190,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
                     <MapView rings={qMap?.rings} cells={qMap?.cells} paths={qMap?.paths} markers={qMap?.markers} fit={qMap?.fit} height={420} />
                   </MapCard>
                   {q && <CandidateFilter gaps={q.result.gaps} maxDriveMi={q.params.maxDriveMi} />}
+                  {q?.support && <RunSupportCard s={q.support} headliner={q.artist.name} />}
                   <div className="grid md:grid-cols-2 gap-4">{q?.stops.map((s) => <FillStopCard key={s.date} s={s} q={q} />)}</div>
                 </div>
                 <AgentTrace events={qEv} title="Agent trace · Qloo calls" />

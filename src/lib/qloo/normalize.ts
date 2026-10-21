@@ -5,7 +5,8 @@ import { categoryOf, safeUrl, statedCapacity, type PlaceInfo } from "./venues";
 export function placeInfo(e: QlooRawEntity): PlaceInfo | undefined {
   const p = e.properties;
   if (!p) return undefined;
-  const cap = statedCapacity([p.description, p.short_description, p.physical_setting_description, p.unique_selling_points]);
+  // Every free-text field a place record carries; capacity is only ever read from text that states it.
+  const cap = statedCapacity([p.description, p.short_description, p.overall_description, p.physical_setting_description, p.amenities_description, p.unique_selling_points, p.ambience_description]);
   const info: PlaceInfo = {
     address: p.address?.trim() || undefined, website: safeUrl(p.website), phone: p.phone?.trim() || undefined, neighborhood: p.neighborhood?.trim() || undefined,
     category: categoryOf(p.primary_genre?.id), categoryName: p.primary_genre?.name, capacity: cap?.capacity, capacityQuote: cap?.quote,

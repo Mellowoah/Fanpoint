@@ -32,7 +32,7 @@ import { rankGaps, type RankedGap } from "../route/rank";
 import type { RoadFn } from "../route/road";
 import { RULE_VALUES } from "../touring/rules";
 import type { ToolDef } from "../llm/types";
-import type { CoheadExtras, Corridor, PeerMatch } from "./types";
+import type { CoheadExtras, Corridor, PeerMatch, RunSupport } from "./types";
 
 // ---------- Argument schemas (single source of truth for validation and for the model-facing JSON Schema) ----------
 const id = z.string().trim().min(1).max(200);
@@ -88,7 +88,7 @@ export interface Slim { id: string; name: string; affinity?: number; popularity?
 export interface ResolveOut { artist: Slim & { tags: string[] }; alternatives: Slim[] }
 export interface ScanOut { corridor: string; source: Corridor["source"]; heat_cells: number; cities: { rank: number; name: string; fan_heat: number }[] }
 export interface FillGapsOut {
-  params_used: { max_drive_mi: number; max_drive_hours: number; max_shows_in_a_row: number; radius_clause_mi: number; min_affinity: number };
+  params_used: { max_drive_mi: number; max_drive_hours: number; max_shows_in_a_row: number; radius_clause_mi: number; min_affinity: number; holidays_off: boolean };
   off_days_before: number; off_days_after: number; max_daily_drive_mi: number; max_daily_drive_hours: number; total_mi: number; total_hours: number; longest_run: number;
   road_data: string;
   gaps: { from: string; to: string; direct_mi: number; direct_hours: number; feasible: boolean; note?: string; filled: number; off_days: number; removed: string[] }[];
@@ -127,6 +127,7 @@ export class Registry {
   matches: PeerMatch[] = [];
   partnerId?: string;
   cohead?: CoheadExtras;
+  runSupport?: RunSupport | null;
   add(list: Entity[]) { for (const e of list) this.entities.set(e.id, e); return list; }
   warn(msg: string) { if (!this.warnings.includes(msg)) this.warnings.push(msg); }
 }
@@ -248,7 +249,7 @@ export class Tools {
     const p = f.params;
     return {
       out: {
-        params_used: { max_drive_mi: p.maxDriveMi, max_drive_hours: p.maxDriveHours, max_shows_in_a_row: p.maxConsecutiveShows, radius_clause_mi: p.radiusMi, min_affinity: p.minAffinity },
+        params_used: { max_drive_mi: p.maxDriveMi, max_drive_hours: p.maxDriveHours, max_shows_in_a_row: p.maxConsecutiveShows, radius_clause_mi: p.radiusMi, min_affinity: p.minAffinity, holidays_off: p.holidaysOff === 1 },
         off_days_before: f.offBefore, off_days_after: f.offAfter, max_daily_drive_mi: f.maxDayDrive, max_daily_drive_hours: f.maxDayHours, total_mi: f.totalMi, total_hours: f.totalHours,
         longest_run: f.longestRun, road_data: this.road.source,
         gaps: f.gaps.map((g) => ({ from: g.from, to: g.to, direct_mi: g.directMi, direct_hours: g.directHours, feasible: g.feasible, note: g.note, filled: g.filled, off_days: g.offDays,
@@ -267,7 +268,7 @@ export class Tools {
     if (bad) return fail(bad);
     const c = findCity(cityName);
     if (!c) return fail(`Unknown city "${cityName}".`);
-    const pop = this.reg.artist?.popularity;
+    const ceiling = this.openerCeiling();
     // A bare city name ("Washington", "Richmond") can resolve to a same-named place in another state or country,
     // so always name the state.
     const where = c.name.includes(",") ? c.name : `${c.name}, ${c.state}`;
@@ -275,8 +276,8 @@ export class Tools {
     // Camden County live, which widened the area. A radius is the same size in every city.
     const area = { "filter.location": pointWkt(c), "filter.location.radius": VENUE_RADIUS_M };
     const parts = [
-      // Support act: taste-adjacent, local, and no bigger than the artist (popularity ceiling).
-      ["support acts", "urn:entity:artist", { "filter.type": "urn:entity:artist", "signal.interests.entities": artist_id, "signal.location.query": where, "filter.exclude.entities": artist_id, "filter.popularity.max": pop, take: 3 }],
+      // Support act: taste-adjacent, local, and smaller than the artist (opener popularity ceiling).
+      ["support acts", "urn:entity:artist", { "filter.type": "urn:entity:artist", "signal.interests.entities": artist_id, "signal.location.query": where, "filter.exclude.entities": artist_id, "filter.popularity.max": ceiling, take: 3 }],
       ["rooms", "urn:entity:place", { "filter.type": "urn:entity:place", "signal.interests.entities": artist_id, ...area, "filter.tags": VENUE_TAGS.join(","), take: VENUE_FETCH }],
       ["brands", "urn:entity:brand", { "filter.type": "urn:entity:brand", "signal.interests.entities": artist_id, "signal.location.query": where, take: 2 }],
       ["podcasts", "urn:entity:podcast", { "filter.type": "urn:entity:podcast", "signal.interests.entities": artist_id, "signal.location.query": where, take: 2 }],
@@ -376,6 +377,49 @@ export class Tools {
       },
       summary: `→ best complement: ${top.entity.name} (+${top.youGain.length} cities for you, +${top.theyGain.length} for them)`,
     };
+  }
+
+  /** Popularity an opener must stay under: the headliner's minus openerPopularityGap (undefined if unknown). */
+  private openerCeiling(): number | undefined {
+    const pop = this.reg.artist?.popularity;
+    return pop === undefined ? undefined : Math.max(0, +(pop - RULE_VALUES.openerPopularityGap).toFixed(3));
+  }
+
+  // ---------- Run-wide support act (code-driven, after every filled city has intel) ----------
+  /**
+   * One opener for the whole run. Candidates: Qloo's national taste matches for the headliner under the opener
+   * popularity ceiling (one call), plus every city's local support matches. Ranked by how many filled cities list the
+   * act locally, then by national fit, then by mean local fit. Shared taste comes from one compare call.
+   */
+  async runSupport(artistId: string, cities: string[]): Promise<{ pick?: RunSupport; summary: string }> {
+    const head = this.reg.artist;
+    const ceiling = this.openerCeiling();
+    type C = { e: Entity; stops: string[]; local: number[]; national?: number };
+    const cand = new Map<string, C>();
+    const get = (e: Entity) => { let c = cand.get(e.id); if (!c) { c = { e, stops: [], local: [] }; cand.set(e.id, c); } return c; };
+    try {
+      const raw = await this.q.insights({ "filter.type": "urn:entity:artist", "signal.interests.entities": artistId, "filter.exclude.entities": artistId, "filter.popularity.max": ceiling, take: 10 });
+      for (const e of this.reg.add(raw.map((r) => normalize(r, "urn:entity:artist")))) get(e).national = e.affinity;
+    } catch (e) { this.soft(e, "National support matches"); }
+    for (const city of cities) {
+      for (const e of this.reg.intel.get(city.toLowerCase())?.support ?? []) { const c = get(e); if (!c.stops.includes(city)) { c.stops.push(city); if (e.affinity !== undefined) c.local.push(e.affinity); } }
+    }
+    const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : -1);
+    const ranked = [...cand.values()]
+      .filter((c) => c.e.id !== artistId && (ceiling === undefined || c.e.popularity === undefined || c.e.popularity <= ceiling))
+      .sort((a, b) => b.stops.length - a.stops.length || (b.national ?? -1) - (a.national ?? -1) || mean(b.local) - mean(a.local));
+    const top = ranked[0];
+    if (!top) { this.reg.runSupport = null; return { summary: "→ no Qloo act under the opener popularity ceiling" }; }
+    const shared = await this.q.compare(artistId, top.e.id).then((t) => sharedTaste(t, 4), (e: unknown) => { this.soft(e, "Support act shared taste"); return []; });
+    const p2 = (x?: number) => (x === undefined ? "?" : x.toFixed(2));
+    const why = [
+      top.stops.length ? `Qloo lists ${top.e.name} as a local support match in ${top.stops.length} of ${cities.length} filled cities (${top.stops.join(", ")}).` : `No single act is a local match in several cities, so this is Qloo's top national taste match for ${head?.name ?? "the headliner"}'s audience.`,
+      top.national !== undefined ? `Fit to ${head?.name ?? "the headliner"}'s audience nationally: ${p2(top.national)}.` : "",
+      top.e.popularity !== undefined && head?.popularity !== undefined ? `Qloo popularity ${p2(top.e.popularity)} vs ${p2(head.popularity)} for ${head.name}, so it reads as an opener.` : "",
+    ].filter(Boolean).join(" ");
+    const pick: RunSupport = { entity: top.e, stops: top.stops, fills: cities.length, national: top.national, ceiling, shared, why };
+    this.reg.runSupport = pick;
+    return { pick, summary: `→ run-wide support: ${top.e.name} (local match in ${top.stops.length}/${cities.length} cities)` };
   }
 
   // ---------- Co-headliner extras (code-driven, after compare_fan_geography) ----------

@@ -93,6 +93,7 @@ rooms. The count is shown as context and **does not feed the score**.
 | `dowWeights` | Sun 0.7, Mon 0.55, Tue 0.65, Wed 0.75, Thu 0.9, Fri 1.0, Sat 1.0 | Assumption (adjustable) | The direction is supported: weekend performances sell more ([Tseng 2009](http://hdl.handle.net/1903/9683), ticket data across 42 US markets for a touring family show), and Saturday is strongly preferred ([*Arts and the Market* 2018](https://doi.org/10.1108/aam-12-2017-0027)). No public dataset gives club-show weights by night, so the exact values are Fanpoint's. |
 | `nightFloor` | 0.45 | Assumption (adjustable) | A night is filled only if Qloo heat × night weight is above this value. Not retuned on 2026-10-21. With the 0.94 floor it no longer refuses a night by itself (0.94 × 0.55 > 0.45); see "Live calibration". |
 | `minAffinity` | **0.94** (was 0.6) | Assumption (adjustable), live-calibrated | Cities with Qloo heat below this aren't considered. Set as the 60th percentile of live corridor city reads, so it keeps the top 40% as 0.6 was meant to. See "Live calibration". |
+| `holidaysOff` | on (1) | Assumption (adjustable) | Thanksgiving Day (4th Thursday of November), Dec 24 and Dec 25 are never filled; the calendar marks them "holiday". New Year's Eve is not blocked (a big show night). Anchors on these dates are kept. Fanpoint's default, no source. |
 | `spacingMi` | 50 mi | Assumption | Minimum distance between two consecutive fills, so they don't split one market's audience. |
 | `progressMi` | 25 mi | Assumption | Turns "route in one direction, don't zig-zag" ([Roadi](https://go-roadi.com/resources/learn/tour-routing)) into a number: each stop must be at least this much closer to the next anchor. |
 | `departMi` | 10 mi | Assumption | The same rule from the other side: each stop must be at least this much further from the previous anchor. |
@@ -102,6 +103,7 @@ rooms. The count is shown as context and **does not feed the score**.
 | `nationalReadRadiusMi` | **15 mi** (new; was the shared 25) | Assumption, live-calibrated | Lower-48 heatmaps (co-headliner, coarser grid): the same read. This is the smallest tested radius that reads at least 98% of markets. |
 | `strongThreshold` | **0.95** (was 0.75) | Assumption, live-calibrated | Co-headline: Qloo heat at or above this counts as a "strong city". Set as the 75th percentile of live lower-48 city reads (an act's top quarter). |
 | `weakThreshold` | **0.91** (was 0.6) | Assumption, live-calibrated | Co-headline: Qloo heat below this counts as a "weak city". Set as the 60th percentile of live lower-48 city reads. |
+| `openerPopularityGap` | 0.02 | Assumption | The run-wide support act must be at least this much below the headliner's Qloo popularity, so it reads as an opener, not a peer. |
 | `peerPopularityBand` | ±0.15 | Assumption | Co-headline peers must be within this band of the artist's Qloo popularity. |
 | `coheadAsymmetryPenalty` | 0.5 | Assumption | The complementarity score loses this much per city of imbalance between the two sides. |
 | `coheadOverlapPenalty` | 0.25 | Assumption | The complementarity score loses this much per strong city the two acts share. |

@@ -1,4 +1,5 @@
 /** RFC 5545 calendar export of a fill plan: anchors, fills and off/travel days as all-day events. Client-safe. */
+import { cityLabel } from "@/lib/route/city-label";
 import type { FillPlan } from "@/lib/agent/types";
 
 /** TEXT escaping (RFC 5545 3.3.11). */
@@ -27,7 +28,7 @@ export function planToIcs(q: FillPlan, stamp: Date = new Date()): string {
   const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Fanpoint//Tour plan//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", `X-WR-CALNAME:${icsEscape(`${artist} tour (Fanpoint)`)}`];
   let lastCity = q.anchors[0]?.city;
   for (const d of q.result.calendar) {
-    const city = d.city ? `${d.city}${d.region ? `, ${d.region}` : ""}` : undefined;
+    const city = d.city ? cityLabel(d.city, d.region) : undefined;
     const drive = d.driveMi !== undefined ? `Drive from ${lastCity ?? "previous stop"}: ${d.driveMi} road mi${d.driveHours !== undefined ? `, ${d.driveHours} h` : ""}.` : "";
     let summary: string, desc: string;
     if (d.kind === "anchor") { summary = `${artist}: ${city}${d.label ? ` (${d.label})` : ""}`; desc = ["Confirmed show (anchor).", drive].filter(Boolean).join("\n"); }

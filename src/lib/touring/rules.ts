@@ -72,6 +72,16 @@ export const RULES = {
     why: `Candidates below this Qloo heat value are not considered. Was 0.6, written for city reads spread like percentiles (keep the top 40%). ${LIVE_2026_10_21} 0.94 is set as the 60th percentile of live corridor city reads at the 5 mi read radius, so the floor keeps the same top 40% it was designed to keep.`,
     sources: [QLOO_HEATMAPS],
   },
+  holidaysOff: {
+    value: 1, unit: "1 = keep off, 0 = allow", label: "Keep major travel holidays off", kind: "assumption", adjustable: true,
+    why: "Thanksgiving Day (4th Thursday of November), Christmas Eve and Christmas Day stay off by default: crews travel home, venues close or go dark, and turnout is unreliable. New Year's Eve is not blocked: it is one of the biggest show nights of the year. Fanpoint's default, not a sourced rule; anchors you confirm on these dates are kept.",
+    sources: [],
+  },
+  openerPopularityGap: {
+    value: 0.02, unit: "Qloo popularity (0-1)", label: "Run-wide support act: at least this much less popular than the headliner", kind: "assumption", adjustable: false,
+    why: "So the support act reads as an opener, not a peer. Qloo popularity is percentile-like (well-known indie acts sit near 0.99), so a small gap already means a clearly smaller act. Fanpoint's judgement.",
+    sources: [],
+  },
   spacingMi: {
     value: 50, unit: "mi (straight line)", label: "Min spacing between consecutive fills", kind: "assumption", adjustable: false,
     why: "Keeps two consecutive fills from splitting one market's audience.",
