@@ -45,7 +45,7 @@ describe("parseHeatmap (documented shape, synthetic values)", () => {
 });
 
 describe("parseInsights (documented shape, synthetic values)", () => {
-  it("parses the documented entity and ignores fields Routed doesn't use", () => {
+  it("parses the documented entity and ignores fields Fanpoint doesn't use", () => {
     const p = parseInsights(insightsDoc);
     expect(p.items).toHaveLength(1);
     const e = normalize(p.items[0]!);

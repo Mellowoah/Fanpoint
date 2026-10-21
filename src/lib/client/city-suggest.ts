@@ -1,4 +1,4 @@
-/** City autocomplete over Routed's own market list (no external source). Client-safe. */
+/** City autocomplete over Fanpoint's own market list (no external source). Client-safe. */
 import { MARKETS, type Market } from "../data/markets";
 
 /** "Durham, NC": the market name plus its state, unless the name already carries one. */

@@ -1,5 +1,5 @@
 /**
- * Routed's market universe, built offline by scripts/data/build_markets.py from U.S. Census Bureau files (OMB metro
+ * Fanpoint's market universe, built offline by scripts/data/build_markets.py from U.S. Census Bureau files (OMB metro
  * delineation, Vintage 2025 population estimates, 2025 Gazetteer) and OpenStreetMap venue counts. See docs/SOURCES.md.
  * Client-safe (the form's city picker uses it). The road matrix is separate and server-only (route/road.ts).
  */

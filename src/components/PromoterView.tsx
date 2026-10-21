@@ -24,7 +24,7 @@ export default function PromoterView({ onPlan, live, onSources }: { onPlan: (art
       const r = await fetch(`/api/promoter?city=${encodeURIComponent(city)}${genre.trim() ? `&genre=${encodeURIComponent(genre.trim())}` : ""}`);
       const b = (await r.json()) as PromoterResponse;
       setRes(b); if (!r.ok || b.error) setErr(b.error ?? "Qloo is unavailable right now.");
-    } catch { setErr("Couldn't reach Routed. Check your connection and try again."); setRes(null); }
+    } catch { setErr("Couldn't reach Fanpoint. Check your connection and try again."); setRes(null); }
     setBusy(false);
   }
 
@@ -54,7 +54,7 @@ export default function PromoterView({ onPlan, live, onSources }: { onPlan: (art
         {!res && !err && (
           <div className="card card-pad grid gap-2 text-sm text-plain">
             <div className="font-semibold text-foreground">Who should you book in {city || "your city"}?</div>
-            <div>Routed asks Qloo which artists&apos; fans have the strongest affinity for the city, then lets you hand any of them to the routing desk. {live ? "Real acts, live Qloo data." : "Fictional demo acts (mock mode)."} <button onClick={onSources} className="underline underline-offset-2 hover:text-foreground">Sources</button></div>
+            <div>Fanpoint asks Qloo which artists&apos; fans have the strongest affinity for the city, then lets you hand any of them to the routing desk. {live ? "Real acts, live Qloo data." : "Fictional demo acts (mock mode)."} <button onClick={onSources} className="underline underline-offset-2 hover:text-foreground">Sources</button></div>
           </div>
         )}
         {res && res.acts.length > 0 && (
@@ -80,7 +80,7 @@ export default function PromoterView({ onPlan, live, onSources }: { onPlan: (art
                 </li>
               ))}
             </ol>
-            <div className="px-4 py-2.5 border-t border-line text-[11px] text-plain">Order and scores are Qloo&apos;s; Routed only removes duplicates. Scores often sit close to 1, so the rank carries more information than the two decimals.</div>
+            <div className="px-4 py-2.5 border-t border-line text-[11px] text-plain">Order and scores are Qloo&apos;s; Fanpoint only removes duplicates. Scores often sit close to 1, so the rank carries more information than the two decimals.</div>
           </div>
         )}
         {res && !res.acts.length && !err && <div className="card card-pad text-sm text-plain">Qloo returned no acts for {res.city}{res.genre?.name ? ` with ${res.genre.name}` : ""}.</div>}

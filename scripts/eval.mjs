@@ -1,4 +1,4 @@
-// Fill-the-gaps eval: Routed + Qloo vs Plain AI on the same anchors, for several artists.
+// Fill-the-gaps eval: Fanpoint + Qloo vs Plain AI on the same anchors, for several artists.
 // Usage: BASE_URL=http://localhost:3000 node scripts/eval.mjs "Artist A" "Artist B" ...
 // Anchors default to the UI demo routing (New York Nov 13 -> Durham Nov 21 -> Atlanta Nov 28); override with ANCHORS='[{"city":..,"date":..}]'.
 // Plain-AI cities are scored with the SAME Qloo corridor reads from the Qloo run. Run with LIVE keys for numbers you can publish.

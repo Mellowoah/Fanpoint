@@ -10,7 +10,7 @@ export function toErrorEvent(e: unknown): ErrorEvent {
     return { type: "error", code: e.code, provider: e.provider, message: e.userMessage, retryable: e.retryable || e.code === "rate_limited" };
   }
   console.error("[routed] internal error", e);
-  return { type: "error", code: "internal", message: "Something went wrong inside Routed. Try again; if it repeats, check the server log.", retryable: true };
+  return { type: "error", code: "internal", message: "Something went wrong inside Fanpoint. Try again; if it repeats, check the server log.", retryable: true };
 }
 
 export const agentError = (message: string, code: ErrorEvent["code"] = "agent", retryable = true): ErrorEvent => ({ type: "error", code, message, retryable });

@@ -4,7 +4,7 @@
  * docs.qloo.com/reference/parameters lists signal.location* for artists, while filter.location* is places and
  * destinations only). An optional genre is resolved with /v2/tags (urn:tag:genre:music) and applied as filter.tags.
  * Qloo's locality match is fuzzy, so the matched locality is checked against the chosen market; if it is more than
- * LOCALITY_MAX_MI away, Routed asks again with a WKT POINT at the market centre. Ranking is Qloo's order; Routed only
+ * LOCALITY_MAX_MI away, Fanpoint asks again with a WKT POINT at the market centre. Ranking is Qloo's order; Fanpoint only
  * drops duplicates and invalid records. Results are cached in memory; uncached live lookups are rate limited.
  */
 import "server-only";

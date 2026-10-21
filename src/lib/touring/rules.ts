@@ -1,10 +1,10 @@
 /**
- * Every number that shapes a Routed recommendation, in one place, each with its provenance.
+ * Every number that shapes a Fanpoint recommendation, in one place, each with its provenance.
  *
  * kind:
  *   "sourced"     the default comes from a cited source (still adjustable where marked);
- *   "adapted"     a cited source exists for a neighbouring context (e.g. theatre tours); Routed applies it to club tours;
- *   "assumption"  no solid source; Routed's adjustable default, labelled as such in the UI;
+ *   "adapted"     a cited source exists for a neighbouring context (e.g. theatre tours); Fanpoint applies it to club tours;
+ *   "assumption"  no solid source; Fanpoint's adjustable default, labelled as such in the UI;
  *   "internal"    an implementation detail that only breaks ties or bounds work; it doesn't express a touring fact.
  *
  * docs/SOURCES.md has one entry per key (a test enforces this). The UI's "Sources & methodology" panel renders this
@@ -49,7 +49,7 @@ export const RULES = {
   },
   maxConsecutiveShows: {
     value: 6, unit: "shows", label: "Max shows in a row before a day off", kind: "adapted", adjustable: true,
-    why: "The AFM's touring agreement for theatrical musicals requires one day off each week, i.e. at most 6 show days in 7. Club tours aren't bound by it; Routed uses it as a default.",
+    why: "The AFM's touring agreement for theatrical musicals requires one day off each week, i.e. at most 6 show days in 7. Club tours aren't bound by it; Fanpoint uses it as a default.",
     sources: [AFM, ROADI],
   },
   radiusMi: {
@@ -59,7 +59,7 @@ export const RULES = {
   },
   dowWeights: {
     value: [0.7, 0.55, 0.65, 0.75, 0.9, 1.0, 1.0] as const, unit: "Sun..Sat, 0-1", label: "Night-of-week demand weights", kind: "assumption", adjustable: true,
-    why: "Research supports the direction (weekend nights draw more), but no public dataset gives club-show weights by night, so the exact values are Routed's.",
+    why: "Research supports the direction (weekend nights draw more), but no public dataset gives club-show weights by night, so the exact values are Fanpoint's.",
     sources: [TSENG, AAM],
   },
   nightFloor: {
@@ -129,12 +129,12 @@ export const RULES = {
   },
   coheadAsymmetryPenalty: {
     value: 0.5, unit: "per city of imbalance", label: "Co-headline: penalty for one-sided deals", kind: "assumption", adjustable: false,
-    why: "A co-bill needs both agents to say yes, so a deal where only one act gains is worth less. The weight is Routed's judgement; it changes ordering only when two pairs have similar total gains.",
+    why: "A co-bill needs both agents to say yes, so a deal where only one act gains is worth less. The weight is Fanpoint's judgement; it changes ordering only when two pairs have similar total gains.",
     sources: [],
   },
   coheadOverlapPenalty: {
     value: 0.25, unit: "per shared strong city", label: "Co-headline: penalty for shared strongholds", kind: "assumption", adjustable: false,
-    why: "Cities where both acts are already strong add little new audience. The weight is Routed's judgement.",
+    why: "Cities where both acts are already strong add little new audience. The weight is Fanpoint's judgement.",
     sources: [],
   },
 } as const satisfies Record<string, Rule>;

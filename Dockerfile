@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
-# Production image for Routed: Next.js standalone output, non-root, with a healthcheck.
-# Build:  docker build -t routed .
-# Run:    docker run -p 3000:3000 routed            (mock mode, no keys needed)
-#         docker run -p 3000:3000 -e QLOO_API_KEY=... -e LLM_API_KEY=... routed
+# Production image for Fanpoint: Next.js standalone output, non-root, with a healthcheck.
+# Build:  docker build -t fanpoint .
+# Run:    docker run -p 3000:3000 fanpoint            (mock mode, no keys needed)
+#         docker run -p 3000:3000 -e QLOO_API_KEY=... -e LLM_API_KEY=... fanpoint
 # Keys are read at request time (src/lib/config.ts). Never pass them as build args: they would end up in image layers.
 
 ARG NODE_VERSION=22

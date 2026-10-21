@@ -1,4 +1,4 @@
-# Render Blueprint for Routed (https://render.com/docs/blueprint-spec).
+# Render Blueprint for Fanpoint (https://render.com/docs/blueprint-spec).
 # One Docker web service. `plan: free` is set on purpose: Render's default for a new web service is the paid
 # 0.5c-512mb plan. To keep it awake for judging, change the plan to 0.5c-512mb in the dashboard (see docs/DEPLOY.md).
 services:

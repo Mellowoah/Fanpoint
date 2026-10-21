@@ -76,7 +76,7 @@ export interface CoheadPlan {
 }
 export type AnyPlan = FillPlan | PlainFillPlan | CoheadPlan;
 
-/** Errors the UI can show. Provider codes come from ProviderError; the rest are Routed's own. */
+/** Errors the UI can show. Provider codes come from ProviderError; the rest are Fanpoint's own. */
 export type RunErrorCode = ErrorCode | "invalid_request" | "agent" | "incomplete" | "internal";
 
 export type AgentEvent =

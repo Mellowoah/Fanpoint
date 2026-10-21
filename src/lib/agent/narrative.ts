@@ -1,6 +1,6 @@
 /**
  * The model may explain; it may not invent numbers. Every number in model-written text (summary, per-stop note,
- * co-headline pitch, promo angle) must match a number Routed computed or read from a source, within rounding.
+ * co-headline pitch, promo angle) must match a number Fanpoint computed or read from a source, within rounding.
  * Text that fails is replaced (the deterministic explanation is always shown anyway) and the run carries a warning.
  *
  * Limits, on purpose: numbers written as words ("two") aren't parsed, and qualitative claims aren't checked; the UI

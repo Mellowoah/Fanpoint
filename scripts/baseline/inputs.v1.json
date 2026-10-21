@@ -3,7 +3,7 @@
  "frozen": "2026-10-19",
  "about": "Fixed input set for mock-vs-live baselines. Do not edit in place: copy to inputs.v2.json and bump `version`, or old baselines stop being comparable.",
  "assumptions": [
-  "The 10 artists are real mid-size touring acts picked by Routed (no source: chosen for genre and region spread). Swap them before the first live run if Mellow prefers others, and bump the version.",
+  "The 10 artists are real mid-size touring acts picked by Fanpoint (no source: chosen for genre and region spread). Swap them before the first live run if Mellow prefers others, and bump the version.",
   "Date sets are fictional but feasible under the default touring rules (350 mi and 7.5 h per day). Qloo heatmaps don't depend on dates; the dates only shape the schedule."
  ],
  "defaults": {

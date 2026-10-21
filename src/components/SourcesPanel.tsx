@@ -37,7 +37,7 @@ export default function SourcesPanel({ onClose }: { onClose?: () => void }) {
       <div className="flex justify-between items-start gap-3">
         <div>
           <h2 className="text-xl font-semibold">Sources &amp; methodology</h2>
-          <p className="text-plain max-w-3xl mt-1">Routed&apos;s decisions are made in code from the data below. The LLM picks which tool to call next and writes plain-language notes; any number in its text must match the data or the text is dropped. Every rule has a status: <b>sourced</b> (default taken from a cited source), <b>adapted</b> (cited for a neighbouring context), <b>assumption</b> (Routed&apos;s default, no solid source: adjust it), or <b>implementation detail</b>.</p>
+          <p className="text-plain max-w-3xl mt-1">Fanpoint&apos;s decisions are made in code from the data below. The LLM picks which tool to call next and writes plain-language notes; any number in its text must match the data or the text is dropped. Every rule has a status: <b>sourced</b> (default taken from a cited source), <b>adapted</b> (cited for a neighbouring context), <b>assumption</b> (Fanpoint&apos;s default, no solid source: adjust it), or <b>implementation detail</b>.</p>
         </div>
         {onClose && <button onClick={onClose} className="btn btn-secondary btn-sm">Close</button>}
       </div>

@@ -11,7 +11,7 @@ async function App() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 text-sm text-plain">Loading Routed…</div>}>
+    <Suspense fallback={<div className="p-10 text-sm text-plain">Loading Fanpoint…</div>}>
       <App />
     </Suspense>
   );

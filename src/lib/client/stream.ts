@@ -71,10 +71,10 @@ export async function streamPlan(body: object, onEvent: (e: AgentEvent) => void,
       lines.forEach(take);
     }
     take(buf + dec.decode());
-    if (!terminal) emit(err("incomplete", bad ? "The server sent data Routed could not read, and no plan arrived. Try again." : "The connection closed before a plan arrived. Try again."));
+    if (!terminal) emit(err("incomplete", bad ? "The server sent data Fanpoint could not read, and no plan arrived. Try again." : "The connection closed before a plan arrived. Try again."));
   } catch {
     if (opts.signal?.aborted) return; // the user cancelled: not an error
-    emit(ctrl.signal.aborted ? err("timeout", "No plan after 3 minutes; the request was stopped. Try again.") : err("network", "Could not reach the Routed server. Check your connection and try again."));
+    emit(ctrl.signal.aborted ? err("timeout", "No plan after 3 minutes; the request was stopped. Try again.") : err("network", "Could not reach the Fanpoint server. Check your connection and try again."));
   } finally {
     clearTimeout(timer);
   }

@@ -6,7 +6,7 @@
  *   - optional fields that come back in an unexpected type are treated as absent (`.catch(undefined)`).
  * Tolerances copied in spirit (not code) from Qloo's own harness client (@qloo/qloo-harness 0.1.26, MIT), which
  * reads every list as `results` (array) or `results.<key>`, entity ids as `entity_id` or `id`, and tag types as
- * `type` or `subtype`. Routed accepts the same variants so a live shape difference degrades nothing.
+ * `type` or `subtype`. Fanpoint accepts the same variants so a live shape difference degrades nothing.
  */
 import { z } from "zod";
 import { ProviderError } from "../net/errors";
@@ -40,7 +40,7 @@ export const RawEntitySchema = z.preprocess(withEntityId, z.object({
   }).optional().catch(undefined),
   tags: z.array(RawTagSchema).optional().catch(undefined),
   query: z.object({ affinity: optNum }).optional().catch(undefined),
-  /** Present only on Routed's mock fixtures. */
+  /** Present only on Fanpoint's mock fixtures. */
   _mock: z.literal(true).optional().catch(undefined),
 }));
 export type QlooRawEntity = z.infer<typeof RawEntitySchema>;

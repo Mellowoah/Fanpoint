@@ -13,8 +13,8 @@ export type ErrorCode =
   | "upstream" // 5xx after all retries
   | "network" // DNS/connection failure after all retries
   | "invalid_response" // 2xx but the body is not the documented shape
-  | "budget" // Routed's own per-run call cap was reached (protects the monthly quota)
-  | "config"; // Routed is misconfigured (e.g. an untrusted base URL); no request was sent
+  | "budget" // Fanpoint's own per-run call cap was reached (protects the monthly quota)
+  | "config"; // Fanpoint is misconfigured (e.g. an untrusted base URL); no request was sent
 
 const RETRYABLE: ReadonlySet<ErrorCode> = new Set(["timeout", "rate_limited", "upstream", "network"]);
 /** Codes after which continuing the run is pointless (every later call would fail the same way). */
@@ -52,14 +52,14 @@ export function userMessage(provider: Provider, code: ErrorCode, status?: number
       ? `Qloo refused this request type (HTTP ${status ?? 403}); hackathon keys answer 403 for entity types that are not enabled. That part of the plan was skipped.`
       : `The language model refused the request (HTTP ${status ?? 403}).`;
     case "not_found": return `${who} returned "not found" (HTTP 404).`;
-    case "bad_request": return `${who} rejected the request (HTTP ${status ?? "4xx"}). This is a bug in Routed's request; please report it.`;
+    case "bad_request": return `${who} rejected the request (HTTP ${status ?? "4xx"}). This is a bug in Fanpoint's request; please report it.`;
     case "upstream": return `${who} had a server error (HTTP ${status ?? "5xx"})${tries}. Try again shortly.`;
     case "network": return `Could not reach ${who}${tries}. Check the network or base URL.`;
     case "invalid_response": return `${who} returned data in an unexpected format, so it was not used.`;
-    case "budget": return `This run hit Routed's safety cap on ${who} calls (protects the monthly quota). Try fewer anchors or peers.`;
+    case "budget": return `This run hit Fanpoint's safety cap on ${who} calls (protects the monthly quota). Try fewer anchors or peers.`;
     case "config": return provider === "qloo"
-      ? "Routed's Qloo settings are invalid (QLOO_BASE_URL must be an https Qloo host, or exactly match QLOO_TRUSTED_BASE_URL). No request was sent."
-      : "Routed's language-model settings are invalid (LLM_BASE_URL must be an https Gemini or OpenAI host, or exactly match LLM_TRUSTED_BASE_URL). No request was sent.";
+      ? "Fanpoint's Qloo settings are invalid (QLOO_BASE_URL must be an https Qloo host, or exactly match QLOO_TRUSTED_BASE_URL). No request was sent."
+      : "Fanpoint's language-model settings are invalid (LLM_BASE_URL must be an https Gemini or OpenAI host, or exactly match LLM_TRUSTED_BASE_URL). No request was sent.";
   }
 }
 

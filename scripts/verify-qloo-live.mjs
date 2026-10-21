@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Live Qloo shape check: calls each endpoint Routed uses and validates the response against src/lib/qloo/schemas.ts.
+// Live Qloo shape check: calls each endpoint Fanpoint uses and validates the response against src/lib/qloo/schemas.ts.
 // Prints SHAPES ONLY (status, envelope keys, item counts, per-field types, numeric ranges), never response values or
 // the key. The key comes from the environment (QLOO_API_KEY) and goes only into the X-Api-Key header.
 //

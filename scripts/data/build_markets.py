@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build Routed's market universe and road-distance matrix from free, open sources. Run once, offline, and commit
+Build Fanpoint's market universe and road-distance matrix from free, open sources. Run once, offline, and commit
 the outputs (src/lib/data/markets.json, src/lib/data/road-matrix.json). The app never calls these services at
 runtime.
 
@@ -31,7 +31,7 @@ import hashlib, base64, csv, datetime as dt, io, json, os, struct, sys, time, ur
 MIN_METRO_POP = 200_000
 VENUE_RADIUS_M = 16_093  # 10 miles
 EXCLUDED_STATES = {"02", "15", "72"}  # Alaska, Hawaii, Puerto Rico: not reachable by road from the lower 48
-UA = "Routed/0.1 (hackathon prototype; one-off offline data build; https://github.com/)"
+UA = "Fanpoint/0.1 (hackathon prototype; one-off offline data build; https://github.com/)"
 URLS = {
     "principal_cities": "https://www2.census.gov/programs-surveys/metro-micro/geographies/reference-files/2023/delineation-files/list2_2023.xlsx",
     "cbsa_pop": "https://www2.census.gov/programs-surveys/popest/datasets/2020-2025/metro/totals/cbsa-est2025-alldata.csv",

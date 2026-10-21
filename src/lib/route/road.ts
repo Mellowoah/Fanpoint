@@ -1,5 +1,5 @@
 /**
- * Real road distances and drive times between every pair of Routed markets, precomputed once with OSRM (car
+ * Real road distances and drive times between every pair of Fanpoint markets, precomputed once with OSRM (car
  * profile) on OpenStreetMap data by scripts/data/build_markets.py and committed as road-matrix.json. No routing
  * service is called at runtime (the public OSRM demo server is for light, non-commercial use only).
  * See docs/SOURCES.md for licenses and for self-hosting OSRM to refresh or extend the matrix.
@@ -8,7 +8,7 @@ import raw from "../data/road-matrix.json";
 import type { LatLon } from "./geo";
 
 export interface Leg { mi: number; hours: number }
-/** A place the router can resolve: Routed markets carry an `id`. */
+/** A place the router can resolve: Fanpoint markets carry an `id`. */
 export type RoutePoint = LatLon & { id?: string };
 /** Road leg between two points, or undefined when there is no known route. */
 export type RoadFn = (a: RoutePoint, b: RoutePoint) => Leg | undefined;

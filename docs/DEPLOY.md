@@ -1,6 +1,8 @@
-# Deploying Routed (always-on, Docker)
+# Deploying Fanpoint (always-on, Docker)
 
-Routed runs as **one long-running Node server** in a Docker container. It is not built for a serverless host. Qloo's hackathon kit says serverless functions are not a supported route (README, "Qloo hackathon kit"). The rate limiter and the 6 h cache are also per process, and they only work if the process stays up.
+> **Name note.** The product is now called Fanpoint, but `render.yaml` keeps the service `name: routed` on purpose: renaming it would make Render create a second service. The live URL stays https://routed-kt93.onrender.com for now.
+
+Fanpoint runs as **one long-running Node server** in a Docker container. It is not built for a serverless host. Qloo's hackathon kit says serverless functions are not a supported route (README, "Qloo hackathon kit"). The rate limiter and the 6 h cache are also per process, and they only work if the process stays up.
 
 What's in the repo:
 
@@ -87,7 +89,7 @@ Keys are read at request time (`src/lib/config.ts`), so a key change only needs 
 
 `npm run baseline` runs a fixed input set (default `scripts/baseline/inputs.v2.json`: 21 fill runs and 7 co-headliner runs = 28 inputs; v1 is the same set with the heat floor pinned at 0.6) against a running server, With and Without Qloo. It records the hard-filter drops and their reasons, both ranked lists per leg (affinity, population, venues, OSRM miles and hours from A and to B), the chosen fills and their "Why this stop" inputs, the co-headliner rankings with complementarity, every rule value, every Qloo request (endpoint, params, status, a sha256 prefix of the response; **no response bodies**), the git commit, hashes of the data files, a timestamp and the mode. Output goes to the gitignored `baselines/<mode>-<date>/` as `baseline.json` plus `summary.md`.
 
-Reference runs: `baselines/mock-2026-10-19/` (v1, before the calibration), `baselines/live-2026-10-21/` (v1, live, before), `baselines/live-2026-10-21-calibrated/` and `baselines/mock-2026-10-21-calibrated/` (v2, after). The first mock reference is `baselines/mock-2026-10-19/`. Don't commit live baselines: they hold Routed's per-city scores derived from Qloo, and Qloo's FAQ says not to store response data in a public repo.
+Reference runs: `baselines/mock-2026-10-19/` (v1, before the calibration), `baselines/live-2026-10-21/` (v1, live, before), `baselines/live-2026-10-21-calibrated/` and `baselines/mock-2026-10-21-calibrated/` (v2, after). The first mock reference is `baselines/mock-2026-10-19/`. Don't commit live baselines: they hold Fanpoint's per-city scores derived from Qloo, and Qloo's FAQ says not to store response data in a public repo.
 
 ```bash
 npm run build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
@@ -108,7 +110,7 @@ read -rs LLM_API_KEY && export LLM_API_KEY     # Google AI Studio key; never ech
 npm run verify:llm                              # tool-call round trip, JSON mode, number guard (prints booleans only)
 PORT=3300 node .next/standalone/server.js &     # both keys set
 curl -s localhost:3300/api/health               # "qloo":"live","llm":"live"
-BASE_URL=http://localhost:3300 npm run eval -- "Act A" "Act B" …   # real Plain AI vs Routed + Qloo
+BASE_URL=http://localhost:3300 npm run eval -- "Act A" "Act B" …   # real Plain AI vs Fanpoint + Qloo
 OUT=screens-live BASE_URL=http://localhost:3300 npm run screens   # live captures, gitignored
 ```
 
@@ -130,8 +132,8 @@ After changing a threshold, rebuild, restart the live server and run `npm run ba
 ## Local Docker check
 
 ```bash
-docker build -t routed .
-docker run --rm -p 3000:3000 routed                      # mock mode
+docker build -t fanpoint .
+docker run --rm -p 3000:3000 fanpoint                      # mock mode
 curl -s localhost:3000/api/health
 docker inspect --format '{{.State.Health.Status}}' <container>   # healthy after ~20 s
 ```
@@ -146,7 +148,7 @@ PORT=3000 HOSTNAME=0.0.0.0 node .next/standalone/server.js
 
 ## Public history
 
-The public repository (`github.com/Mellowoah/Routed`) starts from a fresh, squashed history authored as
+The public repository (`github.com/Mellowoah/Fanpoint`) starts from a fresh, squashed history authored as
 `Mellowoah <201105366+Mellowoah@users.noreply.github.com>`. It contains mock/sample data only: no live Qloo responses,
 live screenshots or live eval numbers (those stay in the gitignored `baselines/`, `screens-live/` and `docs-live/`).
 Before every push, check the branch you are pushing:

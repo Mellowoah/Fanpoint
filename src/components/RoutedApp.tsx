@@ -95,15 +95,15 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
       <ModeBanner modes={modes} />
       <nav className="sticky top-0 z-40 border-b border-line/80 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/65">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
-          <Link href="/" aria-label="Routed home" className="shrink-0">
+          <Link href="/" aria-label="Fanpoint home" className="shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element -- static SVG logo */}
-            <img src="/routed-logo.svg" alt="Routed" width={104} height={29} className="h-[26px] w-auto" />
+            <img src="/fanpoint-logo.svg" alt="Fanpoint" width={112} height={26} className="h-[26px] w-auto" />
           </Link>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             {role === "agent" && <a href="#how" className="btn btn-ghost btn-sm hidden md:inline-flex">How it works</a>}
             <button onClick={() => (sources ? setSources(false) : openSources())} aria-pressed={sources} className={`btn btn-ghost btn-sm hidden sm:inline-flex ${sources ? "!text-accent-text" : ""}`}>Sources</button>
             <ModePill modes={modes} />
-            <a href={GITHUB} target="_blank" rel="noreferrer" aria-label="Routed on GitHub" className="btn btn-ghost btn-sm !px-2"><GitHubIcon /></a>
+            <a href={GITHUB} target="_blank" rel="noreferrer" aria-label="Fanpoint on GitHub" className="btn btn-ghost btn-sm !px-2"><GitHubIcon /></a>
           </div>
         </div>
       </nav>
@@ -116,10 +116,10 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
           </a>
           {role === "agent" ? (<>
           <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Fill every off day <span className="text-accent">between your anchor dates.</span></h1>
-          <p className="text-[15px] sm:text-lg text-plain max-w-2xl leading-relaxed"><b className="text-foreground font-semibold">Routed is a decision tool for booking agents and promoters.</b> Enter the confirmed shows; get the gap cities where the act&apos;s fans are, with real road miles and drive hours that pass your touring rules.</p>
+          <p className="text-[15px] sm:text-lg text-plain max-w-2xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint is a decision tool for booking agents and promoters.</b> Indie artists don&apos;t book full tours. They book around the dates they land: a festival slot, a support date. Fanpoint fills the open days between confirmed shows with cities where the act&apos;s fans are, under real touring rules, and finds acts whose fans overlap to share the bill.</p>
           </>) : (<>
           <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Book the acts <span className="text-accent">your city already loves.</span></h1>
-          <p className="text-[15px] sm:text-lg text-plain max-w-2xl leading-relaxed"><b className="text-foreground font-semibold">Routed is a decision tool for booking agents and promoters.</b> Pick your city; get the artists whose fans Qloo ranks strongest there, then hand one to the routing desk.</p>
+          <p className="text-[15px] sm:text-lg text-plain max-w-2xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint is a decision tool for booking agents and promoters.</b> Promoters get the other side: the acts their city&apos;s fans love most. Pick your city; get the artists whose fans Qloo ranks strongest there, then hand one to the routing desk.</p>
           </>)}
           <div role="tablist" aria-label="Your role" className="seg justify-self-start mt-1">
             {([["agent", "I'm an agent"], ["promoter", "I'm a promoter"]] as [Role, string][]).map(([r, l]) => (
@@ -149,7 +149,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             {tab === "fill" ? <FillForm value={fill} onChange={setFill} onSubmit={() => runFill(fill)} busy={busy} onSources={openSources} mode={modes?.qloo} onReset={() => setFill(demoFill(modes?.qloo))} /> : (
               <form noValidate onSubmit={(e) => { e.preventDefault(); if (!co.artist.trim()) { setCoTried(true); return; } runCo(co); }} className="grid md:grid-cols-[1fr_1fr_auto] gap-4 items-start">
                 <ArtistInput id="co-artist" label="Your act" value={co.artist} onChange={(v) => setCo({ ...co, artist: v })} error={coTried && !co.artist.trim() ? "Enter your act's name." : undefined} placeholder="Search Qloo artists" />
-                <ArtistInput id="co-partner" label="Proposed co-headliner (optional)" value={co.partner} onChange={(v) => setCo({ ...co, partner: v })} hint="Leave empty and Routed scans peer acts." placeholder="Search Qloo artists" />
+                <ArtistInput id="co-partner" label="Proposed co-headliner (optional)" value={co.partner} onChange={(v) => setCo({ ...co, partner: v })} hint="Leave empty and Fanpoint scans peer acts." placeholder="Search Qloo artists" />
                 <div className="flex gap-2 md:pt-[22px]">
                   <button type="submit" disabled={busy} className="btn btn-primary px-6 py-[11px] w-full md:w-auto">{busy && <Spinner />}{busy ? "Comparing…" : "Match co-headliners"}</button>
                   <button type="button" disabled={busy} onClick={() => { setCoTried(false); setCo(demoCohead(modes?.qloo)); }} className="btn btn-ghost">Reset</button>
@@ -174,7 +174,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
               <QlooToggle value={rank} onChange={setRank} />
             </div>
             {!q && !qErr && <Progress events={qEv} />}
-            {qErr && <ErrorPanel error={qErr} context="Routed + Qloo" onRetry={busy ? undefined : () => runFill(fill)} />}
+            {qErr && <ErrorPanel error={qErr} context="Fanpoint + Qloo" onRetry={busy ? undefined : () => runFill(fill)} />}
             {q && <WarningList warnings={q.warnings} />}
             {q && <RankedLists ranked={q.ranked} mode={rank} picked={new Set(q.stops.map((x) => x.city))} />}
             {q && rank === "with" && <FillSummary q={q} />}
@@ -213,7 +213,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
                 const markers = pc.days.filter((d) => d.kind !== "off" && d.lat !== undefined).map((d) => ({ lat: d.lat!, lon: d.lon!, color: d.kind === "anchor" ? "#fff" : pc.flagged.has(d.date) ? "#ef4444" : PLAIN, label: d.kind === "anchor" ? `★ ${d.city}` : d.city, dir: (d.kind === "anchor" ? "left" : "right") as "left" | "right" }));
                 return (
                   <div className="grid gap-4">
-                    <div className="text-sm text-plain">{p.simulated && <span className="mr-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200">SIMULATED</span>}Baseline for comparison only: the same anchors given to an LLM with no tools, no Qloo and no rules, answering from general knowledge. Its picks are then audited in code with OSRM road data and Routed&apos;s touring rules; red = breaks a rule.</div>
+                    <div className="text-sm text-plain">{p.simulated && <span className="mr-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200">SIMULATED</span>}Baseline for comparison only: the same anchors given to an LLM with no tools, no Qloo and no rules, answering from general knowledge. Its picks are then audited in code with OSRM road data and Fanpoint&apos;s touring rules; red = breaks a rule.</div>
                     <FillCalendar days={pc.days} plain flagged={pc.flagged} />
                     <div className="grid lg:grid-cols-2 gap-4"><MapView paths={[{ pts, color: PLAIN, dash: "6 6" }]} markers={markers} fit={qMap?.fit} height={380} /><PlainAudit p={p} q={q} /></div>
                   </div>
@@ -223,7 +223,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
                 <div className="grid gap-4">
                   <FillCompare q={q} p={p} />
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2"><h3 className="text-sm font-semibold text-accent-text">Routed + Qloo</h3>{q && <FillCalendar days={q.result.calendar} />}</div>
+                    <div className="grid gap-2"><h3 className="text-sm font-semibold text-accent-text">Fanpoint + Qloo</h3>{q && <FillCalendar days={q.result.calendar} />}</div>
                     <div className="grid gap-2"><h3 className="text-sm font-semibold text-plain">Plain AI</h3>{p && (() => { const pc = plainCalendar(p, q); return <FillCalendar days={pc.days} plain flagged={pc.flagged} />; })()}</div>
                   </div>
                 </div>
@@ -247,7 +247,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid gap-6 md:grid-cols-[1fr_2fr] text-xs text-plain">
           <div className="grid gap-2 content-start">
             {/* eslint-disable-next-line @next/next/no-img-element -- static SVG logo */}
-            <img src="/routed-logo.svg" alt="Routed" width={90} height={25} className="h-[22px] w-auto justify-self-start" />
+            <img src="/fanpoint-logo.svg" alt="Fanpoint" width={95} height={22} className="h-[22px] w-auto justify-self-start" />
             <span>Tour routing from taste data. Built for the Qloo Agentic Hackathon.</span>
             <span className="flex gap-3"><a className="underline underline-offset-2 hover:text-foreground" href={GITHUB} target="_blank" rel="noreferrer">GitHub</a><button onClick={openSources} className="underline underline-offset-2 hover:text-foreground">Sources &amp; methodology</button></span>
           </div>
@@ -261,7 +261,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
   );
 }
 
-const GITHUB = "https://github.com/Mellowoah/Routed";
+const GITHUB = "https://github.com/Mellowoah/Fanpoint";
 function GitHubIcon() {
   return <svg aria-hidden width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" /></svg>;
 }
@@ -327,7 +327,7 @@ function Landing({ tab, live, onDemo }: { tab: Tab; live: boolean; onDemo: () =>
   const f = demoFill(live ? "live" : "mock"), c = demoCohead(live ? "live" : "mock");
   const steps = [
     ["Pin the anchors", "Enter the shows that are already confirmed: festival slots, support dates, a hometown show."],
-    ["Qloo reads the corridor", "Routed reads the act's Qloo fan heatmap along each drive and drops cities that break touring rules: radius clauses, backtracking, road miles and hours per day."],
+    ["Qloo reads the corridor", "Fanpoint reads the act's Qloo fan heatmap along each drive and drops cities that break touring rules: radius clauses, backtracking, road miles and hours per day."],
     ["Book with receipts", "Off days fill with the strongest markets left. Every number links to its source; the LLM only explains."],
   ];
   return (

@@ -11,7 +11,7 @@ const TITLES: Partial<Record<ErrorEvent["code"], string>> = {
 };
 /** One plain-language line on what to do next, per error kind. */
 const NEXT: Partial<Record<ErrorEvent["code"], string>> = {
-  rate_limited: "The provider asked Routed to slow down. Wait a few seconds, then try again.",
+  rate_limited: "The provider asked Fanpoint to slow down. Wait a few seconds, then try again.",
   timeout: "The provider took too long. Trying again usually works.",
   network: "Check your connection, then try again.",
   upstream: "The provider had a hiccup. Trying again usually works.",

@@ -1,5 +1,5 @@
 /**
- * Tools the Routed agent can call. Every Qloo call is a documented GET on hackathon.api.qloo.com:
+ * Tools the Fanpoint agent can call. Every Qloo call is a documented GET on hackathon.api.qloo.com:
  *   /search                                  resolve artist name -> entity id
  *   /v2/insights  urn:heatmap                fan heat along each anchor-to-anchor drive corridor (WKT polygon) and nationwide
  *   /v2/insights  urn:entity:destination     fallback city ranking inside a corridor if the heatmap is empty or fails

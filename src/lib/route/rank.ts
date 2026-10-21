@@ -1,6 +1,6 @@
 /**
  * With Qloo / Without Qloo ranked gap-city lists: the proof that Qloo affinity, not the rest of the pipeline, decides
- * which cities Routed recommends.
+ * which cities Fanpoint recommends.
  *
  * 1. Candidate set (identical in both modes, no Qloo data): every market in the anchor-to-anchor corridor polygon that
  *    passes the existing hard filters: market universe (Census metro population floor, built offline), anchors and

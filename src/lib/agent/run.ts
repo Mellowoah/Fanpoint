@@ -1,4 +1,4 @@
-/** The Routed agent loop: LLM <-> tools until a submit tool is called, streaming events for the UI trace. */
+/** The Fanpoint agent loop: LLM <-> tools until a submit tool is called, streaming events for the UI trace. */
 import { createLlmClient, type ChatMessage, type LlmClient, type ToolDef } from "../llm";
 import { parseToolArgs } from "../llm/schemas";
 import { createQlooClient } from "../qloo";
@@ -15,8 +15,8 @@ import { RULE_VALUES } from "../touring/rules";
 import type { Entity } from "../qloo/types";
 import type { AgentEvent, CoheadPlan, FillPlan, FillRequest, FillStop, PeerMatch, PlanRequest, Providers } from "./types";
 
-const FILL_SYSTEM = `You are Routed, a routing assistant for booking agents and promoters.
-The tour has fixed ANCHOR shows (city + date). Routed's tools fill the off days between anchors with shows in cities
+const FILL_SYSTEM = `You are Fanpoint, a routing assistant for booking agents and promoters.
+The tour has fixed ANCHOR shows (city + date). Fanpoint's tools fill the off days between anchors with shows in cities
 where this artist's Qloo fan heat is strongest, using OSRM road distances and cited touring rules. You orchestrate the
 tools and explain the result; you do not decide it.
 Process: 1) resolve_artist 2) scan_corridor for EACH consecutive anchor pair 3) fill_gaps 4) get_city_intel for EACH
@@ -25,8 +25,8 @@ In submit_fill write a short plain-language note per fill city and a one-line pr
 Use only facts and numbers that appear in tool results; a note with any other number is discarded. Do not forecast
 ticket sales or claim venue capacities (no source has them). If a tool returns an error, continue without that data.`;
 
-const COHEAD_SYSTEM = `You are Routed, a co-headline matchmaker for booking agents and promoters.
-Routed's tools rank peer acts by how well their Qloo fan geography COVERS this artist's weak cities (and vice versa).
+const COHEAD_SYSTEM = `You are Fanpoint, a co-headline matchmaker for booking agents and promoters.
+Fanpoint's tools rank peer acts by how well their Qloo fan geography COVERS this artist's weak cities (and vice versa).
 Process: 1) resolve_artist (and resolve_artist role=partner if the user named a second act) 2) find_peer_acts
 3) compare_fan_geography 4) submit_cohead with a pitch for each of the top 3 ranked peers and the user's named partner.
 In each pitch, name the cities each side gains and contrast with the most similar peer. Use only names and numbers from
@@ -111,7 +111,7 @@ async function* loop(req: PlanRequest, { qloo: q, llm, maxTurns, deadlineMs }: A
             if (d.kind !== "fill" || !d.city || reg.intel.has(d.city.toLowerCase())) continue;
             const before = q.calls.length;
             const r = await tools.call("get_city_intel", { artist_id: reg.artist.id, city: d.city });
-            yield { type: "tool", name: "get_city_intel", args: { artist_id: reg.artist.id, city: d.city, auto: true }, summary: `${r.summary} (fetched by Routed: the model skipped it)`, qlooCalls: q.calls.slice(before) };
+            yield { type: "tool", name: "get_city_intel", args: { artist_id: reg.artist.id, city: d.city, auto: true }, summary: `${r.summary} (fetched by Fanpoint: the model skipped it)`, qlooCalls: q.calls.slice(before) };
           }
         }
         const plan = name === "submit_fill" && req.task === "fill" ? buildFill(args.value, reg, anchors, q, providers, roads.meta)

@@ -244,7 +244,7 @@ export function FillCompare({ q, p }: { q?: FillPlan; p?: PlainFillPlan }) {
   return (
     <div className="card bg-panel overflow-hidden text-sm">
       <div className="grid grid-cols-[1.6fr_1fr_1.3fr] bg-black/30 text-xs uppercase tracking-wide">
-        <div className="p-2.5 text-plain">Same anchors, two planners</div><div className="p-2.5 text-accent-text">Routed + Qloo</div><div className="p-2.5 text-plain">Plain AI{p.simulated ? " (simulated)" : ""}</div>
+        <div className="p-2.5 text-plain">Same anchors, two planners</div><div className="p-2.5 text-accent-text">Fanpoint + Qloo</div><div className="p-2.5 text-plain">Plain AI{p.simulated ? " (simulated)" : ""}</div>
       </div>
       {rows.map(([k, a, b]) => (
         <div key={k} className="grid grid-cols-[1.6fr_1fr_1.3fr] border-t border-line"><div className="p-2.5 text-plain">{k}</div><div className="p-2.5 font-mono">{a}</div><div className="p-2.5 font-mono text-plain">{b}</div></div>
@@ -286,7 +286,7 @@ export function RankedLists({ ranked, mode, picked, top = 5 }: { ranked: RankedG
           );
         })}
       </div>
-      {mode === "without" && <div className="text-xs text-plain">Without Qloo there is no fan signal, so Routed builds no schedule: a population-first list is all the hard filters and Census/OSM data can give. Switch to <b>With Qloo</b> for the routed calendar.</div>}
+      {mode === "without" && <div className="text-xs text-plain">Without Qloo there is no fan signal, so Fanpoint builds no schedule: a population-first list is all the hard filters and Census/OSM data can give. Switch to <b>With Qloo</b> for the routed calendar.</div>}
     </section>
   );
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Live sensitivity check for how Routed reads Qloo heatmap cells at cities (metroReadRadiusMi) and where the
+// Live sensitivity check for how Fanpoint reads Qloo heatmap cells at cities (metroReadRadiusMi) and where the
 // thresholds sit. Fetches the same corridor / lower-48 heatmaps the app requests for the baseline input set and
 // prints AGGREGATE statistics only (quantiles, coverage, spread). No response data is printed or saved.
 //

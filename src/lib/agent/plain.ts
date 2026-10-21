@@ -1,6 +1,6 @@
 /**
  * "Plain AI" baseline for Fill the gaps: the same LLM, the same anchors, NO Qloo tools. Its answer is validated,
- * then audited with the same touring rules Routed enforces (drive per day, doubling back, radius clause, dates).
+ * then audited with the same touring rules Fanpoint enforces (drive per day, doubling back, radius clause, dates).
  * Fan-heat scoring of its cities happens in the Compare view, against the Qloo corridor reads from the same run.
  */
 import { z } from "zod";

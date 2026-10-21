@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Reproducible baseline: run a fixed input set (default scripts/baseline/inputs.v2.json) against a running Routed server and
+// Reproducible baseline: run a fixed input set (default scripts/baseline/inputs.v2.json) against a running Fanpoint server and
 // save everything needed to compare runs (mock now, live once QLOO_API_KEY arrives).
 //
 //   node scripts/baseline.mjs [--base http://localhost:3100] [--inputs scripts/baseline/inputs.v2.json]
 //                             [--out baselines/<mode>-<date>] [--delay-ms 0] [--only id1,id2] [--force]
 //
 // Output (gitignored /baselines/): baseline.json (all runs + metadata) and summary.md. Qloo responses are NOT saved:
-// each request is recorded as endpoint + params + a sha256 prefix of the response. What is kept are Routed's derived
+// each request is recorded as endpoint + params + a sha256 prefix of the response. What is kept are Fanpoint's derived
 // per-city scores (affinity read at a city, ranks, picks), which still come from Qloo: keep live baselines private
 // (Qloo FAQ: no response data in a public repo). The script never sends keys; the server holds them.
 import { createHash } from "node:crypto";
@@ -71,7 +71,7 @@ function recordFill(input, plan) {
       })),
       calendar: plan.result.calendar.map((d) => ({ date: d.date, kind: d.kind, city: d.city ?? null })),
     },
-    withoutQloo: { fills: null, note: "No fan signal: Routed builds no schedule without Qloo; only the ranked lists exist." },
+    withoutQloo: { fills: null, note: "No fan signal: Fanpoint builds no schedule without Qloo; only the ranked lists exist." },
     warnings: plan.warnings, grounding: plan.grounding, qlooCalls: qlooCalls(plan.qlooCalls),
   };
 }
@@ -85,7 +85,7 @@ function recordCohead(plan) {
     providers: plan.providers, rules: plan.rules, thresholds: plan.thresholds, artist: ent(plan.artist),
     withQloo: { ranking: peers, recommended: peers.filter((p) => p.picked).map((p) => p.name) },
     withoutQloo: { ranking: null, alphabetical: [...peers].map((p) => p.name).sort((a, b) => a.localeCompare(b)), recommended: [], note: "Unranked: no fan signal to judge the pairing." },
-    // Per-city affinity for the act and each peer (Routed's city reads of the Qloo heatmaps), for threshold hit rates.
+    // Per-city affinity for the act and each peer (Fanpoint's city reads of the Qloo heatmaps), for threshold hit rates.
     cityAffinity: { you: plan.cities.map((c) => c.you), peers: Object.fromEntries(plan.peers.map((p) => [p.entity.id, plan.cities.map((c) => c.peers[p.entity.id] ?? null)])) },
     warnings: plan.warnings, grounding: plan.grounding, qlooCalls: qlooCalls(plan.qlooCalls),
   };
@@ -94,7 +94,7 @@ function recordCohead(plan) {
 function summary(b) {
   const L = [];
   const m = b.meta;
-  L.push(`# Routed baseline: ${m.mode} (${m.timestamp})`, "");
+  L.push(`# Fanpoint baseline: ${m.mode} (${m.timestamp})`, "");
   L.push(`- Inputs: \`${m.inputs.file}\` v${m.inputs.version} (sha256 ${m.inputs.sha256.slice(0, 12)}), ${b.runs.length} runs, ${b.runs.filter((r) => r.status === "error").length} errors`);
   L.push(`- Modes: Qloo **${m.health.qloo}**, LLM **${m.health.llm}** · server ${m.base}`);
   L.push(`- Commit \`${m.git.commit?.slice(0, 12)}\`${m.git.dirty ? " (dirty tree)" : ""} · data: markets ${m.data["src/lib/data/markets.json"]?.slice(0, 12)}, road matrix ${m.data["src/lib/data/road-matrix.json"]?.slice(0, 12)}, mock fixtures ${m.data["src/lib/qloo/fixtures/mock-qloo.json"]?.slice(0, 12)}`);
@@ -108,7 +108,7 @@ function summary(b) {
       L.push(`${r.request.artist} · ${r.request.anchors.map((a) => `${a.city} ${a.date}`).join(" → ")} · off days ${r.stats.offBefore} → ${r.stats.offAfter}`, "");
       L.push("| Leg | Eligible | With Qloo top 5 (affinity) | Without Qloo top 5 (population) |", "|---|---|---|---|");
       for (const g of r.gaps) L.push(`| ${g.from} → ${g.to} | ${g.eligible}/${g.inCorridor} | ${g.withQloo.slice(0, 5).map((c) => `${c.name} ${c.affinity === null ? "–" : c.affinity.toFixed(2)}`).join(", ") || "–"} | ${g.withoutQloo.slice(0, 5).map((c) => c.name).join(", ") || "–"} |`);
-      L.push("", `Routed fills: ${r.withQloo.fills.map((f) => `${f.date.slice(5)} ${f.city} (${f.affinity.toFixed(2)})`).join(" · ") || "none"}`, "");
+      L.push("", `Fanpoint fills: ${r.withQloo.fills.map((f) => `${f.date.slice(5)} ${f.city} (${f.affinity.toFixed(2)})`).join(" · ") || "none"}`, "");
     } else {
       L.push(`${r.request.artist}${r.request.partner ? ` + ${r.request.partner}` : ""} · recommended With Qloo: ${r.withQloo.recommended.join(", ") || "none"} · Without Qloo: none (unranked)`, "");
       L.push("| # | Peer | Complementarity | Similarity | +you / +them / overlap |", "|---|---|---|---|---|");

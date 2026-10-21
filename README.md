@@ -1,26 +1,26 @@
-# Routed
+# Fanpoint
 
-**Routed is a decision tool for booking agents and promoters.** It answers two routing questions with
+**Fanpoint is a decision tool for booking agents and promoters.** It answers two routing questions with
 [Qloo Taste AI™](https://docs.qloo.com/) data:
 
 1. **Fill the gaps.** Fixed dates in, gap cities with real road miles and drive hours out. Enter the shows that are already confirmed
-   (a festival slot, a support date, a hometown show). Routed fills the off days in between with the cities where the
+   (a festival slot, a support date, a hometown show). Fanpoint fills the off days in between with the cities where the
    act's fans are strongest *and* that a van can actually reach. The goal is fewer empty nights on the routing.
-2. **Co-headliner match.** Two acts in, a complementary fan map out. Routed compares both acts' nationwide Qloo fan
+2. **Co-headliner match.** Two acts in, a complementary fan map out. Fanpoint compares both acts' nationwide Qloo fan
    heatmaps and scores **complementarity**: where act A is strong and act B is weak, and the reverse. The map is coloured
    by which act carries each city. The goal is a co-bill where each act brings its own strong markets.
 
-**Routed's decisions are computed in code from sourced data.** Fan affinity comes from Qloo Insights heatmaps. Road
+**Fanpoint's decisions are computed in code from sourced data.** Fan affinity comes from Qloo Insights heatmaps. Road
 miles and hours come from OSRM on OpenStreetMap. The 385-city market universe, populations and metro areas come from
 the U.S. Census Bureau, and venue counts from OpenStreetMap. Every touring rule is either cited or labelled as an
 adjustable assumption ([`docs/SOURCES.md`](docs/SOURCES.md), and the **Sources & methodology** panel in the app).
 
 The LLM only orchestrates the tool calls and explains the result. It does not choose cities, support acts, rooms,
 promo partners or recommended co-headliners, and any number in its text must match the data, or the text is dropped
-with a warning. Every Qloo request is shown in the agent trace. A **Routed + Qloo / Plain AI / Compare** toggle runs the same anchors through the same LLM with no
+with a warning. Every Qloo request is shown in the agent trace. A **Fanpoint + Qloo / Plain AI / Compare** toggle runs the same anchors through the same LLM with no
 Qloo access and audits that plan with the same touring rules.
 
-> **Mock mode.** Without API keys Routed runs on clearly labeled **mock fixtures**: fictional acts ("Marigold Static",
+> **Mock mode.** Without API keys Fanpoint runs on clearly labeled **mock fixtures**: fictional acts ("Marigold Static",
 > "Saltwater Hymnal (mock)"…) with hand-made fan geography over real US city coordinates. Mock mode is **not** Qloo data, and the
 > banner says so on every screen. Without an LLM key, the plain-AI baseline is a **simulated** heuristic (labeled SIMULATED),
 > not a model output. Add keys ([`docs/ENV.md`](docs/ENV.md)) and the identical code path goes live.
@@ -37,7 +37,7 @@ between, or which act to pair on a co-bill. It is a routing desk, not an artist 
 
 All calls are `GET https://hackathon.api.qloo.com/...` with `X-Api-Key`, made server-side only.
 
-| Decision | Endpoint and key params | What Routed does with it |
+| Decision | Endpoint and key params | What Fanpoint does with it |
 |---|---|---|
 | Which act | `/search?query=…&types=urn:entity:artist` | Entity id used as the signal for every later call |
 | Where the fans are **along each drive** | `/v2/insights?filter.type=urn:heatmap&signal.interests.entities=<act>&filter.location=POLYGON(<corridor>)` | One heatmap per anchor-to-anchor corridor (a buffered polygon around the leg). Each touring city takes the strongest cell within 5 mi (15 mi on the coarser lower-48 heatmap), and cities are ranked by that fan heat |
@@ -49,7 +49,7 @@ All calls are `GET https://hackathon.api.qloo.com/...` with `X-Api-Key`, made se
 | Co-headliner candidates | `/v2/insights?filter.type=urn:entity:artist&signal.interests.entities=…&filter.popularity.min/max=<band>` | Peers in the act's popularity band |
 | Complementarity | `/v2/insights?filter.type=urn:heatmap&signal.interests.entities=<each act>&filter.location=POLYGON(lower 48)` | Per-city fan heat for both acts, then the score below |
 
-**Complementarity score** (Routed's formula, computed in code): with *strong* = fan heat ≥ 0.95 and *weak* < 0.91 (live-calibrated: an act's top quarter and bottom 60% of markets, see `docs/SOURCES.md`),
+**Complementarity score** (Fanpoint's formula, computed in code): with *strong* = fan heat ≥ 0.95 and *weak* < 0.91 (live-calibrated: an act's top quarter and bottom 60% of markets, see `docs/SOURCES.md`),
 `score = youGain + theyGain − 0.5·|youGain − theyGain| − 0.25·overlap`. Here *youGain* is the cities weak for you and strong for
 them, and *theyGain* is the reverse. It rewards two-way coverage and penalises one-sided deals and pure overlap.
 The most taste-*similar* peer is shown next to it, because similar acts usually share the same cities.
@@ -73,7 +73,7 @@ the code always show the same values.
 | Max shows in a row | 6 (anchors count) | Adapted: AFM Pamphlet B, one day off per week |
 | Radius clause | 60 mi, straight line | Sourced: the "standard club radius" template (SystemOne), plus How To Concerts and infract |
 | Max drive distance | 350 road mi/day | Assumption (adjustable) |
-| Night-of-week weights | Sun .70 · Mon .55 · Tue .65 · Wed .75 · Thu .90 · Fri/Sat 1.0 | Assumption. The direction (weekends sell more) is cited, the exact values are Routed's |
+| Night-of-week weights | Sun .70 · Mon .55 · Tue .65 · Wed .75 · Thu .90 · Fri/Sat 1.0 | Assumption. The direction (weekends sell more) is cited, the exact values are Fanpoint's |
 | Night floor, heat floor | 0.45, 0.94 (live-calibrated) | Assumption (adjustable) |
 | No doubling back, spacing, corridor width, strong/weak thresholds, co-headline weights | 25 / 10 mi, 50 mi, 90 mi, 0.95 / 0.91 (live-calibrated), 0.5 / 0.25 | Assumptions, set in `rules.ts` |
 
@@ -125,7 +125,7 @@ Browser ─POST /api/plan─▶ agent loop (src/lib/agent/run.ts) ─NDJSON even
 
 - **Decisions in code, explanations from the model.** `fill_gaps` takes no arguments, and the corridor width, peer
   count and peers compared are fixed in code. Support acts, rooms and promo partners are the top Qloo result per city.
-  Recommended co-headliners are the top 3 positive scores. If the model skips `get_city_intel`, Routed fetches it.
+  Recommended co-headliners are the top 3 positive scores. If the model skips `get_city_intel`, Fanpoint fetches it.
   Headlines, "why" text and summaries are generated from the data. The model's notes, angles, pitches and summary are
   checked by `vetText` (`src/lib/agent/narrative.ts`): any number not found in the data drops the text and adds a warning.
 - **Grounding:** entity ids must come from earlier tool calls. Anything else is dropped and counted.
@@ -176,23 +176,23 @@ npm run dev                  # http://localhost:3000
 
 Deep links: `/?auto=1` (fill demo), `/?auto=1&qloo=0` (Without Qloo ranking), `/?auto=1&view=compare` (plain-LLM baseline), `/?tab=cohead&auto=1`, `/?sources=1` (Sources & methodology).
 
-## Qloo hackathon kit: what it requires and how Routed lines up
+## Qloo hackathon kit: what it requires and how Fanpoint lines up
 
 Sources: Qloo's [hackathon kit](https://github.com/qloo/qloo-hackathon-kit) (commit `0db91b8`, 2026-09-23) and the [hackathon developer guide](https://docs.qloo.com/reference/qloo-llm-hackathon-developer-guide). The kit has no license file, so no code was copied from it; it was used as a reference only. Request and parsing details were checked against the MIT-licensed `@qloo/qloo-harness` 0.1.26 that the kit points to; again, nothing was copied.
 
-| Requirement | Routed |
+| Requirement | Fanpoint |
 |---|---|
 | Credential stays server-side: never in the browser, the repo, logs or recordings | Env var only; `server-only` guard; bundle check with canary keys |
 | `X-Api-Key` header, GET with query params, `/v2/insights`, `/search` (`query`, `types`, `take`), `/v2/tags` (`filter.query`) | Matches (checked against the harness client) |
-| Heatmaps: `filter.type=urn:heatmap` plus `signal.interests.entities`, location filter | Matches. Routed sends a WKT `filter.location` corridor polygon; the harness's `where_popular` uses `filter.location.query` (a place name) instead |
+| Heatmaps: `filter.type=urn:heatmap` plus `signal.interests.entities`, location filter | Matches. Fanpoint sends a WKT `filter.location` corridor polygon; the harness's `where_popular` uses `filter.location.query` (a place name) instead |
 | Clear auth and rate-limit errors, bounded retries, no silent fallback to another endpoint or credential | Typed errors, 3 attempts, a single base URL, no credential fallback |
 | Cache only what's needed; no bulk scraping | 6 h in-memory cache of parsed results; 150-call cap per run |
-| Aggregate affinities only, no personal data; label Qloo results versus interpretation | Only artist names and cities are sent; every number in the UI is tagged as Qloo data or as Routed's rules |
+| Aggregate affinities only, no personal data; label Qloo results versus interpretation | Only artist names and cities are sent; every number in the UI is tagged as Qloo data or as Fanpoint's rules |
 | Submission: problem, Qloo workflow, redacted request-to-result trace, demo without credentials, clean-env setup steps, limitations | The trace panel shows every Qloo call (with no key); mock mode needs no credentials; see "Run locally" and "Limitations" |
 
-**Open question for the organizers.** The kit says the supported surfaces are `qloo explore`, `qloo exec`, `qloo api` and `qloo mcp` (Node ≥ 22.19, harness ≥ 0.1.26), and that serverless functions are not a supported route. Routed calls the same REST endpoints directly from a Next.js server, which the developer guide documents. Before submitting, confirm in the kit's Discussions Q&A that direct REST calls from a long-running server are fine. If not, `QlooClient` is a small interface, and a `qloo api` adapter could replace `HttpQlooClient`.
+**Open question for the organizers.** The kit says the supported surfaces are `qloo explore`, `qloo exec`, `qloo api` and `qloo mcp` (Node ≥ 22.19, harness ≥ 0.1.26), and that serverless functions are not a supported route. Fanpoint calls the same REST endpoints directly from a Next.js server, which the developer guide documents. Before submitting, confirm in the kit's Discussions Q&A that direct REST calls from a long-running server are fine. If not, `QlooClient` is a small interface, and a `qloo api` adapter could replace `HttpQlooClient`.
 
-**Base-URL discrepancy.** The developer guide says hackathon keys work **only** on `https://hackathon.api.qloo.com` and return 401 on `api.qloo.com`. The harness defaults to `api.qloo.com`. Routed defaults to the hackathon host. If your key returns 401, try the other host before assuming the key is bad.
+**Base-URL discrepancy.** The developer guide says hackathon keys work **only** on `https://hackathon.api.qloo.com` and return 401 on `api.qloo.com`. The harness defaults to `api.qloo.com`. Fanpoint defaults to the hackathon host. If your key returns 401, try the other host before assuming the key is bad.
 
 ## Deploying
 
@@ -233,18 +233,18 @@ Nothing in the default mode chooses or orders without Qloo, except two things: t
 
 ## Limitations (honest)
 
-- Fan heat is an aggregate taste signal for a place. It is **not** a ticket forecast, and Routed shows no revenue or sell-through numbers.
+- Fan heat is an aggregate taste signal for a place. It is **not** a ticket forecast, and Fanpoint shows no revenue or sell-through numbers.
 - There are no venue capacities, holds, availability, guarantees, competing shows or visas. A human booker still confirms every date.
 - Drive times are OSRM free-flow car times, with no traffic, stops or trailer, so real van days run longer. The road matrix was built on 2026-10-19 from the OSRM demo server, which is not for production. Self-host OSRM to refresh it (see `docs/SOURCES.md`).
 - Markets: the 385 cities named in US metro-area titles (metro ≥ 200k, lower 48 + DC). Smaller towns aren't scheduled. US only.
 - Venue counts reflect OpenStreetMap mapping, not a complete inventory. They don't feed the With Qloo score. They are used for the real-venue hard filter (at least one mapped venue) and as the tie-break in the Without Qloo proxy.
-- Night weights, the heat floors, the drive-distance cap and the co-headline weights are Routed's assumptions. They are labelled in the UI, and the ones that matter most are adjustable in the form.
+- Night weights, the heat floors, the drive-distance cap and the co-headline weights are Fanpoint's assumptions. They are labelled in the UI, and the ones that matter most are adjustable in the form.
 - Mock mode is fictional and only demonstrates the flow.
-- The rate limiter is per server process. Several server instances could together exceed it; the retries absorb short 429 bursts, but a shared limiter (e.g. Redis) would be needed at real scale. Qloo's kit also says serverless isn't a supported route, so host Routed as a single long-running Node server.
+- The rate limiter is per server process. Several server instances could together exceed it; the retries absorb short 429 bursts, but a shared limiter (e.g. Redis) would be needed at real scale. Qloo's kit also says serverless isn't a supported route, so host Fanpoint as a single long-running Node server.
 
 ## Scripts
 
-- `npm run eval -- "Act A" "Act B"` compares Routed + Qloo vs Plain AI on the same anchors against a running server (`BASE_URL`). Run it in live mode for numbers you can publish.
+- `npm run eval -- "Act A" "Act B"` compares Fanpoint + Qloo vs Plain AI on the same anchors against a running server (`BASE_URL`). Run it in live mode for numbers you can publish.
 - `npm run screens` re-takes `screens/*.png` (needs `npm i --no-save puppeteer-core` and a server on :3100).
 
 ## License

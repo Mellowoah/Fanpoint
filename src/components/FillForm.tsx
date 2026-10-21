@@ -181,7 +181,7 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
         </div>
         <div className="flex gap-3 mt-3 text-xs flex-wrap items-center">
           <button type="button" onClick={() => onChange({ ...value, maxDriveMi: RULE_VALUES.maxDriveMi, minAffinity: RULE_VALUES.minAffinity, rules: DEFAULT_RULES })} className="btn btn-secondary btn-sm">Reset rules to defaults</button>
-          <span className="text-plain">Amber = Routed&apos;s assumption with no solid source. Change it to match your act and contracts.</span>
+          <span className="text-plain">Amber = Fanpoint&apos;s assumption with no solid source. Change it to match your act and contracts.</span>
         </div>
       </details>
 
@@ -190,7 +190,7 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
           {busy && <Spinner />}{busy ? "Routing…" : "Fill the gaps"}
         </button>
         {onReset && <button type="button" disabled={busy} onClick={() => { setAttempted(false); setSeen(new Set()); onReset(); }} className="btn btn-ghost">Reset</button>}
-        {attempted && n > 0 && <span role="status" className="text-xs text-red-300">{n === 1 ? "One field needs a fix" : `${n} fields need a fix`} before Routed can plan.</span>}
+        {attempted && n > 0 && <span role="status" className="text-xs text-red-300">{n === 1 ? "One field needs a fix" : `${n} fields need a fix`} before Fanpoint can plan.</span>}
       </div>
     </form>
   );

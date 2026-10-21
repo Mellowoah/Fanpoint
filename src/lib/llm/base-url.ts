@@ -1,6 +1,6 @@
 /**
  * Decide whether an LLM base URL is safe to send LLM_API_KEY to (same policy as qloo/base-url.ts).
- * Known hosts are the two documented OpenAI-compatible endpoints Routed is tested against:
+ * Known hosts are the two documented OpenAI-compatible endpoints Fanpoint is tested against:
  *   - generativelanguage.googleapis.com: Google's Gemini OpenAI-compatibility endpoint, the default
  *     (https://ai.google.dev/gemini-api/docs/openai, base URL .../v1beta/openai/);
  *   - api.openai.com: OpenAI.
@@ -22,7 +22,7 @@ export function checkLlmBaseUrl(raw: string, trusted?: string): BaseUrlCheck {
 /**
  * Client-side spacing between LLM request starts. Gemini's free tier is limited per minute (RPM) per project and
  * answers 429 RESOURCE_EXHAUSTED past it (https://ai.google.dev/gemini-api/docs/rate-limits), so on Google's host
- * Routed spaces calls 6.5 s apart (about 9/min, under a 10 RPM limit). LLM_MIN_INTERVAL_MS overrides; 0 disables.
+ * Fanpoint spaces calls 6.5 s apart (about 9/min, under a 10 RPM limit). LLM_MIN_INTERVAL_MS overrides; 0 disables.
  */
 export function defaultLlmIntervalMs(baseUrl: string): number {
   try { return new URL(baseUrl).hostname === "generativelanguage.googleapis.com" ? 6500 : 0; } catch { return 0; }

@@ -20,7 +20,7 @@ const DEMO: FillRequest = {
 async function collect(gen: AsyncGenerator<AgentEvent>) { const ev: AgentEvent[] = []; for await (const e of gen) ev.push(e); return ev; }
 const plan = <T,>(ev: AgentEvent[]) => (ev.find((e) => e.type === "result") as Extract<AgentEvent, { type: "result" }> | undefined)?.plan as T;
 
-/** A mock model whose tool calls are rewritten by `edit` before Routed sees them. */
+/** A mock model whose tool calls are rewritten by `edit` before Fanpoint sees them. */
 class Meddling extends MockLlmClient {
   constructor(private edit: (name: string, args: Record<string, unknown>, m: ChatMessage[]) => Record<string, unknown> | null) { super(0); }
   override async chat(m: ChatMessage[], t: ToolDef[]): Promise<ChatResult> {
@@ -94,7 +94,7 @@ describe("Fill the gaps: code decides, the model explains", () => {
     const p = plan<FillPlan>(ev);
     const auto = ev.filter((e) => e.type === "tool" && e.name === "get_city_intel");
     expect(auto).toHaveLength(p.stops.length);
-    expect(auto.every((e) => e.type === "tool" && /fetched by Routed/.test(e.summary))).toBe(true);
+    expect(auto.every((e) => e.type === "tool" && /fetched by Fanpoint/.test(e.summary))).toBe(true);
     expect(p.stops.every((s) => s.support.length === 1)).toBe(true);
   });
 

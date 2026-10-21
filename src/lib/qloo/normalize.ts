@@ -1,6 +1,6 @@
 import type { Entity, QlooRawEntity } from "./types";
 
-/** Map a Qloo type URN to Routed's entity kind. */
+/** Map a Qloo type URN to Fanpoint's entity kind. */
 const KIND: Record<string, Entity["kind"]> = {
   "urn:entity:artist": "artist",
   "urn:entity:destination": "destination",
