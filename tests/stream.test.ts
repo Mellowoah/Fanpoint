@@ -34,7 +34,16 @@ describe("streamPlan", () => {
   });
   it("turns validation 400s into a non-retryable form error", async () => {
     const ev = await run(async () => Response.json({ error: { code: "invalid_request", message: "anchors.0.city: pick a city" } }, { status: 400 }));
-    expect(ev).toEqual([{ type: "error", code: "invalid_request", message: "Please fix the form: anchors.0.city: pick a city", retryable: false }]);
+    expect(ev).toEqual([{ type: "error", code: "invalid_request", message: "A few details need a fix: Stop 1 city: pick a city.", retryable: false }]);
+  });
+  it("words validation issues for people, field by field", async () => {
+    const ev = await run(async () => Response.json({ error: { code: "invalid_request", message: "artist: required", issues: [{ path: "artist", message: "required" }, { path: "anchors", message: "anchor dates must differ" }, { path: "rules.radiusMi", message: "too big" }] } }, { status: 400 }));
+    expect(ev[0]).toMatchObject({ code: "invalid_request", retryable: false, message: "A few details need a fix: Artist: enter an artist name; Dates: anchor dates must differ; Touring rules (radiusMi): too big." });
+    expect(ev[0]?.type === "error" && ev[0].message).not.toMatch(/Please fix the form/);
+  });
+  it("falls back to a friendly line when a 400 has no details", async () => {
+    const ev = await run(async () => new Response("nope", { status: 400 }));
+    expect(ev[0]).toMatchObject({ code: "invalid_request", message: expect.stringMatching(/isn't quite right/) });
   });
   it("network failures become a network error", async () => {
     const ev = await run(async () => { throw new TypeError("Failed to fetch"); });

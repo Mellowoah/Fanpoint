@@ -20,7 +20,7 @@ await p.goto(BASE, { waitUntil: "networkidle0" });
 await wait(800);
 await p.screenshot({ path: `${OUT}/01-landing.png` });
 
-await (await p.$("form button")).click();
+await (await p.$("#fill-form button[type=submit]")).click();
 await wait(500);
 await p.screenshot({ path: `${OUT}/02-agent-running.png` });
 await p.waitForFunction(() => document.body.innerText.includes("Corridor candidates"), { timeout: 180000 });

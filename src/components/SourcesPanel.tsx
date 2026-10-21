@@ -33,20 +33,20 @@ const DATASETS: { name: string; what: string; license: string; links: [string, s
 export default function SourcesPanel({ onClose }: { onClose?: () => void }) {
   const rules = Object.entries(RULES);
   return (
-    <section id="sources" className="bg-panel border border-line rounded-xl p-5 grid gap-5 text-sm">
+    <section id="sources" className="card bg-panel p-5 grid gap-5 text-sm">
       <div className="flex justify-between items-start gap-3">
         <div>
           <h2 className="text-xl font-semibold">Sources &amp; methodology</h2>
           <p className="text-plain max-w-3xl mt-1">Routed&apos;s decisions are made in code from the data below. The LLM picks which tool to call next and writes plain-language notes; any number in its text must match the data or the text is dropped. Every rule has a status: <b>sourced</b> (default taken from a cited source), <b>adapted</b> (cited for a neighbouring context), <b>assumption</b> (Routed&apos;s default, no solid source: adjust it), or <b>implementation detail</b>.</p>
         </div>
-        {onClose && <button onClick={onClose} className="text-plain border border-line rounded-md px-2 py-1">Close</button>}
+        {onClose && <button onClick={onClose} className="btn btn-secondary btn-sm">Close</button>}
       </div>
 
       <div className="grid gap-2">
         <h3 className="font-semibold">Data</h3>
         <div className="grid md:grid-cols-2 gap-3">
           {DATASETS.map((d) => (
-            <div key={d.name} className="border border-line rounded-lg p-3 grid gap-1">
+            <div key={d.name} className="border border-line rounded-xl bg-background/50 p-3.5 grid gap-1">
               <div className="font-medium">{d.name}</div>
               <div className="text-plain">{d.what}</div>
               <div className="text-xs"><span className="text-plain">License: </span>{d.license}</div>
@@ -59,7 +59,7 @@ export default function SourcesPanel({ onClose }: { onClose?: () => void }) {
 
       <div className="grid gap-2">
         <h3 className="font-semibold">Touring rules</h3>
-        <div className="grid gap-0 border border-line rounded-lg overflow-hidden">
+        <div className="grid gap-0 border border-line rounded-xl overflow-hidden">
           {rules.map(([k, r]) => (
             <div key={k} className="grid md:grid-cols-[220px_110px_1fr] gap-x-3 gap-y-1 p-3 border-t border-line first:border-t-0">
               <div><div className="font-medium">{r.label}</div><code className="text-[10px] text-plain">{k}</code></div>

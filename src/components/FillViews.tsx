@@ -27,7 +27,7 @@ export function FillCalendar({ days, plain, flagged }: { days: Day[]; plain?: bo
       <div className="grid grid-flow-col auto-cols-[minmax(68px,1fr)] gap-1 min-w-max">
         {days.map((d) => {
           const bad = flagged?.has(d.date);
-          const cls = d.kind === "anchor" ? "bg-white/10 border-white/60" : d.kind === "fill" ? (plain ? `bg-plain/10 ${bad ? "border-red-500" : "border-plain/50"}` : "bg-accent/15 border-accent/70") : "border-line bg-[repeating-linear-gradient(135deg,#141821,#141821_6px,#10131a_6px,#10131a_12px)]";
+          const cls = d.kind === "anchor" ? "bg-white/10 border-white/60" : d.kind === "fill" ? (plain ? `bg-plain/10 ${bad ? "border-red-500" : "border-plain/50"}` : "bg-accent/15 border-accent/70") : "border-line bg-[repeating-linear-gradient(135deg,#1d1917,#1d1917_6px,#181513_6px,#181513_12px)]";
           return (
             <div key={d.date} className={`border rounded-md p-1.5 text-[11px] leading-tight h-[92px] flex flex-col ${cls}`}>
               <div className="flex justify-between text-plain"><span>{d.dow}</span><span>{md(d.date)}</span></div>
@@ -59,7 +59,7 @@ export function FillStats({ q }: { q: FillPlan }) {
   return (
     <div className="grid gap-2">
       <div className="grid grid-cols-2 md:grid-cols-[auto_auto_auto_auto_1fr] gap-x-6 gap-y-1 text-sm">
-        {items.map(([k, v]) => <div key={k}><div className="text-[10px] uppercase tracking-wide text-plain">{k}</div><div className={k === "Off days" ? "text-xl font-bold text-accent font-mono" : "font-mono"}>{v}</div></div>)}
+        {items.map(([k, v]) => <div key={k} className={k === "Rules" ? "col-span-2 md:col-span-1" : undefined}><div className="text-[10px] uppercase tracking-wide text-plain">{k}</div><div className={k === "Off days" ? "text-xl font-bold text-accent font-mono" : "font-mono"}>{v}</div></div>)}
       </div>
       <div className="text-[11px] text-plain">Road miles and hours: OSRM car profile on OpenStreetMap data (free-flow, no stops).</div>
     </div>
@@ -74,7 +74,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 export function CandidateFilter({ gaps, maxDriveMi }: { gaps: GapPlan[]; maxDriveMi: number }) {
   return (
-    <div className="bg-panel border border-line rounded-xl p-4 grid gap-3 text-sm">
+    <div className="card bg-panel p-4 grid gap-3 text-sm">
       <div className="flex justify-between flex-wrap gap-2">
         <h3 className="font-semibold">Corridor candidates → realistic fills</h3>
         <span className="text-xs text-plain">Ranked by Qloo heatmap fan heat · filtered in code: radius clause, backtracking, real venue (OSM), heat floor, ≤{maxDriveMi} road mi/day (OSRM)</span>
@@ -109,8 +109,8 @@ export function useFillMap(q?: FillPlan) {
     let n = 0;
     const markers: Marker[] = q.result.calendar.filter((d) => d.kind !== "off").map((d) => d.kind === "anchor"
       ? { lat: d.lat!, lon: d.lon!, color: "#ffffff", radius: 8, label: `★ ${d.city} · ${md(d.date)}`, dir: "left" as const }
-      : { lat: d.lat!, lon: d.lon!, color: "#ff7a45", label: `${++n}. ${d.city} ${pct(d.affinity)}` });
-    return { cells, rings, paths: [{ pts: seq, color: "#ff7a45", dash: "6 6" }], markers, fit: rings.flat() };
+      : { lat: d.lat!, lon: d.lon!, color: "#ee6330", label: `${++n}. ${d.city} ${pct(d.affinity)}` });
+    return { cells, rings, paths: [{ pts: seq, color: "#ee6330", dash: "6 6" }], markers, fit: rings.flat() };
   }, [q]);
 }
 
@@ -145,7 +145,7 @@ function WhyFacts({ s }: { s: FillStop }) {
 
 export function FillStopCard({ s }: { s: FillStop }) {
   return (
-    <article className="bg-panel border border-line rounded-xl p-4 grid gap-2.5">
+    <article className="card bg-panel p-4 grid gap-2.5">
       <header className="flex justify-between gap-2">
         <div>
           <div className="text-xs text-plain">{s.dow} {md(s.date)} · {s.driveMi} road mi / {s.driveHours ?? "–"} h from {s.prevCity}{s.driveDays > 1 ? ` over ${s.driveDays} days` : ""}</div>
@@ -198,7 +198,7 @@ export function plainCalendar(p: PlainFillPlan, q?: FillPlan): { days: Day[]; fl
 export function PlainAudit({ p, q }: { p: PlainFillPlan; q?: FillPlan }) {
   const heat = corridorHeat(q);
   return (
-    <div className="bg-panel border border-dashed border-line rounded-xl overflow-hidden text-sm">
+    <div className="card bg-panel border-dashed overflow-hidden text-sm">
       <div className="grid grid-cols-[90px_1.2fr_1.5fr_90px_2fr] bg-black/30 text-[10px] uppercase tracking-wide text-plain">
         <div className="p-2">Date</div><div className="p-2">City</div><div className="p-2">Venue (as suggested)</div><div className="p-2">Qloo heat</div><div className="p-2">Audit</div>
       </div>
@@ -239,7 +239,7 @@ export function FillCompare({ q, p }: { q?: FillPlan; p?: PlainFillPlan }) {
     ["Rooms / support acts that are real Qloo entities", `${q.grounding.grounded}/${q.grounding.referenced}`, `0/${p.stops.length} (generic names)`],
   ];
   return (
-    <div className="bg-panel border border-line rounded-xl overflow-hidden text-sm">
+    <div className="card bg-panel overflow-hidden text-sm">
       <div className="grid grid-cols-[1.6fr_1fr_1.3fr] bg-black/30 text-xs uppercase tracking-wide">
         <div className="p-2.5 text-plain">Same anchors, two planners</div><div className="p-2.5 text-accent">Routed + Qloo</div><div className="p-2.5 text-plain">Plain AI{p.simulated ? " (simulated)" : ""}</div>
       </div>

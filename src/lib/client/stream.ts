@@ -20,13 +20,30 @@ export function parseEventLine(line: string): AgentEvent | undefined {
 /** Human message for a non-2xx response from /api/plan (validation errors carry `error.message`). */
 export async function httpErrorEvent(res: Response): Promise<ErrorEvent> {
   let message = "";
+  let issues: { path: string; message: string }[] = [];
   try {
-    const j = (await res.json()) as { error?: { message?: unknown } };
+    const j = (await res.json()) as { error?: { message?: unknown; issues?: unknown } };
     if (typeof j.error?.message === "string") message = j.error.message;
+    if (Array.isArray(j.error?.issues)) issues = j.error.issues.filter((i): i is { path: string; message: string } => typeof i?.path === "string" && typeof i?.message === "string");
   } catch { /* non-JSON body */ }
-  if (res.status === 400) return err("invalid_request", `Please fix the form: ${message || "the request was invalid."}`, false);
+  if (res.status === 400) {
+    if (!issues.length && message) issues = message.split("; ").map((part) => { const m = /^([\w.]+): (.+)$/.exec(part); return m ? { path: m[1]!, message: m[2]! } : { path: "", message: part }; });
+    const list = issues.map(friendlyIssue);
+    return err("invalid_request", list.length ? `A few details need a fix: ${list.join("; ")}.` : "Something in the form isn't quite right. Check the fields and try again.", false);
+  }
   if (res.status === 413 || res.status === 415) return err("invalid_request", message || `Request rejected (HTTP ${res.status}).`, false);
   return err("internal", `The server answered HTTP ${res.status}${message ? `: ${message}` : ""}. Try again.`);
+}
+
+const FIELD: Record<string, string> = { artist: "Artist", partner: "Co-headliner", anchors: "Dates", maxDriveMi: "Max drive per day", minAffinity: "Fan-heat floor", rules: "Touring rules" };
+/** "anchors.0.city: pick a city…" -> "Stop 1 city: pick a city…"; "artist: required" -> "Artist: enter a name". */
+export function friendlyIssue(i: { path: string; message: string }): string {
+  const [head = "", idx, leaf] = i.path.split(".");
+  if (head === "artist" && i.message === "required") return "Artist: enter an artist name";
+  if (head === "anchors" && idx !== undefined && /^\d+$/.test(idx)) return `Stop ${Number(idx) + 1}${leaf ? ` ${leaf}` : ""}: ${i.message}`;
+  if (!head) return i.message;
+  const label = FIELD[head] ?? i.path;
+  return `${label}${head === "rules" && idx ? ` (${idx})` : ""}: ${i.message}`;
 }
 
 export interface StreamOptions { fetchImpl?: typeof fetch; timeoutMs?: number; signal?: AbortSignal }

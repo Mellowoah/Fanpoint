@@ -35,6 +35,8 @@ export const RawEntitySchema = z.preprocess(withEntityId, z.object({
     geocode: z.object({ name: optStr, admin1_region: optStr, country_code: optStr, city: optStr }).optional().catch(undefined),
     short_description: optStr,
     description: optStr,
+    /** Entity image, when Qloo has one (used only for the autocomplete thumbnail). */
+    image: z.object({ url: optStr }).optional().catch(undefined),
   }).optional().catch(undefined),
   tags: z.array(RawTagSchema).optional().catch(undefined),
   query: z.object({ affinity: optNum }).optional().catch(undefined),

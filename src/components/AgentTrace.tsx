@@ -12,7 +12,7 @@ export default function AgentTrace({ events, title }: { events: AgentEvent[]; ti
   for (const e of events) if (e.type === "step") steps.set(e.id, e);
   const totalCalls = events.reduce((n, e) => n + (e.type === "tool" ? e.qlooCalls.length : 0), 0);
   return (
-    <div className="bg-panel border border-line rounded-xl p-4 text-sm">
+    <div className="card bg-panel p-4 text-sm">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-semibold">{title}</h3>
         {totalCalls > 0 && <span className="text-xs text-plain font-mono">{totalCalls} Qloo calls</span>}

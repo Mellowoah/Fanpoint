@@ -7,7 +7,7 @@ import type { RankMode } from "@/lib/route/rank";
 import { COHEAD_WITHOUT_QLOO_LINE, scoreLine } from "@/lib/route/score-line";
 
 const pct = (a?: number) => (a === undefined ? "–" : `${Math.round(a * 100)}`);
-const YOU = "#ff7a45", THEM = "#3ad0c4", BOTH = "#f4f1ea";
+const YOU = "#ee6330", THEM = "#3ad0c4", BOTH = "#f4f1ea";
 
 export default function CoheadView({ plan, mode = "with" }: { plan: CoheadPlan; mode?: RankMode }) {
   if (mode === "without") return <CoheadWithout plan={plan} />;
@@ -26,7 +26,7 @@ export function CoheadWithout({ plan }: { plan: CoheadPlan }) {
         <b>No fan signal, so no pairing can be judged.</b> <span className="text-plain">Complementarity needs each act&apos;s Qloo affinity per city (where one is strong and the other weak). Without it every pairing looks the same: the peers below are listed alphabetically, none is recommended. The peer names themselves came from Qloo; without Qloo there would be no list at all.</span>
       </div>
       {peers.map((p) => (
-        <div key={p.entity.id} className="bg-panel border border-line rounded-xl p-3 grid gap-1">
+        <div key={p.entity.id} className="card bg-panel p-3 grid gap-1">
           <span className="font-semibold">{p.entity.name}{p.requested && <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-plain align-middle">your pick</span>}</span>
           <span className="text-[11px] font-mono text-plain" data-score-line>{COHEAD_WITHOUT_QLOO_LINE}</span>
         </div>
@@ -47,7 +47,7 @@ function CoheadWith({ plan }: { plan: CoheadPlan }) {
     return plan.cities.flatMap<Marker>((c) => {
       const a = c.you, read = c.peers[peer.entity.id], b = read ?? 0;
       const sa = a >= strong, sb = b >= strong;
-      if (!sa && !sb) return [{ lat: c.lat, lon: c.lon, color: "#2e3546", radius: 3, stroke: "#0b0d12", tooltip: `${c.name}: you ${pct(a)} · them ${read == null ? "no data" : pct(read)}` }];
+      if (!sa && !sb) return [{ lat: c.lat, lon: c.lon, color: "#3a332f", radius: 3, stroke: "#141110", tooltip: `${c.name}: you ${pct(a)} · them ${read == null ? "no data" : pct(read)}` }];
       const color = sa && sb ? BOTH : sa ? YOU : THEM;
       const label = gain.has(c.name) ? `+ ${c.name}` : give.has(c.name) ? c.name : undefined;
       return [{ lat: c.lat, lon: c.lon, color, radius: 4 + Math.max(a, b) * 5, label, dir: "right" as const, tooltip: `${c.name}: you ${pct(a)} · them ${read == null ? "no data" : pct(read)}` }];
@@ -65,7 +65,7 @@ function CoheadWith({ plan }: { plan: CoheadPlan }) {
           <button key={p.entity.id} onClick={() => setSel(p.entity.id)} className={`text-left bg-panel border rounded-xl p-3 grid gap-1.5 ${p.entity.id === sel ? "border-accent" : "border-line"}`}>
             <div className="flex justify-between items-baseline">
               <span className="font-semibold">{i + 1}. {p.entity.name}{p.picked && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent align-middle">recommended</span>}{p.requested && <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-plain align-middle">your pick</span>}</span>
-              <span className="text-right leading-none"><span className="font-mono text-sm" style={{ color: p.score > 0 ? THEM : "#8b93a7" }}>{p.score > 0 ? "+" : ""}{p.score}</span><span className="block text-[9px] uppercase tracking-wide text-plain">complementarity</span></span>
+              <span className="text-right leading-none"><span className="font-mono text-sm" style={{ color: p.score > 0 ? THEM : "#a39a94" }}>{p.score > 0 ? "+" : ""}{p.score}</span><span className="block text-[9px] uppercase tracking-wide text-plain">complementarity</span></span>
             </div>
             <div className="text-[11px] font-mono text-accent" data-score-line title="Qloo affinity of this peer for your act; the order is the complementarity of both acts' per-city Qloo affinity">{scoreLine("with", p.similarity)}</div>
             <div className="flex gap-3 text-xs text-plain">
@@ -87,8 +87,8 @@ function CoheadWith({ plan }: { plan: CoheadPlan }) {
             <div className="text-sm">Together: <b className="font-mono">{peer.coveredStrong}</b> cities where at least one act is strong, vs <b className="font-mono">{peer.youStrong}</b> for {plan.artist.name} alone and <b className="font-mono">{peer.themStrong}</b> for {peer.entity.name} alone. <span className="text-plain">More nights where one act carries the room.</span></div>
             <MapView markers={markers} height={430} />
             <div className="grid md:grid-cols-2 gap-3 text-sm">
-              <div className="bg-panel border border-line rounded-xl p-3"><div className="text-[10px] uppercase tracking-wide" style={{ color: THEM }}>You gain (weak for you, strong for them)</div><div>{peer.youGain.join(", ") || "none"}</div></div>
-              <div className="bg-panel border border-line rounded-xl p-3"><div className="text-[10px] uppercase tracking-wide" style={{ color: YOU }}>They gain (strong for you, weak for them)</div><div>{peer.theyGain.join(", ") || "none"}</div></div>
+              <div className="card bg-panel p-3"><div className="text-[10px] uppercase tracking-wide" style={{ color: THEM }}>You gain (weak for you, strong for them)</div><div>{peer.youGain.join(", ") || "none"}</div></div>
+              <div className="card bg-panel p-3"><div className="text-[10px] uppercase tracking-wide" style={{ color: YOU }}>They gain (strong for you, weak for them)</div><div>{peer.theyGain.join(", ") || "none"}</div></div>
             </div>
             {peer.pitch && <div className="border border-accent/40 bg-accent/5 rounded-xl p-3 text-sm"><span className="text-[10px] mr-1.5 px-1.5 py-0.5 rounded bg-white/5 border border-line text-plain align-middle" title="Written by the LLM; numbers checked against the scores">AI pitch</span>{peer.pitch}</div>}
             {mostSimilar && mostSimilar.entity.id !== plan.peers[0]?.entity.id && (

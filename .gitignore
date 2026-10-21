@@ -50,3 +50,6 @@ next-env.d.ts
 # live Qloo-derived material (screens, Devpost text with live numbers, calibration detail): Devpost upload only, never commit
 /screens-live/
 /docs-live/
+
+# local before/after UI review screenshots (mock mode; review artifacts, not committed)
+/screens-ui/
