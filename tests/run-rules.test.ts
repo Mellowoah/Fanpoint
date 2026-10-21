@@ -142,3 +142,16 @@ describe("cityLabel", () => {
     expect(cityLabel("Durham")).toBe("Durham");
   });
 });
+
+describe("splitWarnings", () => {
+  it("folds number-check drops into one label and keeps other warnings", async () => {
+    const { splitWarnings } = await import("@/lib/client/warnings");
+    expect(splitWarnings()).toEqual({ numberCheck: [], other: [] });
+    const stops = splitWarnings(["AI text dropped for Camden: it used numbers not in the data (13).", "AI text dropped for Lancaster: it used numbers not in the data (4)."]);
+    expect(stops.label).toBe("AI notes hidden for 2 stops (number check)");
+    expect(splitWarnings(["AI text dropped for Camden: it used numbers not in the data (13)."]).label).toBe("AI notes hidden for 1 stop (number check)");
+    const mixed = splitWarnings(["AI promo angle dropped for X: numbers not in the data (5).", "AI text dropped for the summary: it used numbers not in the data (9).", "No Qloo fan data for Y."]);
+    expect(mixed).toMatchObject({ other: ["No Qloo fan data for Y."], label: "AI text hidden in 2 places (number check)" });
+    expect(splitWarnings(["AI pitch dropped for Z: it used numbers not in the data (1)."]).label).toBe("AI text hidden in 1 place (number check)");
+  });
+});

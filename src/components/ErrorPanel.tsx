@@ -1,5 +1,7 @@
 "use client";
 import type { AgentEvent } from "@/lib/agent/types";
+import { splitWarnings } from "@/lib/client/warnings";
+import WhyPopover from "./WhyPopover";
 
 type ErrorEvent = Extract<AgentEvent, { type: "error" }>;
 
@@ -38,13 +40,27 @@ export function ErrorPanel({ error, onRetry, context }: { error: ErrorEvent; onR
   );
 }
 
-/** Non-fatal problems (partial data). The plan is still shown. */
+/** Non-fatal problems (partial data). The plan is still shown. AI text hidden by the number check is one compact line. */
 export function WarningList({ warnings }: { warnings?: string[] }) {
-  if (!warnings?.length) return null;
+  const { numberCheck, other, label } = splitWarnings(warnings);
+  if (!numberCheck.length && !other.length) return null;
   return (
-    <div className="rounded-2xl border border-amber-500/35 bg-amber-500/[0.07] p-4 text-sm">
-      <div className="font-semibold text-amber-200 mb-1">Partial data</div>
-      <ul className="list-disc pl-5 grid gap-0.5">{warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+    <div className="grid gap-2">
+      {other.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/35 bg-amber-500/[0.07] p-4 text-sm">
+          <div className="font-semibold text-amber-200 mb-1">Partial data</div>
+          <ul className="list-disc pl-5 grid gap-0.5">{other.map((w) => <li key={w}>{w}</li>)}</ul>
+        </div>
+      )}
+      {label && (
+        <div className="flex items-center gap-2 text-xs text-plain" data-number-check>
+          <span>{label}</span>
+          <WhyPopover label="AI text hidden by the number check" title="Details">
+            Fanpoint drops AI-written text that uses a number not found in the plan&apos;s data; the data-built explanation is shown instead.
+            <ul className="list-disc pl-4 mt-1 grid gap-0.5">{numberCheck.map((w) => <li key={w}>{w}</li>)}</ul>
+          </WhyPopover>
+        </div>
+      )}
     </div>
   );
 }

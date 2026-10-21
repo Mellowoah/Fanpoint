@@ -4,6 +4,7 @@ import { parseToolArgs } from "../llm/schemas";
 import { createQlooClient } from "../qloo";
 import type { QlooClient } from "../qloo/types";
 import { findCity } from "../route/cities";
+import { MARKETS_META } from "../data/markets";
 import { DEFAULT_PARAMS, type Anchor, type FillParams } from "../route/fill";
 import { osrmRoads } from "../route/road";
 import { vetText } from "./narrative";
@@ -177,11 +178,13 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
   };
   const runAct = reg.runSupport ?? undefined;
   const tourFacts = [runAct?.national, runAct?.entity.popularity, runAct?.entity.affinity, runAct?.stops.length, fill.fills, fill.offBefore, fill.offAfter, fill.offBefore - fill.offAfter, fill.gaps.length, fill.maxDayDrive, fill.maxDayHours, fill.totalMi, fill.totalHours, fill.longestRun,
-    p.maxDriveMi, p.maxDriveHours, p.maxConsecutiveShows, p.radiusMi, p.minAffinity, anchors.length, ...anchors.map((a) => a.date)];
+    p.maxDriveMi, p.maxDriveHours, p.maxConsecutiveShows, p.radiusMi, p.minAffinity, p.nightFloor, ...p.dowWeights, anchors.length, ...anchors.map((a) => a.date),
+    // Shown with every stop ("N mapped within 10 mi") and on the run card; the model reads the same values.
+    MARKETS_META.venueRadiusMi, reg.artist.popularity, reg.artist.affinity];
   const allFacts: (number | string | undefined)[] = [...tourFacts];
   let prevCity = anchors[0]?.city ?? "";
   const stops: FillStop[] = [];
-  for (const d of fill.calendar) {
+  for (const [i, d] of fill.calendar.entries()) {
     if (d.kind === "anchor") { prevCity = d.city ?? prevCity; continue; }
     if (d.kind !== "fill" || !d.city || d.lat === undefined || d.lon === undefined || d.affinity === undefined) continue;
     const m = findCity(d.city);
@@ -190,7 +193,11 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
     // Local alternative: this city's own top opener match, unless it is the run-wide act.
     const support = (intel?.support ?? []).filter((e) => e.id !== runAct?.entity.id).slice(0, 1), venues = (intel?.venues ?? []).slice(0, 2);
     const promoEntities = [intel?.brands[0], intel?.podcasts[0]].filter((e): e is Entity => !!e && !!g.pick(e.id));
-    const facts = [...tourFacts, d.date, d.affinity, d.rankInCorridor, size, d.driveMi, d.driveHours, d.driveDays, d.dowWeight, d.run,
+    // The onward leg from this stop (shown in the calendar and the hold draft): the next show day's drive.
+    const next = fill.calendar.slice(i + 1).find((x) => x.kind !== "off");
+    const hoods = intel?.hoods ?? [];
+    const room = venues[0] ? roomNote(venues[0], hoods, { city: d.city, lat: d.lat, lon: d.lon }) : undefined;
+    const facts = [...tourFacts, d.date, next?.driveMi, next?.driveHours, next?.driveDays, ...hoods.map((h) => h.affinity), room?.mi, room?.hood?.mi, d.affinity, d.rankInCorridor, size, d.driveMi, d.driveHours, d.driveDays, d.dowWeight, d.run,
       m?.population, m?.metro.population, m?.venues.total, m?.venues.theatre, m?.venues.nightclub, m?.venues.music_venue, m?.venues.live_music,
       ...[...support, ...venues, ...promoEntities].flatMap((e) => [e.affinity, e.popularity])];
     allFacts.push(...facts);
@@ -212,12 +219,12 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
       why: [
         `${d.driveMi ?? 0} road mi / ${d.driveHours ?? "?"} h from ${prevCity}${(d.driveDays ?? 1) > 1 ? ` over ${d.driveDays} days` : ""} (OSRM).`,
         m ? `City population ${fmtPop(m.population)}, metro ${fmtPop(m.metro.population)} (Census 2025).` : "",
-        m ? `${m.venues.total} mapped live-music venues and theatres within 10 mi (OSM).` : "",
+        m ? `${m.venues.total} mapped live-music venues and theatres within ${MARKETS_META.venueRadiusMi} mi (OSM).` : "",
         runAct && intel?.support.some((e) => e.id === runAct.entity.id) ? `The run's support act, ${runAct.entity.name}, is also a local Qloo match here.` : "",
       ].filter(Boolean).join(" "),
       aiNote: note.ok && note.text ? note.text : undefined,
       support: g.pickAll(support.map((e) => e.id)), venues: g.pickAll(venues.map((e) => e.id)), promo,
-      neighborhoods: intel?.hoods ?? [], room: venues[0] ? roomNote(venues[0], intel?.hoods ?? [], { city: d.city, lat: d.lat, lon: d.lon }) : undefined,
+      neighborhoods: hoods, room,
     });
     prevCity = d.city;
   }

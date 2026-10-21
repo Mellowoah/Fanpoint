@@ -78,6 +78,35 @@ describe("Fill the gaps: code decides, the model explains", () => {
     expect(p.warnings).toEqual([]);
   });
 
+  it("allows the numbers each stop displays: venue radius, touring rules, night weights, onward leg, neighbourhood heat", async () => {
+    const base = plan<FillPlan>(await run((_, a) => a));
+    const cal = base.result.calendar;
+    const noteFor = (city: string) => {
+      const i = cal.findIndex((d) => d.kind === "fill" && d.city === city);
+      const next = cal.slice(i + 1).find((d) => d.kind !== "off");
+      const s = base.stops.find((x) => x.city === city)!;
+      const hood = s.neighborhoods?.[0];
+      return `${s.city}: ${findCity(city)?.venues.total ?? 0} rooms within 10 mi; ${next?.driveMi} mi and ${next?.driveHours} h on to the next show. `
+        + `Inside the ${RULE_VALUES.maxDriveMi} mi / ${RULE_VALUES.maxDriveHours} h caps, at most ${RULE_VALUES.maxConsecutiveShows} shows in a row, clear of the ${RULE_VALUES.radiusMi} mi radius; `
+        + `${base.stops[0]!.dow === "Sat" ? "Saturday" : "night"} weight ${RULE_VALUES.dowWeights[6]}${hood ? `, ${hood.name} at ${Math.round(hood.affinity * 100)}` : ""}.`;
+    };
+    const p = plan<FillPlan>(await run((name, a) => name === "submit_fill"
+      ? { ...a, fills: (a.fills as { city: string }[]).map((f) => ({ city: f.city, note: noteFor(f.city), promo: [] })) }
+      : a));
+    expect(p.warnings.filter((w) => w.startsWith("AI text dropped for") && !w.includes("summary"))).toEqual([]);
+    expect(p.stops.every((s) => !!s.aiNote)).toBe(true);
+  });
+
+  it("still drops invented numbers next to allowed ones (a 4,321-cap room, a 37 mi gap, a 9.7 h leg)", async () => {
+    const p = plan<FillPlan>(await run((name, a) => name === "submit_fill"
+      ? { ...a, fills: (a.fills as { city: string }[]).map((f) => ({ city: f.city, note: `Within 10 mi, a 4,321-cap room; 37 mi from the anchor; 9.7 h drive.`, promo: [] })) }
+      : a));
+    for (const s of p.stops) expect(s.aiNote).toBeUndefined();
+    const w = p.warnings.filter((x) => x.startsWith("AI text dropped for") && !x.includes("summary"));
+    expect(w).toHaveLength(p.stops.length);
+    for (const x of w) { expect(x).toMatch(/4,321/); expect(x).toMatch(/\b37\b/); expect(x).toMatch(/9\.7/); expect(x).not.toMatch(/\(10[,)]/); }
+  });
+
   it("support act, rooms and promo partners are the top Qloo results, whatever the model says", async () => {
     const p = plan<FillPlan>(await run((name, a) => name === "submit_fill" ? { ...a, fills: [] } : a)); // model writes nothing
     expect(p.stops.length).toBeGreaterThan(0);
