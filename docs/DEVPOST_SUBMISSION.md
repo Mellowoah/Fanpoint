@@ -99,11 +99,14 @@ co-billing as a market-coverage decision.
 | Which act? | `/search` (`types=urn:entity:artist`) | Entity id signal |
 | Where are the fans along this drive? | `/v2/insights` `filter.type=urn:heatmap`, `signal.interests.entities`, `filter.location=POLYGON(corridor)` | Corridor ranking of touring cities |
 | Fallback ranking | `/v2/insights` `urn:entity:destination` + same polygon | Only if a heatmap is empty |
-| Which rooms? | `/v2/tags` (music venue), then `urn:entity:place` + `filter.location.query` + `filter.tags` | Rooms per fill |
+| Which rooms? | `urn:entity:place` + `filter.location=POINT(market centre)` + `filter.location.radius` + venue category `filter.tags` | Named top room per fill: fit, address, website, category size tier (our heuristic; Qloo has no capacity field), capacity only where Qloo's text states one. A POINT, not a locality name: "Camden, NJ" matched Camden County, so rooms came back from across the county; Philadelphia rooms stay, labelled with their own city and miles from the stop |
+| Which neighborhoods? | `urn:heatmap` + `output.heatmap.boundary=urn:entity:locality` + same POINT | Top 3 fan neighborhoods per stop (centre points only, geometry dropped); explains the room when it sits in one |
 | Who supports? | `urn:entity:artist` + `signal.location.query` + `filter.popularity.max` + `filter.exclude.entities` | Local support no bigger than the headliner |
 | Promo hooks | `urn:entity:brand`, `urn:entity:podcast` + `signal.location.query` | Cross-domain partner ideas |
 | Who could co-headline? | `urn:entity:artist` + `filter.popularity.min/max` | Peers in the same band |
 | Do their markets complement ours? | `urn:heatmap` per act over the lower-48 polygon | City-by-city complementarity |
+| What do the audiences share? | `/v2/analysis/compare`, `urn:demographics` (one call), `urn:entity:place` with both acts as the signal | Shared taste tags (de-noised), relative age/gender skews, a joint room in the best shared city |
+| Promoter: who fits this room? | `urn:entity:place` (city rooms), then `urn:entity:artist` + `signal.interests.entities=<room>`; `urn:tag` + city signal | Acts ranked for one room (music acts only); the city's taste line |
 
 Rankings, scores and picks are computed in code from these responses:
 

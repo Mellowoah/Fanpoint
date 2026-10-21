@@ -1,6 +1,8 @@
 import type { ErrorCode } from "../net/errors";
-export type { QlooRawEntity, QlooRawHeatCell } from "./schemas";
-import type { QlooRawEntity } from "./schemas";
+export type { QlooRawEntity, QlooRawHeatCell, LocalityHeat } from "./schemas";
+import type { LocalityHeat, QlooRawEntity } from "./schemas";
+import type { PlaceInfo } from "./venues";
+import type { Demographics, TagScore } from "./taste";
 
 export type QlooParams = Record<string, string | number | boolean | undefined>;
 
@@ -36,6 +38,8 @@ export interface Entity {
   country?: string;
   description?: string;
   tags: string[];
+  /** Venue facts (places only): address, website, category, stated capacity... */
+  place?: PlaceInfo;
   mock: boolean;
 }
 
@@ -57,6 +61,14 @@ export interface QlooClient {
   insightsLocal(params: QlooParams): Promise<LocalInsights>;
   /** filter.type=urn:heatmap. Returns grid cells; `take` is ignored by Qloo for heatmaps. */
   heatmap(params: QlooParams): Promise<HeatCell[]>;
+  /** filter.type=urn:heatmap with output.heatmap.boundary=urn:entity:locality: named localities, geometry stripped. */
+  localityHeat(params: QlooParams): Promise<LocalityHeat[]>;
+  /** filter.type=urn:demographics for one or more entities (one call). */
+  demographics(entityIds: string[]): Promise<Demographics[]>;
+  /** filter.type=urn:tag (taste analysis): tags ranked for the given signals. */
+  tagInsights(params: QlooParams): Promise<TagScore[]>;
+  /** GET /v2/analysis/compare: tags two entities share, scored. */
+  compare(a: string, b: string): Promise<TagScore[]>;
   /** Every request made through this client instance, in order (for the trace). */
   readonly calls: QlooCallLog[];
 }

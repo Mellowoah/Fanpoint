@@ -8,6 +8,8 @@ import type { LatLon } from "../route/geo";
 import type { GroundingReport } from "./grounding";
 import type { RoadMatrixMeta } from "../route/road";
 import type { RankedGap } from "../route/rank";
+import type { FanHood } from "../qloo/venues";
+import type { Demographics, TagScore } from "../qloo/taste";
 
 /** Overrides for adjustable touring assumptions (validated in api/plan-request.ts). */
 export interface RuleOverrides { maxDriveHours?: number; maxConsecutiveShows?: number; radiusMi?: number; nightFloor?: number; dowWeights?: number[] }
@@ -41,6 +43,17 @@ export interface FillStop {
   aiNote?: string;
   /** Qloo results, top-ranked first (chosen by code, not by the model). */
   support: Entity[]; venues: Entity[]; promo: { entity: Entity; angle: string; angleBy: "ai" | "routed" }[];
+  /** Neighborhoods of the stop city where the artist's fans cluster (Qloo locality heat), strongest first. */
+  neighborhoods?: FanHood[];
+  /** Why the top room (venues[0]) was picked, built from the data. */
+  room?: RoomNote;
+}
+export interface RoomNote {
+  /** Great-circle miles from the stop's city centre. */
+  mi?: number;
+  /** A fan neighborhood the room is in (Qloo names it) or within HOOD_NEAR_MI of. */
+  hood?: { name: string; how: "named" | "near"; mi?: number };
+  why: string;
 }
 export interface FillPlan {
   task: "fill"; mode: "qloo"; artist: Entity; anchors: Anchor[]; params: FillParams; result: FillResult; stops: FillStop[];
@@ -67,9 +80,23 @@ export type RuleSnapshot = Record<string, number | readonly number[]>;
 
 export interface PeerMatch extends Complementarity {
   entity: Entity; similarity?: number; picked: boolean; pitch?: string; requested?: boolean;
+  /** Taste tags both audiences share (Qloo compare, de-noised). */
+  shared?: TagScore[];
+  /** Relative age / gender skews of this peer's audience. */
+  skew?: Demographics;
+  /** Best room for the pair in their best shared city (both acts as the signal). */
+  joint?: { city: string; region: string; you: number; them: number; venue?: Entity };
+}
+/** Co-headliner extras fetched after compare_fan_geography for the recommended peers and the partner. */
+export interface CoheadExtras {
+  skews: Record<string, Demographics>;
+  byPeer: Record<string, { shared: TagScore[]; joint?: NonNullable<PeerMatch["joint"]> }>;
 }
 export interface CoheadPlan {
-  task: "cohead"; artist: Entity; peers: PeerMatch[]; thresholds: { strong: number; weak: number }; rules: RuleSnapshot;
+  task: "cohead"; artist: Entity; peers: PeerMatch[];
+  /** Relative age / gender skews of the artist's own audience. */
+  artistSkew?: Demographics;
+  thresholds: { strong: number; weak: number }; rules: RuleSnapshot;
   /** Per touring city: your heat and each peer's (null = no Qloo reading for that peer there). */
   cities: { name: string; region: string; lat: number; lon: number; you: number; peers: Record<string, number | null> }[];
   summary: string; aiSummary?: string; grounding: GroundingReport; warnings: string[]; qlooCalls: QlooCallLog[]; providers: Providers;

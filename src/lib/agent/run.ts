@@ -9,11 +9,13 @@ import { osrmRoads } from "../route/road";
 import { vetText } from "./narrative";
 import { agentError, toErrorEvent } from "./errors";
 import { createGrounder } from "./grounding";
-import { COHEAD_TOOLS, FILL_TOOLS, Registry, SubmitCoheadSchema, SubmitFillSchema, Tools } from "./tools";
+import { COHEAD_TOOLS, FILL_TOOLS, nameKey, Registry, SubmitCoheadSchema, SubmitFillSchema, Tools } from "./tools";
+import { hoodForVenue, type FanHood } from "../qloo/venues";
+import { gcMi } from "../route/geo";
 import { THRESHOLDS } from "../cohead/complementarity";
 import { RULE_VALUES } from "../touring/rules";
 import type { Entity } from "../qloo/types";
-import type { AgentEvent, CoheadPlan, FillPlan, FillRequest, FillStop, PeerMatch, PlanRequest, Providers } from "./types";
+import type { AgentEvent, CoheadPlan, FillPlan, FillRequest, FillStop, PeerMatch, PlanRequest, Providers, RoomNote } from "./types";
 
 const FILL_SYSTEM = `You are Fanpoint, a routing assistant for booking agents and promoters.
 The tour has fixed ANCHOR shows (city + date). Fanpoint's tools fill the off days between anchors with shows in cities
@@ -35,7 +37,7 @@ tool results; a pitch with any other number is discarded. No ticket forecasts.`;
 const LABELS: Record<string, string> = {
   resolve_artist: "Resolve artist in Qloo", scan_corridor: "Scan fan heat along each drive corridor", fill_gaps: "Fill off days (drive, no-backtrack, night-of-week rules)",
   get_city_intel: "Support acts, rooms & promo hooks per fill", submit_fill: "Grounding & number check, final routing",
-  find_peer_acts: "Find peer acts in your popularity band", compare_fan_geography: "Compare nationwide fan geography", submit_cohead: "Grounding & number check, recommendation",
+  find_peer_acts: "Find peer acts in your popularity band", compare_fan_geography: "Compare nationwide fan geography", submit_cohead: "Grounding & number check, recommendation", cohead_extras: "Shared taste, audience skews & joint rooms",
 };
 /** Tool results longer than this are summarized before they go back to the model (keeps prompts bounded). */
 const MAX_TOOL_CHARS = 12000;
@@ -113,6 +115,13 @@ async function* loop(req: PlanRequest, { qloo: q, llm, maxTurns, deadlineMs }: A
             const r = await tools.call("get_city_intel", { artist_id: reg.artist.id, city: d.city });
             yield { type: "tool", name: "get_city_intel", args: { artist_id: reg.artist.id, city: d.city, auto: true }, summary: `${r.summary} (fetched by Fanpoint: the model skipped it)`, qlooCalls: q.calls.slice(before) };
           }
+        }
+        if (name === "submit_cohead" && req.task === "cohead" && reg.artist && reg.matches.length && !reg.cohead) {
+          // Shared taste, audience skews and a joint room for the peers the plan recommends (plus the partner).
+          const ids = reg.matches.filter((m, i) => (m.score > 0 && i < 3) || m.requested).map((m) => m.entity.id);
+          const before = q.calls.length;
+          const r = await tools.coheadExtras(reg.artist.id, ids);
+          yield { type: "tool", name: "cohead_extras", args: { artist_id: reg.artist.id, peer_ids: ids, auto: true }, summary: `${r.summary} (fetched by Fanpoint)`, qlooCalls: q.calls.slice(before) };
         }
         const plan = name === "submit_fill" && req.task === "fill" ? buildFill(args.value, reg, anchors, q, providers, roads.meta)
           : name === "submit_cohead" && req.task === "cohead" ? buildCohead(args.value, reg, q, providers)
@@ -199,6 +208,7 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
       ].filter(Boolean).join(" "),
       aiNote: note.ok && note.text ? note.text : undefined,
       support: g.pickAll(support.map((e) => e.id)), venues: g.pickAll(venues.map((e) => e.id)), promo,
+      neighborhoods: intel?.hoods ?? [], room: venues[0] ? roomNote(venues[0], intel?.hoods ?? [], { city: d.city, lat: d.lat, lon: d.lon }) : undefined,
     });
     prevCity = d.city;
   }
@@ -210,6 +220,20 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
     task: "fill", mode: "qloo", artist: reg.artist, anchors, params: p, result: fill, stops, corridors: [...reg.corridors.values()], ranked: reg.ranked ?? [], rules: { ...RULE_VALUES },
     summary, aiSummary: ai.ok && ai.text ? ai.text : undefined, routing, grounding: g.report(), warnings, qlooCalls: [...q.calls], providers,
   };
+}
+
+/** The data behind the top room: fit to the artist, where it is relative to the stop, and any fan neighborhood it sits in. */
+export function roomNote(v: Entity, hoods: FanHood[], stop: { city: string; lat: number; lon: number }): RoomNote {
+  const mi = v.lat !== undefined && v.lon !== undefined ? Math.round(gcMi({ lat: v.lat, lon: v.lon }, stop) * 10) / 10 : undefined;
+  const h = hoodForVenue(v, hoods);
+  const elsewhere = v.city && nameKey(v.city) !== nameKey(stop.city);
+  const why = [
+    v.affinity !== undefined ? `Top Qloo room for this artist's audience near ${stop.city} (fit ${pct(v.affinity)}).` : `Top Qloo room near ${stop.city}.`,
+    elsewhere ? `It is in ${v.city}${mi !== undefined ? `, ${mi} mi from ${stop.city}` : ""} (same market).` : "",
+    h ? (h.how === "named" ? `It is in ${h.hood.name}, a neighborhood where these fans cluster (heat ${pct(h.hood.affinity)}).`
+      : `It is ${h.mi} mi from ${h.hood.name}, a neighborhood where these fans cluster (heat ${pct(h.hood.affinity)}).`) : "",
+  ].filter(Boolean).join(" ");
+  return { mi, hood: h ? { name: h.hood.name, how: h.how, mi: h.mi } : undefined, why };
 }
 
 const peerFacts = (m: PeerMatch) => [m.score, m.similarity, m.youGain.length, m.theyGain.length, m.overlap.length, m.coveredStrong, m.youStrong, m.themStrong, m.newStrongForYou, m.newStrongForThem,
@@ -225,7 +249,9 @@ export function buildCohead(args: unknown, reg: Registry, q: Pick<QlooClient, "c
   if (!reg.artist || !reg.matches.length) return { error: "Call compare_fan_geography before submit_cohead." };
   const g = createGrounder(reg.entities);
   const warnings = [...reg.warnings];
-  const peers = reg.matches.map((m, i) => ({ ...m, picked: m.score > 0 && i < 3, pitch: undefined as string | undefined }));
+  const x = reg.cohead;
+  const peers = reg.matches.map((m, i) => ({ ...m, picked: m.score > 0 && i < 3, pitch: undefined as string | undefined,
+    shared: x?.byPeer[m.entity.id]?.shared, joint: x?.byPeer[m.entity.id]?.joint, skew: x?.skews[m.entity.id] }));
   const mostSimilar = [...peers].sort((a, b) => (b.similarity ?? -1) - (a.similarity ?? -1))[0];
   for (const p of parsed.data.pitches) {
     if (!g.pick(p.peer_id)) continue;
@@ -247,6 +273,6 @@ export function buildCohead(args: unknown, reg: Registry, q: Pick<QlooClient, "c
   const all = peers.flatMap(peerFacts);
   const ai = vetText(parsed.data.summary, [...all, peers.length]);
   if (!ai.ok) warnings.push(`AI text dropped for the summary: it used numbers not in the data (${ai.offending.join(", ")}).`);
-  return { task: "cohead", artist: reg.artist, peers, thresholds: { ...THRESHOLDS }, rules: { ...RULE_VALUES }, cities, summary, aiSummary: ai.ok && ai.text ? ai.text : undefined,
+  return { task: "cohead", artist: reg.artist, peers, artistSkew: x?.skews[reg.artist.id], thresholds: { ...THRESHOLDS }, rules: { ...RULE_VALUES }, cities, summary, aiSummary: ai.ok && ai.text ? ai.text : undefined,
     grounding: g.report(), warnings, qlooCalls: [...q.calls], providers };
 }

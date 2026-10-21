@@ -4,7 +4,8 @@ import { ProviderError } from "../net/errors";
 import { requestWithRetry, type HttpDeps, type RetryPolicy } from "../net/http";
 import { checkQlooBaseUrl } from "./base-url";
 import { sharedLimiter } from "../net/rate-limiter";
-import { countResults, parseHeatmap, parseInsights, parseInsightsLocal, parseSearch, parseTags, type Parsed } from "./schemas";
+import { countResults, parseDemographics, parseHeatmap, parseInsights, parseInsightsLocal, parseLocalityHeat, parseScoredTags, parseSearch, parseTags, type LocalityHeat, type Parsed } from "./schemas";
+import type { Demographics, TagScore } from "./taste";
 import { responseHash } from "./hash";
 import { cleanParams, type HeatCell, type LocalInsights, type QlooCallLog, type QlooClient, type QlooParams, type QlooRawEntity } from "./types";
 
@@ -31,6 +32,11 @@ export const DEFAULT_QLOO_OPTIONS: QlooHttpOptions = {
   minIntervalMs: 220,
   maxCallsPerRun: 150,
 };
+/**
+ * Locality heatmaps carry every matched locality's full boundary, the country's included: 5.5-16 MB per response in
+ * live tests. Only this call may read that much; the geometry is reduced to centre points before anything is cached.
+ */
+export const LOCALITY_HEAT_MAX_BYTES = 20 * 1024 * 1024;
 
 /**
  * Live adapter for the Qloo hackathon API.
@@ -57,7 +63,7 @@ export class HttpQlooClient implements QlooClient {
   }
 
   /** GET + validate. Cache stores the *parsed* result, so a cached hit can never be an invalid body. */
-  private async get<T>(path: string, params: QlooParams, parse: (json: unknown) => Parsed<T>): Promise<T[]> {
+  private async get<T>(path: string, params: QlooParams, parse: (json: unknown) => Parsed<T>, retry: Partial<RetryPolicy> = {}): Promise<T[]> {
     const clean = cleanParams(params);
     const qs = new URLSearchParams(clean).toString();
     const key = `qloo:${this.baseUrl}${path}?${qs}`;
@@ -75,7 +81,7 @@ export class HttpQlooClient implements QlooClient {
     try {
       const res = await requestWithRetry("qloo", `${this.baseUrl}${path}?${qs}`, {
         method: "GET", headers: { "X-Api-Key": this.apiKey, accept: "application/json", "user-agent": "routed/0.1" }, cache: "no-store",
-      }, this.opts.retry, this.deps);
+      }, { ...this.opts.retry, ...retry }, this.deps);
       let json: unknown;
       try { json = JSON.parse(res.text); } catch { throw new ProviderError("qloo", "invalid_response", `${path}: body is not JSON`, res.status, res.attempts); }
       const parsed = parse(json);
@@ -114,6 +120,22 @@ export class HttpQlooClient implements QlooClient {
       lat: c.location.latitude, lon: c.location.longitude, geohash: c.location.geohash,
       affinity: c.query.affinity, affinityRank: c.query.affinity_rank, popularity: c.query.popularity, mock: false,
     }));
+  }
+
+  localityHeat(params: QlooParams): Promise<LocalityHeat[]> {
+    return this.get("/v2/insights", { ...params, "filter.type": "urn:heatmap", "output.heatmap.boundary": "urn:entity:locality" }, parseLocalityHeat, { maxBodyBytes: LOCALITY_HEAT_MAX_BYTES });
+  }
+
+  demographics(entityIds: string[]): Promise<Demographics[]> {
+    return this.get("/v2/insights", { "filter.type": "urn:demographics", "signal.interests.entities": entityIds.join(",") }, parseDemographics);
+  }
+
+  tagInsights(params: QlooParams): Promise<TagScore[]> {
+    return this.get("/v2/insights", { ...params, "filter.type": "urn:tag" }, parseScoredTags);
+  }
+
+  compare(a: string, b: string): Promise<TagScore[]> {
+    return this.get("/v2/analysis/compare", { "a.signal.interests.entities": a, "b.signal.interests.entities": b, take: 30 }, parseScoredTags);
   }
 
   tags(query: string, tagTypes?: string[]): Promise<{ id: string; name: string }[]> {

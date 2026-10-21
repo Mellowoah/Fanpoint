@@ -13,6 +13,7 @@ import WhyPopover from "./WhyPopover";
 import { HoldDraftButton } from "./HoldDraft";
 import { CYAN } from "./palette";
 import ScoreLineText from "./ScoreLineText";
+import { FanHoods, RoomCard } from "./QlooPlus";
 
 const pct = (a?: number) => (a === undefined ? "–" : `${Math.round(a * 100)}`);
 const md = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -120,7 +121,7 @@ export function useFillMap(q?: FillPlan) {
 
 // ---------- Stop card ----------
 function Chip({ e }: { e: Entity }) {
-  return <span title={e.id} className="inline-flex items-center gap-1 bg-black/30 border border-line rounded-full px-2 py-0.5 text-xs">{e.name}{e.affinity !== undefined && <span className="text-accent-text font-mono">{pct(e.affinity)}</span>}</span>;
+  return <span title={e.id} className="inline-flex items-center gap-1 bg-black/30 border border-line rounded-full px-2 py-0.5 text-xs">{e.name}{e.affinity !== undefined && <span className="text-accent-text font-mono shrink-0">{pct(e.affinity)}</span>}</span>;
 }
 const KIND: Record<string, string> = { brand: "Brand", podcast: "Podcast", tv_show: "TV" };
 const num = (n: number) => n.toLocaleString("en-US");
@@ -164,7 +165,9 @@ export function FillStopCard({ s, q }: { s: FillStop; q: FillPlan }) {
       <div className="grid gap-1"><div className="text-[10px] uppercase tracking-wide text-plain">Why this stop</div><WhyFacts s={s} /></div>
       {s.aiNote && <div className="text-sm leading-snug flex items-center gap-1.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-line text-plain" title="Written by the LLM; every number in it was checked against the data above">AI note</span><WhyPopover label={`AI note for ${s.city}`}>{s.aiNote}</WhyPopover></div>}
       <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Support</span>{s.support.map((e) => <Chip key={e.id} e={e} />)}<Src>top Qloo match</Src></div>
-      <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Rooms</span>{s.venues.map((e) => <Chip key={e.id} e={e} />)}<Src>top Qloo matches</Src></div>
+      {s.venues[0] ? <RoomCard v={s.venues[0]} note={s.room} stopCity={s.city} /> : <div className="text-xs text-plain">No Qloo show room matched near {s.city}.</div>}
+      {s.venues.length > 1 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Also</span>{s.venues.slice(1).map((e) => <Chip key={e.id} e={e} />)}<Src>next Qloo matches</Src></div>}
+      <FanHoods hoods={s.neighborhoods} city={s.city} />
       {s.promo.map((p) => (
         <div key={p.entity.id} className="text-sm flex gap-2"><span className="text-[10px] mt-0.5 px-1.5 rounded bg-accent/15 text-accent-text h-fit">{KIND[p.entity.kind] ?? p.entity.kind}</span>{p.angleBy === "ai" ? <span className="flex items-center gap-1.5"><span className="text-[10px] text-plain">(AI)</span><WhyPopover label={`promo angle: ${p.entity.name}`} title="Angle">{p.angle}</WhyPopover></span> : <span>{p.angle}</span>}</div>
       ))}

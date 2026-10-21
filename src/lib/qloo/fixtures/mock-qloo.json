@@ -47,13 +47,15 @@
     { "name": "Fernhill Static (mock)", "tags": ["Dream Pop", "Ethereal Wave"] }
   ],
   "venuePool": [
-    { "name": "Foxglove Hall (mock)", "tags": ["Music Venue", "Bar"] },
-    { "name": "The Lantern Room (mock)", "tags": ["Music Venue", "Listening Room"] },
-    { "name": "Hollow Pine Social (mock)", "tags": ["Bar", "Live Music"] },
-    { "name": "Riverlight Ballroom (mock)", "tags": ["Music Venue", "Ballroom"] },
-    { "name": "The Static Attic (mock)", "tags": ["Music Venue", "DIY Space"] },
-    { "name": "Copper Kettle Stage (mock)", "tags": ["Live Music", "Cafe"] }
+    { "name": "Foxglove Hall (mock)", "tags": ["Music Venue", "Bar"], "category": "live_music_venue", "description": "Fictional mid-size music hall with a 900-capacity main room (mock)." },
+    { "name": "The Lantern Room (mock)", "tags": ["Music Venue", "Listening Room"], "category": "bar", "description": "Fictional listening-room bar (mock)." },
+    { "name": "Hollow Pine Social (mock)", "tags": ["Bar", "Live Music"], "category": "night_club", "description": "Fictional late-night club (mock)." },
+    { "name": "Riverlight Ballroom (mock)", "tags": ["Music Venue", "Ballroom"], "category": "performing_arts_theater", "description": "Fictional restored theatre with a 1,400-seat auditorium (mock)." },
+    { "name": "The Static Attic (mock)", "tags": ["Music Venue", "DIY Space"], "category": "live_music_venue", "description": "Fictional DIY room (mock)." },
+    { "name": "Copper Kettle Stage (mock)", "tags": ["Live Music", "Cafe"], "category": "coffee_shop", "description": "Fictional cafe with an open-mic corner (mock). Not a show room: dropped by the category whitelist." },
+    { "name": "Gallery of Quiet Things (mock)", "tags": ["Museum"], "category": "art_museum", "description": "Fictional museum (mock). Dropped by the category whitelist." }
   ],
+  "hoodPool": ["Old Mill (mock)", "Riverside (mock)", "Depot District (mock)", "Northgate (mock)", "Lantern Row (mock)", "East Hill (mock)"],
   "brandPool": [
     { "name": "Fernwood Records (mock)", "tags": ["Record Store"] },
     { "name": "Analog Bean Coffee (mock)", "tags": ["Coffee Roaster"] },

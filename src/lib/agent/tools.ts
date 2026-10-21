@@ -3,8 +3,10 @@
  *   /search                                  resolve artist name -> entity id
  *   /v2/insights  urn:heatmap                fan heat along each anchor-to-anchor drive corridor (WKT polygon) and nationwide
  *   /v2/insights  urn:entity:destination     fallback city ranking inside a corridor if the heatmap is empty or fails
- *   /v2/tags                                 music-venue tag id
- *   /v2/insights  urn:entity:place           rooms whose crowd matches the artist, filtered to a city + venue tag
+ *   /v2/insights  urn:entity:place           rooms whose crowd matches the artist: market-centre POINT + radius, venue tags
+ *   /v2/insights  urn:heatmap (localities)   the city's neighborhoods where the artist's fans cluster
+ *   /v2/insights  urn:demographics           co-headliners: age / gender skews of both audiences (one call)
+ *   /v2/analysis/compare                     co-headliners: taste tags the two acts share
  *   /v2/insights  urn:entity:artist          peers in a popularity band (co-headliners) and local support acts
  *   /v2/insights  urn:entity:brand / podcast cross-domain promo hooks for a city's audience
  *
@@ -19,6 +21,8 @@ import { z } from "zod";
 import { complementarity, THRESHOLDS } from "../cohead/complementarity";
 import { isProviderError } from "../net/errors";
 import { normalize } from "../qloo/normalize";
+import { HOODS_SHOWN, isShowRoom, VENUE_FETCH, VENUE_RADIUS_M, VENUE_TAGS, type FanHood } from "../qloo/venues";
+import { sharedTaste, type Demographics } from "../qloo/taste";
 import { packCells, readCities, type CityHeat } from "../qloo/heat";
 import type { Entity, HeatCell, QlooClient } from "../qloo/types";
 import { US_CITIES, findCity } from "../route/cities";
@@ -28,7 +32,7 @@ import { rankGaps, type RankedGap } from "../route/rank";
 import type { RoadFn } from "../route/road";
 import { RULE_VALUES } from "../touring/rules";
 import type { ToolDef } from "../llm/types";
-import type { Corridor, PeerMatch } from "./types";
+import type { CoheadExtras, Corridor, PeerMatch } from "./types";
 
 // ---------- Argument schemas (single source of truth for validation and for the model-facing JSON Schema) ----------
 const id = z.string().trim().min(1).max(200);
@@ -92,7 +96,7 @@ export interface FillGapsOut {
 }
 /** Rooms farther than this from the city centre (great-circle miles) are not "in" the city, so they are dropped. */
 export const VENUE_MAX_MI = 25;
-export interface IntelOut { city: string; support: Slim[]; venues: Slim[]; brands: Slim[]; podcasts: Slim[] }
+export interface IntelOut { city: string; support: Slim[]; venues: Slim[]; brands: Slim[]; podcasts: Slim[]; fan_neighborhoods: string[] }
 export interface PeersOut { peers: Slim[] }
 export interface GeoOut {
   thresholds: { strong: number; weak: number }; your_strong_cities: number;
@@ -100,7 +104,11 @@ export interface GeoOut {
 }
 export interface ToolResult<T = unknown> { out: T | ToolError; summary: string }
 
-export interface CityIntel { city: string; support: Entity[]; venues: Entity[]; brands: Entity[]; podcasts: Entity[] }
+export interface CityIntel { city: string; support: Entity[]; venues: Entity[]; brands: Entity[]; podcasts: Entity[]; hoods: FanHood[] }
+/** Fan neighborhoods must be this close to the stop's centre (great-circle miles). */
+export const HOOD_MAX_MI = 15;
+/** WKT POINT for a city centre (lon lat, as Qloo expects). */
+export const pointWkt = (c: { lat: number; lon: number }) => `POINT(${c.lon.toFixed(4)} ${c.lat.toFixed(4)})`;
 
 /** Shared state across one agent run: every entity any tool returned (used for grounding checks) plus computed artefacts. */
 export class Registry {
@@ -118,6 +126,7 @@ export class Registry {
   peers: { entity: Entity; similarity?: number }[] = [];
   matches: PeerMatch[] = [];
   partnerId?: string;
+  cohead?: CoheadExtras;
   add(list: Entity[]) { for (const e of list) this.entities.set(e.id, e); return list; }
   warn(msg: string) { if (!this.warnings.includes(msg)) this.warnings.push(msg); }
 }
@@ -133,7 +142,6 @@ export const nameKey = (s: string): string => s.normalize("NFKD").replace(/[\u03
 const sameName = (a: string, b: string): boolean => nameKey(a) === nameKey(b);
 
 export class Tools {
-  private venueTag?: string | null;
   /**
    * @param anchors the request's anchors (resolved to coordinates)
    * @param params the request's touring rules; these always win over whatever the model passes to fill_gaps
@@ -254,46 +262,54 @@ export class Tools {
     };
   }
 
-  private async venueTagId(): Promise<string | null> {
-    if (this.venueTag !== undefined) return this.venueTag;
-    try { this.venueTag = (await this.q.tags("music venue", ["urn:tag:category:place"]))[0]?.id ?? null; } catch (e) { this.soft(e, "Venue tag lookup"); this.venueTag = null; }
-    return this.venueTag;
-  }
-
   private async cityIntel({ artist_id, city: cityName }: z.infer<typeof ToolArgs.get_city_intel>): Promise<ToolResult<IntelOut>> {
     const bad = this.knownArtist(artist_id);
     if (bad) return fail(bad);
     const c = findCity(cityName);
     if (!c) return fail(`Unknown city "${cityName}".`);
-    const tag = await this.venueTagId();
     const pop = this.reg.artist?.popularity;
     // A bare city name ("Washington", "Richmond") can resolve to a same-named place in another state or country,
     // so always name the state.
     const where = c.name.includes(",") ? c.name : `${c.name}, ${c.state}`;
+    // Rooms and neighborhoods use the market centre as a POINT + radius, not a locality name: "Camden, NJ" matched
+    // Camden County live, which widened the area. A radius is the same size in every city.
+    const area = { "filter.location": pointWkt(c), "filter.location.radius": VENUE_RADIUS_M };
     const parts = [
       // Support act: taste-adjacent, local, and no bigger than the artist (popularity ceiling).
       ["support acts", "urn:entity:artist", { "filter.type": "urn:entity:artist", "signal.interests.entities": artist_id, "signal.location.query": where, "filter.exclude.entities": artist_id, "filter.popularity.max": pop, take: 3 }],
-      ["rooms", "urn:entity:place", { "filter.type": "urn:entity:place", "signal.interests.entities": artist_id, "filter.location.query": where, "filter.tags": tag ?? undefined, take: 3 }],
+      ["rooms", "urn:entity:place", { "filter.type": "urn:entity:place", "signal.interests.entities": artist_id, ...area, "filter.tags": VENUE_TAGS.join(","), take: VENUE_FETCH }],
       ["brands", "urn:entity:brand", { "filter.type": "urn:entity:brand", "signal.interests.entities": artist_id, "signal.location.query": where, take: 2 }],
       ["podcasts", "urn:entity:podcast", { "filter.type": "urn:entity:podcast", "signal.interests.entities": artist_id, "signal.location.query": where, take: 2 }],
     ] as const;
-    // One failed sub-call must not cost the whole city: settle all four, degrade the failures to empty lists.
-    const settled = await Promise.allSettled(parts.map(([, , params]) => this.q.insights(params)));
+    // One failed sub-call must not cost the whole city: settle all of them, degrade the failures to empty lists.
+    const [settled, heat] = await Promise.all([
+      Promise.allSettled(parts.map(([, , params]) => this.q.insights(params))),
+      this.q.localityHeat({ "signal.interests.entities": artist_id, ...area }).then((v) => ({ ok: true as const, v }), (e: unknown) => ({ ok: false as const, e })),
+    ]);
     const lists = settled.map((s, i) => {
       const [what, type] = parts[i]!;
-      if (s.status === "fulfilled") return this.reg.add(s.value.map((r) => normalize(r, type)));
+      if (s.status === "fulfilled") return s.value.map((r) => normalize(r, type));
       this.soft(s.reason, `${c.name} ${what}`);
       return [];
     });
     const [support = [], rooms = [], brands = [], podcasts = []] = lists;
-    // A room must actually be in or near the city: drop located rooms more than VENUE_MAX_MI away.
-    const venues = rooms.filter((v) => v.lat === undefined || v.lon === undefined || gcMi({ lat: v.lat, lon: v.lon }, c) <= VENUE_MAX_MI);
-    if (venues.length < rooms.length) this.reg.warn(`${c.name}: ${rooms.length - venues.length} Qloo room(s) more than ${VENUE_MAX_MI} mi from the city were dropped.`);
-    const intel: CityIntel = { city: c.name, support, venues, brands, podcasts };
+    this.reg.add(support); this.reg.add(brands); this.reg.add(podcasts);
+    // A room must host shows (category whitelist) and be in or near the city (VENUE_MAX_MI from the centre).
+    const shows = rooms.filter((v) => isShowRoom(v.place?.category));
+    const venues = this.reg.add(shows.filter((v) => v.lat === undefined || v.lon === undefined || gcMi({ lat: v.lat, lon: v.lon }, c) <= VENUE_MAX_MI)
+      .sort((a, b) => (b.affinity ?? -1) - (a.affinity ?? -1)));
+    if (venues.length < shows.length) this.reg.warn(`${c.name}: ${shows.length - venues.length} Qloo room(s) more than ${VENUE_MAX_MI} mi from the city were dropped.`);
+    let hoods: FanHood[] = [];
+    if (heat.ok) {
+      hoods = heat.v.filter((h) => h.level === "neighborhood" && h.lat !== undefined && h.lon !== undefined && gcMi({ lat: h.lat, lon: h.lon }, c) <= HOOD_MAX_MI)
+        .sort((a, b) => b.affinity - a.affinity).slice(0, HOODS_SHOWN)
+        .map((h) => ({ id: h.id, name: h.name, city: h.city, affinity: h.affinity, lat: h.lat, lon: h.lon }));
+    } else this.soft(heat.e, `${c.name} fan neighborhoods`);
+    const intel: CityIntel = { city: c.name, support, venues, brands, podcasts, hoods };
     this.reg.intel.set(c.name.toLowerCase(), intel);
     return {
-      out: { city: c.name, support: slim(support), venues: slim(venues), brands: slim(brands), podcasts: slim(podcasts) },
-      summary: `→ ${c.name}: support ${support[0]?.name ?? "-"}, room ${venues[0]?.name ?? "-"}`,
+      out: { city: c.name, support: slim(support), venues: slim(venues.slice(0, 3)), brands: slim(brands), podcasts: slim(podcasts), fan_neighborhoods: hoods.map((h) => h.name) },
+      summary: `→ ${c.name}: support ${support[0]?.name ?? "-"}, room ${venues[0]?.name ?? "-"}${hoods.length ? `, fans in ${hoods.map((h) => h.name).join(", ")}` : ""}`,
     };
   }
 
@@ -360,5 +376,45 @@ export class Tools {
       },
       summary: `→ best complement: ${top.entity.name} (+${top.youGain.length} cities for you, +${top.theyGain.length} for them)`,
     };
+  }
+
+  // ---------- Co-headliner extras (code-driven, after compare_fan_geography) ----------
+  /**
+   * For the peers worth showing: one demographics call for everyone, then per peer the taste tags both audiences share
+   * and a joint room in the pair's best shared city (the city where the weaker of the two heats is highest).
+   * Every part degrades softly: a failure costs that panel, never the plan.
+   */
+  async coheadExtras(artistId: string, peerIds: string[]): Promise<{ extras: CoheadExtras; summary: string }> {
+    const extras: CoheadExtras = { skews: {}, byPeer: {} };
+    const ids = [...new Set(peerIds)].filter((x) => x !== artistId);
+    const you = this.reg.geo.get(artistId);
+    type Joint = NonNullable<CoheadExtras["byPeer"][string]["joint"]>;
+    const onePeer = async (pid: string) => {
+      const shared = await this.q.compare(artistId, pid).then((t) => sharedTaste(t), (e: unknown) => { this.soft(e, "Shared taste"); return []; });
+      const them = this.reg.geo.get(pid);
+      let joint: Joint | undefined;
+      for (const c of you?.values() ?? []) {
+        const t = them?.get(c.name)?.affinity;
+        if (t !== undefined && (!joint || Math.min(c.affinity, t) > Math.min(joint.you, joint.them))) joint = { city: c.name, region: c.region, you: c.affinity, them: t };
+      }
+      const at = joint && you?.get(joint.city);
+      if (joint && at) {
+        try {
+          const raw = await this.q.insights({ "filter.type": "urn:entity:place", "signal.interests.entities": `${artistId},${pid}`, "filter.location": pointWkt(at), "filter.location.radius": VENUE_RADIUS_M, "filter.tags": VENUE_TAGS.join(","), take: VENUE_FETCH });
+          joint.venue = this.reg.add(raw.map((r) => normalize(r, "urn:entity:place"))
+            .filter((v) => isShowRoom(v.place?.category) && (v.lat === undefined || v.lon === undefined || gcMi({ lat: v.lat, lon: v.lon }, at) <= VENUE_MAX_MI))
+            .sort((x, y) => (y.affinity ?? -1) - (x.affinity ?? -1)).slice(0, 1))[0];
+        } catch (e) { this.soft(e, `Joint room in ${joint.city}`); }
+      }
+      extras.byPeer[pid] = { shared, joint };
+    };
+    const [demo] = await Promise.all([
+      this.q.demographics([artistId, ...ids]).then((d) => d, (e: unknown) => { this.soft(e, "Audience demographics"); return [] as Demographics[]; }),
+      ...ids.map(onePeer),
+    ]);
+    for (const d of demo) extras.skews[d.entityId] = d;
+    this.reg.cohead = extras;
+    const rooms = Object.values(extras.byPeer).filter((p) => p.joint?.venue).length;
+    return { extras, summary: `→ audience skews for ${Object.keys(extras.skews).length} acts, shared taste + joint rooms for ${ids.length} peers (${rooms} rooms found)` };
   }
 }

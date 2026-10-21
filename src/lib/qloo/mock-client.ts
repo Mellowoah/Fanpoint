@@ -5,8 +5,9 @@
  */
 import fixtures from "./fixtures/mock-qloo.json";
 import { responseHash } from "./hash";
-import { cleanParams, type HeatCell, type LocalInsights, type QlooCallLog, type QlooClient, type QlooParams, type QlooRawEntity } from "./types";
-import { parseInsights, parseSearch } from "./schemas";
+import { cleanParams, type HeatCell, type LocalInsights, type LocalityHeat, type QlooCallLog, type QlooClient, type QlooParams, type QlooRawEntity } from "./types";
+import { parseInsights, parseLocalityHeat, parseSearch } from "./schemas";
+import type { Demographics, TagScore } from "./taste";
 import { MOCK_SIMILARITY, mockAffinityAt } from "./fixtures/mock-geo";
 import { US_CITIES, findCity } from "../route/cities";
 import { gcMi, inRing, parseWktPolygon, type LatLon } from "../route/geo";
@@ -20,6 +21,20 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
 const round = (n: number) => Math.round(n * 1000) / 1000;
 
 type Pool = { name: string; tags: string[] }[];
+type Venue = Pool[number] & { category: string; description: string };
+const genreUrn = (t: string) => `urn:tag:genre:music:${t.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
+const POINT_RE = /^POINT\((-?[\d.]+) (-?[\d.]+)\)$/;
+/** The touring city a request means: a locality name, or the city nearest a WKT POINT. */
+function cityOf(p: QlooParams) {
+  const q = String(p["signal.location.query"] ?? p["filter.location.query"] ?? "");
+  if (q) return findCity(q);
+  const m = POINT_RE.exec(String(p["filter.location"] ?? p["signal.location"] ?? ""));
+  if (!m) return undefined;
+  const pt = { lat: Number(m[2]), lon: Number(m[1]) };
+  return [...US_CITIES].sort((a, b) => gcMi(a, pt) - gcMi(b, pt))[0];
+}
+/** Fictional neighborhood centres around a city (same positions for venues and the locality heatmap). */
+const hoodAt = (c: LatLon, j: number) => ({ lat: round(c.lat + 0.012 * Math.cos(j * 1.05)), lon: round(c.lon + 0.015 * Math.sin(j * 1.05)) });
 
 export class MockQlooClient implements QlooClient {
   readonly mode = "mock" as const;
@@ -100,7 +115,6 @@ export class MockQlooClient implements QlooClient {
       const point = /^POINT\((-?[\d.]+) (-?[\d.]+)\)$/.exec(String(p["signal.location"] ?? ""));
       const c = city ? findCity(city) : point ? { lat: Number(point[2]), lon: Number(point[1]) } : undefined;
       const tagFilter = new Set(String(p["filter.tags"] ?? "").split(",").filter(Boolean));
-      const tagUrn = (t: string) => `urn:tag:genre:music:${t.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
       // No location: taste similarity. With a location: similarity blended with the peer's local mock fan heat.
       out = fixtures.cobillPool
         .map((x) => {
@@ -109,22 +123,35 @@ export class MockQlooClient implements QlooClient {
           const a = c ? 0.5 * sim + 0.5 * mockAffinityAt(id, c.lat, c.lon) : sim;
           return { x, id, a };
         })
-        .filter((r) => !exclude.has(r.id) && (!tagFilter.size || r.x.tags.some((t) => tagFilter.has(tagUrn(t)))))
+        .filter((r) => !exclude.has(r.id) && (!tagFilter.size || r.x.tags.some((t) => tagFilter.has(genreUrn(t)))))
         .sort((a, b) => b.a - a.a)
         .slice(0, take)
         .map(({ x, id, a }) => ({
           name: x.name, entity_id: id, subtype: "urn:entity:artist", popularity: round(0.5 + 0.2 * hash(x.name)),
-          tags: x.tags.map((t) => ({ name: t })), query: { affinity: round(a) }, _mock: true,
+          tags: x.tags.map((t) => ({ name: t, type: "urn:tag:genre:music" })), query: { affinity: round(a) }, _mock: true,
         }));
     } else if (type === "urn:entity:place") {
-      const c = findCity(city);
-      out = this.pick(fixtures.venuePool, artist.entity_id + city, take, "urn:entity:place", "place").map((e, i) => ({
-        ...e,
-        name: e.name.replace(" (mock)", ` ${city} (mock)`),
-        entity_id: `${e.entity_id}-${slug(city)}`,
-        location: c ? { lat: c.lat + 0.01 * (i + 1), lon: c.lon - 0.01 * (i + 1) } : undefined,
-        properties: { geocode: { name: city, admin1_region: c?.region, country_code: "US" } },
-      }));
+      const c = cityOf(p);
+      const where = c?.name ?? city;
+      const pool = fixtures.venuePool as Venue[];
+      out = this.pick(pool, String(p["signal.interests.entities"] ?? "") + where, take, "urn:entity:place", "place").map((e) => {
+        const v = pool.find((x) => e.name === x.name)!;
+        const j = Math.floor(hash(v.name + where) * fixtures.hoodPool.length);
+        const at = c ? hoodAt(c, j) : undefined;
+        return {
+          ...e,
+          name: e.name.replace(" (mock)", ` ${where} (mock)`),
+          entity_id: `${e.entity_id}-${slug(where)}`,
+          location: at ? { lat: round(at.lat + 0.002), lon: at.lon } : undefined,
+          properties: {
+            geocode: { name: where, admin1_region: c?.region, country_code: "US" },
+            address: `${100 + j * 17} Example Ave, ${where} (mock)`, website: `https://example.org/mock/${slug(v.name)}`,
+            neighborhood: j % 2 === 0 ? fixtures.hoodPool[j] : undefined, // half named, half matched by distance
+            primary_genre: { id: `urn:tag:genre:place:${v.category}`, name: v.category.replace(/_/g, " ") },
+            description: v.description,
+          },
+        };
+      });
     } else if (type === "urn:entity:brand") {
       out = this.pick(fixtures.brandPool, artist.entity_id + city, take, "urn:entity:brand", "brand");
     } else if (type === "urn:entity:podcast") {
@@ -171,6 +198,65 @@ export class MockQlooClient implements QlooClient {
       percentileAffinity(out);
     }
     this.log("/v2/insights", { ...p, "filter.type": "urn:heatmap" }, out);
+    return out;
+  }
+
+  async localityHeat(p: QlooParams): Promise<LocalityHeat[]> {
+    await this.tick();
+    const c = cityOf(p);
+    const signal = String(p["signal.interests.entities"] ?? "");
+    const raw = c ? [
+      { name: c.name, entity_id: `mock-locality-${c.id}`, disambiguation: `${c.name}, Mock County, ${c.region}, United States of America`, query: { affinity: 0.5 }, boundary: "POLYGON((0 0, 1 0, 1 1, 0 0))" },
+      ...fixtures.hoodPool.map((h, j) => {
+        const at = hoodAt(c, j);
+        return { name: h, entity_id: `mock-hood-${slug(h)}-${c.id}`, disambiguation: `${h}, ${c.name}, Mock County, ${c.region}, United States of America`, popularity: round(0.5 + 0.4 * hash(h)), query: { affinity: round(0.55 + 0.44 * hash(signal + h + c.id)) }, boundary: `POINT (${at.lon} ${at.lat})` };
+      }),
+    ] : [];
+    const out = parseLocalityHeat({ results: { entities: raw } }).items.sort((a, b) => b.affinity - a.affinity);
+    this.log("/v2/insights", { ...p, "filter.type": "urn:heatmap", "output.heatmap.boundary": "urn:entity:locality" }, out);
+    return out;
+  }
+
+  async demographics(entityIds: string[]): Promise<Demographics[]> {
+    await this.tick();
+    const skew = (s: string) => Math.round((hash(s) * 1.2 - 0.6) * 100) / 100;
+    const out = entityIds.map((id) => {
+      const g = skew(`${id}:g`);
+      return { entityId: id, age: Object.fromEntries(["24_and_younger", "25_to_29", "30_to_34", "35_to_44", "45_to_54", "55_and_older"].map((k) => [k, skew(`${id}:${k}`)])), gender: { male: g, female: -g } };
+    });
+    this.log("/v2/insights", { "filter.type": "urn:demographics", "signal.interests.entities": entityIds.join(",") }, out);
+    return out;
+  }
+
+  private tagsOf(id: string): string[] {
+    const peer = fixtures.cobillPool.find((x) => `mock-artist-${slug(x.name)}` === id);
+    return peer?.tags ?? this.artistById(id).tags;
+  }
+
+  async tagInsights(p: QlooParams): Promise<TagScore[]> {
+    await this.tick();
+    const c = cityOf(p);
+    const seed = c?.id ?? String(p["signal.interests.entities"] ?? "");
+    const all = [...new Set([...(c ? [] : this.tagsOf(seed)), ...fixtures.cobillPool.flatMap((x) => x.tags)])];
+    const out = all.map((t) => ({ id: genreUrn(t), name: t, subtype: "urn:tag:genre:music", score: round(0.9 + 0.099 * hash(seed + t)) }))
+      .sort((a, b) => b.score - a.score).slice(0, Number(p.take ?? 10));
+    this.log("/v2/insights", { ...p, "filter.type": "urn:tag" }, out);
+    return out;
+  }
+
+  async compare(a: string, b: string): Promise<TagScore[]> {
+    await this.tick();
+    const ta = this.tagsOf(a), tb = new Set(this.tagsOf(b));
+    const shared = ta.filter((t) => tb.has(t));
+    const out: TagScore[] = [
+      ...shared.map((t, i) => ({ id: genreUrn(t), name: t, subtype: "urn:tag:genre:music", score: round(0.86 - 0.03 * i) })),
+      { id: "urn:tag:style:qloo:intimate", name: "Intimate", subtype: "urn:tag:style:qloo", score: 0.74 },
+      { id: "urn:tag:audience:qloo:introspective", name: "Introspective", subtype: "urn:tag:audience:qloo", score: 0.73 },
+      { id: "urn:tag:region:qloo:mock_region", name: "Mock Region", subtype: "urn:tag:region:qloo", score: 0.9 },
+      // A tie block like the live response's filler: dropped by the de-noise step.
+      ...["Krautrock", "Disco", "Dub", "Funk"].map((t) => ({ id: genreUrn(t), name: t, subtype: "urn:tag:genre:music", score: 0.7 })),
+    ];
+    this.log("/v2/analysis/compare", { "a.signal.interests.entities": a, "b.signal.interests.entities": b, take: 30 }, out);
     return out;
   }
 

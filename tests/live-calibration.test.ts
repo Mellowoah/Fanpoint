@@ -9,7 +9,8 @@ import { US_CITIES } from "@/lib/route/cities";
 /** QlooClient double whose /search answers like live Qloo: its closest matches, whatever the query. */
 function fuzzySearch(results: string[]): QlooClient {
   const ent = (name: string): QlooRawEntity => ({ name, entity_id: `id-${nameKey(name).replace(/ /g, "-")}`, types: ["urn:entity:artist"], popularity: 0.9 });
-  return { mode: "live", calls: [], search: async () => results.map(ent), insights: async () => [], insightsLocal: async () => ({ entities: [] }), tags: async () => [], heatmap: async () => [] };
+  return { mode: "live", calls: [], search: async () => results.map(ent), insights: async () => [], insightsLocal: async () => ({ entities: [] }), tags: async () => [], heatmap: async () => [],
+    localityHeat: async () => [], demographics: async () => [], tagInsights: async () => [], compare: async () => [] };
 }
 
 describe("artist resolution (live /search returns near matches)", () => {

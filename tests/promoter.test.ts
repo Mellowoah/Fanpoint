@@ -43,8 +43,14 @@ describe("findActs (live client, mocked fetch)", () => {
     const { c, f } = live([{ body: insights(15, { lat: nash.lat + 0.05, lon: nash.lon }) }]);
     const r = await findActs("Nashville", null, { qloo: c });
     expect(r.status).toBe(200);
-    expect(f.calls).toHaveLength(1);
+    // Acts, then the city's rooms and taste line (both soft: this script answers them with artist records).
+    expect(f.calls).toHaveLength(3);
     expect(params(f.calls[0]!.url)).toEqual({ "filter.type": "urn:entity:artist", "signal.location.query": `Nashville, ${nash.state}`, take: "15" });
+    const extra = f.calls.slice(1).map((x) => params(x.url));
+    expect(extra).toContainEqual(expect.objectContaining({ "filter.type": "urn:entity:place", "filter.location": `POINT(${nash.lon.toFixed(4)} ${nash.lat.toFixed(4)})`, "filter.location.radius": "16000" }));
+    expect(extra).toContainEqual({ "filter.type": "urn:tag", "signal.location.query": `Nashville, ${nash.state}`, "filter.tag.types": "urn:tag:genre:music", take: "10" });
+    expect(r.body.rooms).toEqual([]);
+    expect(r.body.taste).toEqual([]);
     expect(r.body.signal).toEqual({ kind: "locality", name: "Example Locality" });
     expect(r.body.acts).toHaveLength(PROMOTER_TAKE);
     expect(r.body.acts[0]).toMatchObject({ name: "Example Act 1", image: "https://example.invalid/1.jpg", scoreLine: "Qloo affinity: 1.00 | Ranked by Qloo for this city" });
@@ -60,8 +66,9 @@ describe("findActs (live client, mocked fetch)", () => {
   it("falls back to a WKT point at the market centre when Qloo matches a far-away locality", async () => {
     const { c, f } = live([{ body: insights(2, { lat: 45, lon: -122 }) }, { body: insights(2) }]);
     const r = await findActs("Nashville", null, { qloo: c });
-    expect(f.calls).toHaveLength(2);
+    expect(f.calls).toHaveLength(4);
     expect(params(f.calls[1]!.url)["signal.location"]).toBe(`POINT(${nash.lon.toFixed(4)} ${nash.lat.toFixed(4)})`);
+    expect(f.calls.slice(2).map((x) => params(x.url)["signal.location"])).toContain(`POINT(${nash.lon.toFixed(4)} ${nash.lat.toFixed(4)})`);
     expect(r.body.signal).toMatchObject({ kind: "point" });
   });
   it("drops duplicate ids and insecure images; caches per city+genre", async () => {
@@ -72,7 +79,7 @@ describe("findActs (live client, mocked fetch)", () => {
     expect(r.body.acts.map((a) => a.name)).toEqual(["Example Act 1", "Example Act 2", "Example Act 3"]);
     expect(r.body.acts[2]!.image).toBeUndefined();
     await findActs("nashville", "", { qloo: c });
-    expect(f.calls).toHaveLength(1);
+    expect(f.calls).toHaveLength(3);
   });
   it("validates input, rate limits uncached lookups and hides provider detail", async () => {
     const { c } = live([{ status: 500, body: "boom secret" }]);

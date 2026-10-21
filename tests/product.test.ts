@@ -47,7 +47,7 @@ describe("benchmark constant", () => {
 });
 
 describe("hold drafts", () => {
-  it("builds a deterministic, placeholder-addressed hold for every filled stop", async () => {
+  it("builds a deterministic hold for every filled stop, addressed to the top Qloo room", async () => {
     const q = await demoPlan();
     expect(q.stops.length).toBeGreaterThan(0);
     const s = q.stops[0]!;
@@ -56,7 +56,11 @@ describe("hold drafts", () => {
     expect(h.subject).toContain(q.artist.name);
     expect(h.subject).toContain(s.city);
     expect(h.body).toMatch(/^Hi Talent buyer,/);
-    expect(h.body).toContain("[Venue]");
+    const v = s.venues[0]!;
+    expect(h.body).toContain(`hold at ${v.name} (${v.place!.address}) for ${q.artist.name}`);
+    expect(h.body).not.toContain("[Venue]");
+    expect(h.subject).toContain(v.name);
+    expect(h.body).toContain("Why your room:");
     expect(h.body).toContain(scoreLine("with", s.affinity));
     expect(h.body).toContain(`coming from ${s.prevCity} (${s.driveMi} road mi`);
     expect(h.body).toMatch(/going on to /);
@@ -66,6 +70,19 @@ describe("hold drafts", () => {
     expect(m.startsWith("mailto:?subject=")).toBe(true);
     expect(decodeURIComponent(m.split("&body=")[1]!)).toBe(h.body);
     expect(allHolds(q).split("\n\n----------\n\n")).toHaveLength(q.stops.length);
+  });
+
+  it("falls back to the [Venue] placeholder without a room, and names a room's own city across a line", async () => {
+    const q = await demoPlan();
+    const s = q.stops[0]!;
+    const none = holdDraft(q, { ...s, venues: [], room: undefined });
+    expect(none.body).toContain(`hold at [Venue] for ${q.artist.name}`);
+    expect(none.body).not.toContain("Why your room");
+    const v = { ...s.venues[0]!, city: "Philadelphia", region: "PA", place: { ...s.venues[0]!.place, address: undefined } };
+    const across = holdDraft(q, { ...s, city: "Camden", venues: [v], room: { why: "", hood: { name: "Example Village", how: "named" } } });
+    expect(across.body).toContain(`hold at ${v.name} for ${q.artist.name}`);
+    expect(across.body).toContain("in Philadelphia, PA (our Camden stop).");
+    expect(across.body).toContain("in Example Village, where those fans cluster.");
   });
 });
 

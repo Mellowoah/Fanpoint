@@ -8,6 +8,7 @@ import { COHEAD_WITHOUT_QLOO_LINE, scoreLine } from "@/lib/route/score-line";
 import WhyPopover from "./WhyPopover";
 import { ACCENT, ACCENT_TEXT, CYAN, PLAIN } from "./palette";
 import ScoreLineText from "./ScoreLineText";
+import { RoomCard, SharedTaste, SkewTable } from "./QlooPlus";
 
 const pct = (a?: number) => (a === undefined ? "–" : `${Math.round(a * 100)}`);
 const YOU = ACCENT, YOU_TEXT = ACCENT_TEXT, THEM = CYAN, BOTH = "#f8fafc";
@@ -93,6 +94,18 @@ function CoheadWith({ plan }: { plan: CoheadPlan }) {
               <div className="card bg-panel p-3"><div className="text-[10px] uppercase tracking-wide" style={{ color: THEM }}>You gain (weak for you, strong for them)</div><div>{peer.youGain.join(", ") || "none"}</div></div>
               <div className="card bg-panel p-3"><div className="text-[10px] uppercase tracking-wide" style={{ color: YOU_TEXT }}>They gain (strong for you, weak for them)</div><div>{peer.theyGain.join(", ") || "none"}</div></div>
             </div>
+            {(peer.shared?.length || peer.skew || peer.joint) && (
+              <div className="card bg-panel p-3 grid gap-3" data-cohead-extras>
+                <SharedTaste tags={peer.shared} />
+                <SkewTable rows={[{ name: plan.artist.name, color: YOU_TEXT, d: plan.artistSkew }, { name: peer.entity.name, color: THEM, d: peer.skew }]} />
+                {peer.joint && (
+                  <div className="grid gap-1">
+                    <div className="text-xs">Best shared city: <b>{peer.joint.city}</b>{peer.joint.region ? `, ${peer.joint.region}` : ""} <span className="text-plain">(fan heat <span style={{ color: YOU_TEXT }}>{pct(peer.joint.you)}</span> / <span style={{ color: THEM }}>{pct(peer.joint.them)}</span>; the weaker of the two is highest here)</span></div>
+                    {peer.joint.venue ? <RoomCard v={peer.joint.venue} heading="Joint room (both acts as the Qloo signal)" stopCity={peer.joint.city} /> : <div className="text-xs text-plain">No Qloo show room matched there.</div>}
+                  </div>
+                )}
+              </div>
+            )}
             {peer.pitch && <div className="border border-accent/40 bg-accent/5 rounded-xl p-3 text-sm flex items-center gap-1.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-line text-plain" title="Written by the LLM; numbers checked against the scores">AI pitch</span><WhyPopover label={`AI pitch for ${peer.entity.name}`}>{peer.pitch}</WhyPopover></div>}
             {mostSimilar && mostSimilar.entity.id !== plan.peers[0]?.entity.id && (
               <div className="text-xs text-plain border border-line rounded-xl p-3">
