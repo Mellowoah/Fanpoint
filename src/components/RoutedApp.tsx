@@ -101,7 +101,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
           </Link>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             {role === "agent" && <a href="#how" className="btn btn-ghost btn-sm hidden md:inline-flex">How it works</a>}
-            <button onClick={() => (sources ? setSources(false) : openSources())} aria-pressed={sources} className={`btn btn-ghost btn-sm hidden sm:inline-flex ${sources ? "!text-accent" : ""}`}>Sources</button>
+            <button onClick={() => (sources ? setSources(false) : openSources())} aria-pressed={sources} className={`btn btn-ghost btn-sm hidden sm:inline-flex ${sources ? "!text-accent-text" : ""}`}>Sources</button>
             <ModePill modes={modes} />
             <a href={GITHUB} target="_blank" rel="noreferrer" aria-label="Routed on GitHub" className="btn btn-ghost btn-sm !px-2"><GitHubIcon /></a>
           </div>
@@ -223,7 +223,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
                 <div className="grid gap-4">
                   <FillCompare q={q} p={p} />
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2"><h3 className="text-sm font-semibold text-accent">Routed + Qloo</h3>{q && <FillCalendar days={q.result.calendar} />}</div>
+                    <div className="grid gap-2"><h3 className="text-sm font-semibold text-accent-text">Routed + Qloo</h3>{q && <FillCalendar days={q.result.calendar} />}</div>
                     <div className="grid gap-2"><h3 className="text-sm font-semibold text-plain">Plain AI</h3>{p && (() => { const pc = plainCalendar(p, q); return <FillCalendar days={pc.days} plain flagged={pc.flagged} />; })()}</div>
                   </div>
                 </div>
@@ -291,7 +291,7 @@ function Progress({ events, label = "Agent is routing…" }: { events: AgentEven
   return (
     <div className="card card-pad grid gap-4" role="status" aria-live="polite">
       <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2 text-sm font-semibold"><Spinner className="text-accent" />{label}</span>
+        <span className="flex items-center gap-2 text-sm font-semibold"><Spinner className="text-accent-text" />{label}</span>
         <span className="text-xs text-plain font-mono">{done}/{Math.max(list.length, 1)} steps{calls ? ` · ${calls} Qloo calls` : ""}</span>
       </div>
       <div className="h-1.5 rounded-full bg-background overflow-hidden" aria-hidden><div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
@@ -299,7 +299,7 @@ function Progress({ events, label = "Agent is routing…" }: { events: AgentEven
         {list.length === 0 && <li className="text-plain">Connecting to the agent…</li>}
         {list.map((s) => (
           <li key={s.id} className="flex gap-2.5 items-start">
-            <span aria-hidden className={`mt-0.5 size-4 shrink-0 rounded-full grid place-items-center text-[10px] ${s.status === "done" ? "bg-emerald-500/20 text-emerald-300" : s.status === "error" ? "bg-red-500/20 text-red-300" : "bg-accent/20 text-accent animate-pulse"}`}>{s.status === "done" ? "✓" : s.status === "error" ? "✗" : "•"}</span>
+            <span aria-hidden className={`mt-0.5 size-4 shrink-0 rounded-full grid place-items-center text-[10px] ${s.status === "done" ? "bg-emerald-500/20 text-emerald-300" : s.status === "error" ? "bg-red-500/20 text-red-300" : "bg-accent/20 text-accent-text animate-pulse"}`}>{s.status === "done" ? "✓" : s.status === "error" ? "✗" : "•"}</span>
             <span className={s.status === "done" ? "text-plain" : ""}>{s.label}{s.detail && <span className="text-plain">: {s.detail}</span>}</span>
           </li>
         ))}
@@ -349,7 +349,7 @@ function Landing({ tab, live, onDemo }: { tab: Tab; live: boolean; onDemo: () =>
         <ol className="grid md:grid-cols-3 gap-3">
           {steps.map(([t, d], i) => (
             <li key={t} className="card card-pad grid gap-1.5 content-start">
-              <span className="size-7 rounded-lg bg-accent/15 text-accent grid place-items-center text-xs font-semibold font-mono">{i + 1}</span>
+              <span className="size-7 rounded-lg bg-accent/15 text-accent-text grid place-items-center text-xs font-semibold font-mono">{i + 1}</span>
               <div className="font-semibold mt-1">{t}</div>
               <div className="text-sm text-plain leading-relaxed">{d}</div>
             </li>

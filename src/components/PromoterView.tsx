@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { PromoterResponse } from "@/lib/api/promoter";
 import CityInput from "./CityInput";
 import { Spinner } from "./FillForm";
+import ScoreLineText from "./ScoreLineText";
 
 export const DEMO_PROMOTER_CITY = "Nashville";
 
@@ -69,10 +70,10 @@ export default function PromoterView({ onPlan, live, onSources }: { onPlan: (art
                   {a.image ? (
                     // eslint-disable-next-line @next/next/no-img-element -- remote Qloo image, no optimizer config
                     <img src={a.image} alt="" width={44} height={44} loading="lazy" className="size-11 rounded-lg object-cover bg-background shrink-0" />
-                  ) : <span aria-hidden className="size-11 rounded-lg bg-accent/15 text-accent grid place-items-center text-sm font-semibold shrink-0">{a.name.slice(0, 1)}</span>}
+                  ) : <span aria-hidden className="size-11 rounded-lg bg-accent/15 text-accent-text grid place-items-center text-sm font-semibold shrink-0">{a.name.slice(0, 1)}</span>}
                   <div className="min-w-[11rem] flex-1 grid gap-0.5">
                     <div className="font-semibold truncate">{a.name}{a.mock && <span className="ml-2 text-[10px] uppercase tracking-wide text-plain">mock</span>}</div>
-                    <div className="text-xs font-mono text-accent">{a.scoreLine}</div>
+                    <div className="text-xs font-mono text-accent-text"><ScoreLineText text={a.scoreLine} /></div>
                     {a.detail && <div className="text-xs text-plain truncate">{a.detail}</div>}
                   </div>
                   <button onClick={() => onPlan(a.name)} className="btn btn-secondary btn-sm shrink-0 max-sm:w-full">Plan a routing</button>

@@ -9,6 +9,7 @@
   --line: #2b303b;
   --accent: #7c3aed;
   --accent-hover: #6d28d9;
+  --accent-text: #a78bfa; /* purple for small text: AA on all surfaces */
   --plain: #9ca3af;
   --secondary: #06b6d4;
   --shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -12px rgb(0 0 0 / 0.55);
@@ -22,6 +23,7 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
   --color-plain: var(--plain);
   --color-secondary: var(--secondary);
   --font-sans: var(--font-inter);
@@ -98,3 +100,9 @@ body {
 .leaflet-tooltip.stop-label::before { display: none; }
 .leaflet-container .leaflet-control-attribution { background: rgb(15 17 21 / 0.8); color: #9ca3af; font-size: 10px; border-top-left-radius: 6px; }
 .leaflet-container .leaflet-control-attribution a { color: #cbd5e1; }
+
+/* Phone: let grid/flex children shrink below their content so long text wraps instead of widening the page. */
+@media (max-width: 639px) {
+  main .grid > *, main .flex > *:not(.chip), main .card > * { min-width: 0; }
+  main { overflow-wrap: anywhere; }
+}

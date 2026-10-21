@@ -13,11 +13,11 @@ export const KIND_STYLE: Record<RuleKind, string> = {
   internal: "bg-white/5 text-plain border-line",
 };
 export function KindBadge({ kind }: { kind: RuleKind }) {
-  return <span className={`text-[10px] px-1.5 py-0.5 rounded border whitespace-nowrap ${KIND_STYLE[kind]}`}>{KIND_LABEL[kind]}</span>;
+  return <span className={`text-[10px] px-1.5 py-0.5 rounded border inline-block max-w-full sm:whitespace-nowrap ${KIND_STYLE[kind]}`}>{KIND_LABEL[kind]}</span>;
 }
 
 const fmt = (v: number | readonly number[]) => (Array.isArray(v) ? (v as number[]).join(" · ") : String(v));
-const A = ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href} target="_blank" rel="noreferrer" className="text-accent underline underline-offset-2 break-words">{children}</a>;
+const A = ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href} target="_blank" rel="noreferrer" className="text-accent-text underline underline-offset-2 break-words">{children}</a>;
 
 const DATASETS: { name: string; what: string; license: string; links: [string, string][] }[] = [
   { name: "Qloo Taste AI™ Insights API", what: "Fan affinity (heatmaps), corridor ranks, support acts, rooms, brands, podcasts, peer acts. The only source of taste signals.", license: "Qloo API terms (hackathon key, server-side only)",

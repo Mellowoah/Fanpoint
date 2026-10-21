@@ -59,5 +59,5 @@ export default function MapView({ rings = NONE, cells = NONE, paths = NONE, mark
     })();
     return () => { cancelled = true; map?.remove(); };
   }, [rings, cells, paths, markers, fit]);
-  return <div ref={el} style={{ height }} className="w-full rounded-xl border border-line overflow-hidden bg-background" />;
+  return <div ref={el} style={{ height }} className="relative w-full rounded-xl border border-line overflow-hidden [contain:paint] bg-background" />;
 }

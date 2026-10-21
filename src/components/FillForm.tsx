@@ -124,7 +124,7 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
             return (
               <li key={i} className="grid gap-2 rounded-xl border border-line bg-background/60 p-3 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-foreground"><span className="size-5 rounded-full bg-accent/15 text-accent grid place-items-center text-[10px]">{i + 1}</span>Stop {i + 1}</span>
+                  <span className="flex items-center gap-2 text-xs font-semibold text-foreground"><span className="size-5 rounded-full bg-accent/15 text-accent-text grid place-items-center text-[10px]">{i + 1}</span>Stop {i + 1}</span>
                   {value.anchors.length > CLIENT_LIMITS.minAnchors && (
                     <button type="button" aria-label={`Remove stop ${i + 1}`} onClick={() => onChange({ ...value, anchors: value.anchors.filter((_, k) => k !== i) })} className="btn btn-ghost btn-sm -mr-1.5">Remove</button>
                   )}
@@ -158,8 +158,8 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
           <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" className="text-plain transition-transform group-open:rotate-90"><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" /></svg>
           <span className="font-semibold">Touring rules</span>
           <span className="text-xs text-plain">≤{value.maxDriveMi} mi and ≤{value.rules.maxDriveHours} h a day · ≤{value.rules.maxConsecutiveShows} shows in a row · {value.rules.radiusMi} mi radius clause · fan heat ≥ {Math.round(value.minAffinity * 100)}</span>
-          {changed && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent">changed</span>}
-          {onSources && <button type="button" onClick={(e) => { e.preventDefault(); onSources(); }} className="ml-auto text-xs text-accent underline underline-offset-2">Where these numbers come from</button>}
+          {changed && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-text">changed</span>}
+          {onSources && <button type="button" onClick={(e) => { e.preventDefault(); onSources(); }} className="ml-auto text-xs text-accent-text underline underline-offset-2">Where these numbers come from</button>}
         </summary>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
           <Num k="maxDriveMi" value={value.maxDriveMi} min={100} max={700} step={25} onChange={(n) => onChange({ ...value, maxDriveMi: n })} />

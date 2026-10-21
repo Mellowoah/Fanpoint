@@ -11,6 +11,7 @@ import { scoreLine } from "@/lib/route/score-line";
 import type { Marker } from "./MapView";
 import WhyPopover from "./WhyPopover";
 import { CYAN } from "./palette";
+import ScoreLineText from "./ScoreLineText";
 
 const pct = (a?: number) => (a === undefined ? "–" : `${Math.round(a * 100)}`);
 const md = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -37,7 +38,7 @@ export function FillCalendar({ days, plain, flagged }: { days: Day[]; plain?: bo
                 <>
                   <div className="font-semibold mt-1 truncate" title={d.city}>{d.city}</div>
                   {d.kind === "anchor" ? <div className="text-[10px] text-plain truncate">{d.label ?? "anchor"}</div>
-                    : d.affinity !== undefined ? <div className={`font-mono ${plain ? "text-plain" : "text-accent"}`}>heat {pct(d.affinity)}</div> : <div className="text-[10px] text-plain">no data</div>}
+                    : d.affinity !== undefined ? <div className={`font-mono ${plain ? "text-plain" : "text-accent-text"}`}>heat {pct(d.affinity)}</div> : <div className="text-[10px] text-plain">no data</div>}
                   {d.driveMi !== undefined && <div className={`mt-auto text-[10px] ${bad ? "text-red-400" : "text-plain"}`}>{d.driveMi} mi{d.driveHours !== undefined ? ` · ${d.driveHours}h` : ""}{d.driveDays && d.driveDays > 1 ? ` / ${d.driveDays}d` : ""}</div>}
                 </>
               )}
@@ -61,7 +62,7 @@ export function FillStats({ q }: { q: FillPlan }) {
   return (
     <div className="grid gap-2">
       <div className="grid grid-cols-2 md:grid-cols-[auto_auto_auto_auto_1fr] gap-x-6 gap-y-1 text-sm">
-        {items.map(([k, v]) => <div key={k} className={k === "Rules" ? "col-span-2 md:col-span-1" : undefined}><div className="text-[10px] uppercase tracking-wide text-plain">{k}</div><div className={k === "Off days" ? "text-xl font-bold text-accent font-mono" : "font-mono"}>{v}</div></div>)}
+        {items.map(([k, v]) => <div key={k} className={k === "Rules" ? "col-span-2 md:col-span-1" : undefined}><div className="text-[10px] uppercase tracking-wide text-plain">{k}</div><div className={k === "Off days" ? "text-xl font-bold text-accent-text font-mono" : "font-mono"}>{v}</div></div>)}
       </div>
       <div className="text-[11px] text-plain">Road miles and hours: OSRM car profile on OpenStreetMap data (free-flow, no stops).</div>
     </div>
@@ -70,7 +71,7 @@ export function FillStats({ q }: { q: FillPlan }) {
 
 // ---------- The filter that removes unrealistic cities ----------
 const STATUS_STYLE: Record<string, string> = {
-  picked: "text-accent", "didn't fit schedule": "text-plain", "below heat floor": "text-plain line-through",
+  picked: "text-accent-text", "didn't fit schedule": "text-plain", "below heat floor": "text-plain line-through",
   "radius clause": "text-red-300 line-through", "off route / backtrack": "text-red-300 line-through", "used elsewhere": "text-plain line-through",
   "no road route": "text-red-300 line-through", "no mapped venue": "text-red-300 line-through",
 };
@@ -90,7 +91,7 @@ export function CandidateFilter({ gaps, maxDriveMi }: { gaps: GapPlan[]; maxDriv
                 <div key={c.name} className="contents">
                   <span className={STATUS_STYLE[c.status]}>{c.name}</span>
                   <span className="font-mono text-right">{pct(c.affinity)}</span>
-                  <span className={c.status === "picked" ? "text-accent" : c.status === "didn't fit schedule" ? "text-plain" : "text-red-300"}>{c.status}{c.detail ? ` (${c.detail})` : ""}</span>
+                  <span className={c.status === "picked" ? "text-accent-text" : c.status === "didn't fit schedule" ? "text-plain" : "text-red-300"}>{c.status}{c.detail ? ` (${c.detail})` : ""}</span>
                 </div>
               ))}
             </div>
@@ -118,19 +119,19 @@ export function useFillMap(q?: FillPlan) {
 
 // ---------- Stop card ----------
 function Chip({ e }: { e: Entity }) {
-  return <span title={e.id} className="inline-flex items-center gap-1 bg-black/30 border border-line rounded-full px-2 py-0.5 text-xs">{e.name}{e.affinity !== undefined && <span className="text-accent font-mono">{pct(e.affinity)}</span>}</span>;
+  return <span title={e.id} className="inline-flex items-center gap-1 bg-black/30 border border-line rounded-full px-2 py-0.5 text-xs">{e.name}{e.affinity !== undefined && <span className="text-accent-text font-mono">{pct(e.affinity)}</span>}</span>;
 }
 const KIND: Record<string, string> = { brand: "Brand", podcast: "Podcast", tv_show: "TV" };
 const num = (n: number) => n.toLocaleString("en-US");
 const Src = ({ children, href }: { children: React.ReactNode; href?: string }) => href
-  ? <a href={href} target="_blank" rel="noreferrer" className="text-[10px] text-plain underline underline-offset-2 hover:text-accent">{children}</a>
+  ? <a href={href} target="_blank" rel="noreferrer" className="text-[10px] text-plain underline underline-offset-2 hover:text-accent-text">{children}</a>
   : <span className="text-[10px] text-plain">{children}</span>;
 
 /** The facts behind one recommendation, each with its source. */
 function WhyFacts({ s }: { s: FillStop }) {
   const m = marketById(s.cityId) ?? findMarket(s.city);
   const rows: { k: string; v: React.ReactNode; src: React.ReactNode }[] = [
-    { k: "Fan heat", v: <><b className="text-accent">{pct(s.affinity)}</b>{s.rankInCorridor ? <> · #{s.rankInCorridor} of {s.corridorSize} in corridor</> : null}</>, src: <Src href="https://docs.qloo.com/">Qloo heatmap</Src> },
+    { k: "Fan heat", v: <><b className="text-accent-text">{pct(s.affinity)}</b>{s.rankInCorridor ? <> · #{s.rankInCorridor} of {s.corridorSize} in corridor</> : null}</>, src: <Src href="https://docs.qloo.com/">Qloo heatmap</Src> },
     { k: "Road", v: <>{s.driveMi} mi · {s.driveHours ?? "–"} h from {s.prevCity}{s.driveDays > 1 ? ` (${s.driveDays} days)` : ""}</>, src: <Src href="https://project-osrm.org/">OSRM · © OSM</Src> },
     { k: "Night", v: <>{s.dow} weight {s.dowWeight}{s.run ? ` · show ${s.run} in a row` : ""}</>, src: <KindBadge kind={RULES.dowWeights.kind} /> },
   ];
@@ -139,32 +140,32 @@ function WhyFacts({ s }: { s: FillStop }) {
     rows.push({ k: "Venues", v: <>{m.venues.total} mapped within {MARKETS_META.venueRadiusMi} mi <span className="text-plain">({m.venues.theatre} theatres, {m.venues.nightclub} clubs, {m.venues.music_venue + m.venues.live_music} music)</span></>, src: <Src href={osmUrl(m)}>OpenStreetMap</Src> });
   }
   return (
-    <dl className="grid grid-cols-[72px_1fr_auto] gap-x-2 gap-y-1 text-xs bg-black/20 border border-line rounded-lg p-2.5">
-      {rows.map(({ k, v, src }) => <div key={k} className="contents"><dt className="text-plain">{k}</dt><dd>{v}</dd><dd className="text-right">{src}</dd></div>)}
+    <dl className="grid grid-cols-[72px_minmax(0,1fr)] sm:grid-cols-[72px_minmax(0,1fr)_auto] gap-x-2 gap-y-1 text-xs bg-black/20 border border-line rounded-lg p-2.5">
+      {rows.map(({ k, v, src }) => <div key={k} className="contents"><dt className="text-plain">{k}</dt><dd className="min-w-0 break-words">{v}</dd><dd className="col-start-2 sm:col-start-auto -mt-0.5 mb-1 sm:m-0 sm:text-right">{src}</dd></div>)}
     </dl>
   );
 }
 
 export function FillStopCard({ s }: { s: FillStop }) {
   return (
-    <article className="card bg-panel p-4 grid gap-2.5">
+    <article className="card bg-panel p-4 grid gap-2.5 min-w-0 [&>*]:min-w-0">
       <header className="flex justify-between gap-2">
-        <div>
+        <div className="min-w-0 break-words">
           <div className="text-xs text-plain">{s.dow} {md(s.date)} · {s.driveMi} road mi / {s.driveHours ?? "–"} h from {s.prevCity}{s.driveDays > 1 ? ` over ${s.driveDays} days` : ""}</div>
           <h4 className="text-lg font-semibold">{s.city}{s.region && <span className="text-plain font-normal">, {s.region}</span>}</h4>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-accent font-mono">{pct(s.affinity)}</div>
+        <div className="text-right shrink-0">
+          <div className="text-2xl font-bold text-accent-text font-mono">{pct(s.affinity)}</div>
           <div className="text-[10px] text-plain uppercase tracking-wide">fan heat{s.rankInCorridor ? ` · #${s.rankInCorridor}/${s.corridorSize}` : ""}</div>
         </div>
       </header>
-      <div className="text-xs font-mono text-accent" data-score-line>{scoreLine("with", s.affinity)}</div>
+      <div className="text-xs font-mono text-accent-text" data-score-line><ScoreLineText text={scoreLine("with", s.affinity)} /></div>
       <div className="grid gap-1"><div className="text-[10px] uppercase tracking-wide text-plain">Why this stop</div><WhyFacts s={s} /></div>
       {s.aiNote && <div className="text-sm leading-snug flex items-center gap-1.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-line text-plain" title="Written by the LLM; every number in it was checked against the data above">AI note</span><WhyPopover label={`AI note for ${s.city}`}>{s.aiNote}</WhyPopover></div>}
       <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Support</span>{s.support.map((e) => <Chip key={e.id} e={e} />)}<Src>top Qloo match</Src></div>
       <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Rooms</span>{s.venues.map((e) => <Chip key={e.id} e={e} />)}<Src>top Qloo matches</Src></div>
       {s.promo.map((p) => (
-        <div key={p.entity.id} className="text-sm flex gap-2"><span className="text-[10px] mt-0.5 px-1.5 rounded bg-accent/15 text-accent h-fit">{KIND[p.entity.kind] ?? p.entity.kind}</span>{p.angleBy === "ai" ? <span className="flex items-center gap-1.5"><span className="text-[10px] text-plain">(AI)</span><WhyPopover label={`promo angle: ${p.entity.name}`} title="Angle">{p.angle}</WhyPopover></span> : <span>{p.angle}</span>}</div>
+        <div key={p.entity.id} className="text-sm flex gap-2"><span className="text-[10px] mt-0.5 px-1.5 rounded bg-accent/15 text-accent-text h-fit">{KIND[p.entity.kind] ?? p.entity.kind}</span>{p.angleBy === "ai" ? <span className="flex items-center gap-1.5"><span className="text-[10px] text-plain">(AI)</span><WhyPopover label={`promo angle: ${p.entity.name}`} title="Angle">{p.angle}</WhyPopover></span> : <span>{p.angle}</span>}</div>
       ))}
     </article>
   );
@@ -243,7 +244,7 @@ export function FillCompare({ q, p }: { q?: FillPlan; p?: PlainFillPlan }) {
   return (
     <div className="card bg-panel overflow-hidden text-sm">
       <div className="grid grid-cols-[1.6fr_1fr_1.3fr] bg-black/30 text-xs uppercase tracking-wide">
-        <div className="p-2.5 text-plain">Same anchors, two planners</div><div className="p-2.5 text-accent">Routed + Qloo</div><div className="p-2.5 text-plain">Plain AI{p.simulated ? " (simulated)" : ""}</div>
+        <div className="p-2.5 text-plain">Same anchors, two planners</div><div className="p-2.5 text-accent-text">Routed + Qloo</div><div className="p-2.5 text-plain">Plain AI{p.simulated ? " (simulated)" : ""}</div>
       </div>
       {rows.map(([k, a, b]) => (
         <div key={k} className="grid grid-cols-[1.6fr_1fr_1.3fr] border-t border-line"><div className="p-2.5 text-plain">{k}</div><div className="p-2.5 font-mono">{a}</div><div className="p-2.5 font-mono text-plain">{b}</div></div>
@@ -273,9 +274,9 @@ export function RankedLists({ ranked, mode, picked, top = 5 }: { ranked: RankedG
                     <span className="font-mono text-plain">{i + 1}.</span>
                     <span>
                       <span className="font-medium">{c.name}</span>{!c.name.endsWith(`, ${c.region}`) && <span className="text-plain">, {c.region}</span>}
-                      {mode === "with" && picked?.has(c.name) && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent align-middle">on the route</span>}
+                      {mode === "with" && picked?.has(c.name) && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent-text align-middle">on the route</span>}
                       {mode === "without" && <span className="ml-1.5 text-[11px] text-plain">pop {num(c.population)} · {c.venues} venues</span>}
-                      <span className={`block text-[11px] font-mono ${mode === "with" ? "text-accent" : "text-plain"}`} data-score-line>{scoreLine(mode, c.affinity)}</span>
+                      <span className={`block text-[11px] font-mono ${mode === "with" ? "text-accent-text" : "text-plain"}`} data-score-line><ScoreLineText text={scoreLine(mode, c.affinity)} /></span>
                     </span>
                   </li>
                 ))}

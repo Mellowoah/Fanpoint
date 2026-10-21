@@ -20,7 +20,7 @@ export default function AgentTrace({ events, title }: { events: AgentEvent[]; ti
       <ol className="grid gap-1.5 mb-3">
         {[...steps.values()].map((s) => (
           <li key={s.id} className="flex gap-2 items-start">
-            <span className={s.status === "done" ? "text-emerald-400" : s.status === "error" ? "text-red-400" : "text-accent animate-pulse"}>
+            <span className={s.status === "done" ? "text-emerald-400" : s.status === "error" ? "text-red-400" : "text-accent-text animate-pulse"}>
               {s.status === "done" ? "✓" : s.status === "error" ? "✗" : "●"}
             </span>
             <span>{s.label}{s.detail && <span className="text-plain">: {s.detail}</span>}</span>
@@ -34,8 +34,8 @@ export default function AgentTrace({ events, title }: { events: AgentEvent[]; ti
           if (e.type !== "tool") return null;
           return (
             <div key={i}>
-              <button onClick={() => flip(i)} className="text-left hover:text-accent">
-                <span className="text-accent">{e.name}</span>({compact(e.args)}) <span className="text-plain">{e.summary}</span>
+              <button onClick={() => flip(i)} className="text-left hover:text-accent-text">
+                <span className="text-accent-text">{e.name}</span>({compact(e.args)}) <span className="text-plain">{e.summary}</span>
               </button>
               {isOpen(i, e.name) && (
                 <div className="pl-3 border-l border-line my-1 grid gap-0.5">
