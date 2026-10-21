@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "results": {
+    "entities": [
+      { "name": "Example Artist One", "entity_id": "00000000-0000-0000-0000-000000000001", "type": "urn:entity", "subtype": "urn:entity:artist", "popularity": 0.81, "query": { "affinity": 0.93 }, "tags": [{ "id": "urn:tag:genre:music:indie", "name": "Indie", "type": "urn:tag:genre:music" }] },
+      { "name": "Example Artist Two", "entity_id": "00000000-0000-0000-0000-000000000002", "type": "urn:entity", "subtype": "urn:entity:artist", "popularity": 0.77, "query": { "affinity": 0.88 } }
+    ],
+    "duration": 41
+  }
+}

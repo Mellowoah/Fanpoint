@@ -1,0 +1,27 @@
+# Render Blueprint for Routed (https://render.com/docs/blueprint-spec).
+# One Docker web service. `plan: free` is set on purpose: Render's default for a new web service is the paid
+# 0.5c-512mb plan. To keep it awake for judging, change the plan to 0.5c-512mb in the dashboard (see docs/DEPLOY.md).
+services:
+  - type: web
+    name: routed
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      # Secrets: Render prompts for these when the Blueprint is first created. Leave empty to run on mock fixtures.
+      - key: QLOO_API_KEY
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      # Non-secret defaults (same as .env.example).
+      - key: QLOO_BASE_URL
+        value: https://hackathon.api.qloo.com
+      - key: LLM_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: LLM_MODEL
+        value: gemini-3.5-flash-lite
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"

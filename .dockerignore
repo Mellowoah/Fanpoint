@@ -1,0 +1,15 @@
+# Keep the build context small and secret-free.
+.git
+.github
+node_modules
+.next
+coverage
+screens
+.cache
+*.tsbuildinfo
+npm-debug.log*
+# Never send real env files into the image or build context.
+.env*
+!.env.example
+Dockerfile
+.dockerignore

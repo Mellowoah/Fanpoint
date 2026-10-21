@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Never real keys in CI: tests use mocks / injected fetch. NEXT_TELEMETRY_DISABLED keeps builds quiet.
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test (with coverage thresholds)
+        run: npm run coverage
+      - name: Build (with canary keys)
+        # Fake, recognisable key values: the next step proves they are not inlined anywhere in the build output.
+        env:
+          QLOO_API_KEY: routed-canary-qloo-key
+          LLM_API_KEY: routed-canary-llm-key
+        run: npm run build
+      - name: Verify keys never reach the client bundle
+        env:
+          QLOO_API_KEY: routed-canary-qloo-key
+          LLM_API_KEY: routed-canary-llm-key
+        run: npm run check:bundle
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7

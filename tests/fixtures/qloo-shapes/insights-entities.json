@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "results": {
+    "entities": [
+      {
+        "name": "Example Movie (synthetic)",
+        "entity_id": "00000000-0000-0000-0000-0000000000a1",
+        "type": "urn:entity",
+        "subtype": "urn:entity:movie",
+        "properties": {
+          "release_year": 2001,
+          "release_date": "2001-01-01",
+          "description": "Synthetic placeholder entity used only to test the response envelope.",
+          "content_rating": "PG",
+          "duration": 100,
+          "image": { "url": "https://example.invalid/synthetic-image.jpg" }
+        }
+      }
+    ]
+  }
+}

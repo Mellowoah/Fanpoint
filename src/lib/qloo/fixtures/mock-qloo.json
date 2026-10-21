@@ -1,0 +1,81 @@
+{
+  "_notice": "MOCK FIXTURES - fabricated for offline development before the Qloo hackathon key arrives. NOT real Qloo data. Every artist, venue, brand, podcast and show name here is fictional and marked (mock). Affinity numbers are invented. City names and coordinates are real places.",
+  "artists": [
+    {
+      "entity_id": "mock-artist-marigold-static",
+      "name": "Marigold Static",
+      "popularity": 0.61,
+      "description": "Fictional dream-pop / shoegaze band used for offline demos (mock).",
+      "tags": ["Dream Pop", "Shoegaze", "Indie Rock"],
+      "cityBias": { "Asheville": 0.97, "Richmond": 0.93, "Philadelphia": 0.9, "Pittsburgh": 0.86, "Durham": 0.88, "Baltimore": 0.84, "Columbus": 0.8, "Louisville": 0.79, "Athens": 0.91, "Providence": 0.83, "Burlington": 0.76, "Knoxville": 0.74, "Chattanooga": 0.7, "Nashville": 0.72, "Atlanta": 0.68, "Washington": 0.66 }
+    }
+  ],
+  "cities": [
+    { "name": "Asheville", "region": "NC", "lat": 35.5951, "lon": -82.5515 },
+    { "name": "Richmond", "region": "VA", "lat": 37.5407, "lon": -77.436 },
+    { "name": "Philadelphia", "region": "PA", "lat": 39.9526, "lon": -75.1652 },
+    { "name": "Pittsburgh", "region": "PA", "lat": 40.4406, "lon": -79.9959 },
+    { "name": "Columbus", "region": "OH", "lat": 39.9612, "lon": -82.9988 },
+    { "name": "Louisville", "region": "KY", "lat": 38.2527, "lon": -85.7585 },
+    { "name": "Nashville", "region": "TN", "lat": 36.1627, "lon": -86.7816 },
+    { "name": "Atlanta", "region": "GA", "lat": 33.749, "lon": -84.388 },
+    { "name": "Durham", "region": "NC", "lat": 35.994, "lon": -78.8986 },
+    { "name": "Baltimore", "region": "MD", "lat": 39.2904, "lon": -76.6122 },
+    { "name": "Providence", "region": "RI", "lat": 41.824, "lon": -71.4128 },
+    { "name": "Burlington", "region": "VT", "lat": 44.4759, "lon": -73.2121 },
+    { "name": "Athens", "region": "GA", "lat": 33.9519, "lon": -83.3576 },
+    { "name": "Chattanooga", "region": "TN", "lat": 35.0456, "lon": -85.3097 },
+    { "name": "Knoxville", "region": "TN", "lat": 35.9606, "lon": -83.9207 },
+    { "name": "Washington", "region": "DC", "lat": 38.9072, "lon": -77.0369 },
+    { "name": "Cleveland", "region": "OH", "lat": 41.4993, "lon": -81.6944 },
+    { "name": "Detroit", "region": "MI", "lat": 42.3314, "lon": -83.0458 },
+    { "name": "Chicago", "region": "IL", "lat": 41.8781, "lon": -87.6298 },
+    { "name": "Boston", "region": "MA", "lat": 42.3601, "lon": -71.0589 }
+  ],
+  "cobillPool": [
+    { "name": "Velvet Orchard (mock)", "tags": ["Dream Pop", "Indie Pop"] },
+    { "name": "Sun Hollow (mock)", "tags": ["Shoegaze", "Noise Pop"] },
+    { "name": "The Glass Lagoons (mock)", "tags": ["Psych Rock", "Dream Pop"] },
+    { "name": "Pale Fiction (mock)", "tags": ["Post-Punk", "Indie Rock"] },
+    { "name": "Wren & the Weather (mock)", "tags": ["Indie Folk", "Chamber Pop"] },
+    { "name": "Low Tide Choir (mock)", "tags": ["Slowcore", "Ambient"] },
+    { "name": "Copperline (mock)", "tags": ["Indie Rock", "Jangle Pop"] },
+    { "name": "Night Pharmacy (mock)", "tags": ["Synth Pop", "Darkwave"] },
+    { "name": "Moth Radio (mock)", "tags": ["Lo-Fi", "Bedroom Pop"] },
+    { "name": "Saltwater Hymnal (mock)", "tags": ["Shoegaze", "Post-Rock"] },
+    { "name": "June Arcade (mock)", "tags": ["Indie Pop", "Twee"] },
+    { "name": "Fernhill Static (mock)", "tags": ["Dream Pop", "Ethereal Wave"] }
+  ],
+  "venuePool": [
+    { "name": "Foxglove Hall (mock)", "tags": ["Music Venue", "Bar"] },
+    { "name": "The Lantern Room (mock)", "tags": ["Music Venue", "Listening Room"] },
+    { "name": "Hollow Pine Social (mock)", "tags": ["Bar", "Live Music"] },
+    { "name": "Riverlight Ballroom (mock)", "tags": ["Music Venue", "Ballroom"] },
+    { "name": "The Static Attic (mock)", "tags": ["Music Venue", "DIY Space"] },
+    { "name": "Copper Kettle Stage (mock)", "tags": ["Live Music", "Cafe"] }
+  ],
+  "brandPool": [
+    { "name": "Fernwood Records (mock)", "tags": ["Record Store"] },
+    { "name": "Analog Bean Coffee (mock)", "tags": ["Coffee Roaster"] },
+    { "name": "Thread & Thrift (mock)", "tags": ["Vintage Clothing"] },
+    { "name": "Half-Moon Film Lab (mock)", "tags": ["Film Photography"] },
+    { "name": "Riso Republic (mock)", "tags": ["Print Shop", "Zines"] },
+    { "name": "Northbound Bikes (mock)", "tags": ["Bicycle Shop"] },
+    { "name": "Ghost Kitchen Ramen (mock)", "tags": ["Restaurant", "Late Night"] },
+    { "name": "Wildflower Kombucha (mock)", "tags": ["Beverage"] }
+  ],
+  "podcastPool": [
+    { "name": "Late Bloomers Radio (mock)", "tags": ["Music", "Interviews"] },
+    { "name": "B-Side Theory (mock)", "tags": ["Music Criticism"] },
+    { "name": "The Small Rooms Pod (mock)", "tags": ["Live Music", "Touring"] },
+    { "name": "Analog Hearts (mock)", "tags": ["Culture", "Nostalgia"] },
+    { "name": "Field Notes FM (mock)", "tags": ["Local Culture"] }
+  ],
+  "tvPool": [
+    { "name": "Quiet Hours (mock series)", "tags": ["Drama", "Indie"] },
+    { "name": "Neon Coastline (mock series)", "tags": ["Sci-Fi", "Retro"] },
+    { "name": "The Lighthouse Keepers (mock series)", "tags": ["Comedy", "Small Town"] },
+    { "name": "Paper Moons (mock series)", "tags": ["Animation", "Coming of Age"] },
+    { "name": "Static Bloom (mock series)", "tags": ["Documentary", "Music"] }
+  ]
+}

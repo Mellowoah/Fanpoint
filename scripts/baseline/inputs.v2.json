@@ -1,0 +1,237 @@
+{
+ "version": 2,
+ "frozen": "2026-10-21",
+ "about": "Fixed input set for mock-vs-live baselines. Do not edit in place: copy to inputs.v2.json and bump `version`, or old baselines stop being comparable.",
+ "assumptions": [
+  "The 10 artists are real mid-size touring acts picked by Routed (no source: chosen for genre and region spread). Swap them before the first live run if Mellow prefers others, and bump the version.",
+  "Date sets are fictional but feasible under the default touring rules (350 mi and 7.5 h per day). Qloo heatmaps don't depend on dates; the dates only shape the schedule."
+ ],
+ "defaults": {
+  "maxDriveMi": 350
+ },
+ "dateSets": {
+  "east-demo": [
+   {
+    "city": "New York",
+    "date": "2026-11-13",
+    "label": "Record release"
+   },
+   {
+    "city": "Durham",
+    "date": "2026-11-21",
+    "label": "Festival slot"
+   },
+   {
+    "city": "Atlanta",
+    "date": "2026-11-28",
+    "label": "Support slot"
+   }
+  ],
+  "northeast": [
+   {
+    "city": "Boston",
+    "date": "2027-03-05"
+   },
+   {
+    "city": "Philadelphia",
+    "date": "2027-03-11"
+   },
+   {
+    "city": "Pittsburgh",
+    "date": "2027-03-17"
+   }
+  ],
+  "midwest": [
+   {
+    "city": "Chicago",
+    "date": "2027-03-05"
+   },
+   {
+    "city": "Minneapolis",
+    "date": "2027-03-11"
+   },
+   {
+    "city": "Kansas City",
+    "date": "2027-03-18"
+   }
+  ],
+  "west-coast": [
+   {
+    "city": "Seattle",
+    "date": "2027-03-05"
+   },
+   {
+    "city": "San Francisco",
+    "date": "2027-03-12"
+   },
+   {
+    "city": "Los Angeles",
+    "date": "2027-03-18"
+   }
+  ],
+  "south": [
+   {
+    "city": "Austin",
+    "date": "2027-03-05"
+   },
+   {
+    "city": "New Orleans",
+    "date": "2027-03-11"
+   },
+   {
+    "city": "Nashville",
+    "date": "2027-03-17"
+   }
+  ]
+ },
+ "fill": [
+  {
+   "id": "fill-demo",
+   "artist": "Marigold Static",
+   "dateSet": "east-demo",
+   "mockOnly": true,
+   "note": "The UI default demo (fictional act; only resolves in mock mode)."
+  },
+  {
+   "id": "fill-japanese-breakfast-east-demo",
+   "artist": "Japanese Breakfast",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-big-thief-east-demo",
+   "artist": "Big Thief",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-khruangbin-east-demo",
+   "artist": "Khruangbin",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-alvvays-east-demo",
+   "artist": "Alvvays",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-waxahatchee-east-demo",
+   "artist": "Waxahatchee",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-turnstile-east-demo",
+   "artist": "Turnstile",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-hiatus-kaiyote-east-demo",
+   "artist": "Hiatus Kaiyote",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-black-pumas-east-demo",
+   "artist": "Black Pumas",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-snail-mail-east-demo",
+   "artist": "Snail Mail",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-men-i-trust-east-demo",
+   "artist": "Men I Trust",
+   "dateSet": "east-demo"
+  },
+  {
+   "id": "fill-japanese-breakfast-northeast",
+   "artist": "Japanese Breakfast",
+   "dateSet": "northeast"
+  },
+  {
+   "id": "fill-big-thief-midwest",
+   "artist": "Big Thief",
+   "dateSet": "midwest"
+  },
+  {
+   "id": "fill-khruangbin-west-coast",
+   "artist": "Khruangbin",
+   "dateSet": "west-coast"
+  },
+  {
+   "id": "fill-alvvays-south",
+   "artist": "Alvvays",
+   "dateSet": "south"
+  },
+  {
+   "id": "fill-waxahatchee-northeast",
+   "artist": "Waxahatchee",
+   "dateSet": "northeast"
+  },
+  {
+   "id": "fill-turnstile-midwest",
+   "artist": "Turnstile",
+   "dateSet": "midwest"
+  },
+  {
+   "id": "fill-hiatus-kaiyote-west-coast",
+   "artist": "Hiatus Kaiyote",
+   "dateSet": "west-coast"
+  },
+  {
+   "id": "fill-black-pumas-south",
+   "artist": "Black Pumas",
+   "dateSet": "south"
+  },
+  {
+   "id": "fill-snail-mail-northeast",
+   "artist": "Snail Mail",
+   "dateSet": "northeast"
+  },
+  {
+   "id": "fill-men-i-trust-midwest",
+   "artist": "Men I Trust",
+   "dateSet": "midwest"
+  }
+ ],
+ "cohead": [
+  {
+   "id": "cohead-demo",
+   "artist": "Marigold Static",
+   "partner": "Saltwater Hymnal (mock)",
+   "mockOnly": true,
+   "note": "The UI default co-headliner demo (fictional acts)."
+  },
+  {
+   "id": "cohead-japanese-breakfast-alvvays",
+   "artist": "Japanese Breakfast",
+   "partner": "Alvvays"
+  },
+  {
+   "id": "cohead-big-thief-waxahatchee",
+   "artist": "Big Thief",
+   "partner": "Waxahatchee"
+  },
+  {
+   "id": "cohead-khruangbin-hiatus-kaiyote",
+   "artist": "Khruangbin",
+   "partner": "Hiatus Kaiyote"
+  },
+  {
+   "id": "cohead-black-pumas-men-i-trust",
+   "artist": "Black Pumas",
+   "partner": "Men I Trust"
+  },
+  {
+   "id": "cohead-snail-mail-turnstile",
+   "artist": "Snail Mail",
+   "partner": "Turnstile"
+  },
+  {
+   "id": "cohead-khruangbin-open",
+   "artist": "Khruangbin"
+  }
+ ],
+ "changes": [
+  "v2 (2026-10-21): same acts, dates and pairs as v1. The heat floor is no longer pinned at 0.6 in the inputs: it uses the server default from rules.ts (0.94 after the live calibration), and the run records the value it used under params.minAffinity."
+ ]
+}

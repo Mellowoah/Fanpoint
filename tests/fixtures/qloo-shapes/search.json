@@ -1,0 +1,5 @@
+{
+  "results": [
+    { "name": "Example Artist One", "entity_id": "00000000-0000-0000-0000-000000000001", "types": ["urn:entity:artist"], "popularity": 0.81, "properties": { "short_description": "Example band" } }
+  ]
+}
