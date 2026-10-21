@@ -155,3 +155,24 @@ describe("splitWarnings", () => {
     expect(splitWarnings(["AI pitch dropped for Z: it used numbers not in the data (1)."]).label).toBe("AI text hidden in 1 place (number check)");
   });
 });
+
+describe("why a city didn't fit the schedule", () => {
+  const A: Anchor = { city: "West", lat: 35, lon: -82, date: "2026-12-01" };
+  const B: Anchor = { city: "East", lat: 35, lon: -74, date: "2026-12-09" };
+  const base = { ...DEFAULT_PARAMS, dowWeights: FLAT, radiusMi: 30, minAffinity: 0.1, holidaysOff: 0 };
+  const why = (r: ReturnType<typeof fillTour>) => r.gaps[0]!.considered.filter((c) => c.status === "didn't fit schedule").map((c) => `${c.name}: ${c.detail}`);
+  it("names the shows-in-a-row limit, the drive limit and the night floor", () => {
+    const cands: Candidate[] = Array.from({ length: 14 }, (_, i) => ({ name: `C${i}`, lat: 35, lon: -81.5 + i * 0.5, affinity: 0.99 - i * 0.001 }));
+    const four = fillTour([A, B], [cands], { ...base, maxConsecutiveShows: 4 }, testRoad);
+    expect(why(four).length).toBeGreaterThan(0);
+    expect(why(four).every((w) => !w.endsWith("undefined"))).toBe(true);
+    expect(why(four).join(" ")).toMatch(/more than 4 shows in a row|higher-scoring route/);
+    const tight = fillTour([A, B], [[...cands, { name: "Detour", lat: 37.2, lon: -78, affinity: 0.999 }]], { ...base, maxDriveMi: 150 }, testRoad);
+    expect(why(tight).join(" ")).toMatch(/Detour: (over 150 mi|.*doubles back|a higher-scoring)/);
+    const weak = fillTour([A, B], [[{ name: "Weak", lat: 35, lon: -78, affinity: 0.3 }]], { ...base, nightFloor: 0.5 }, testRoad);
+    expect(why(weak)).toEqual(["Weak: heat × night weight never beats the 0.5 night floor"]);
+    // One off day, direct leg fits in two days, but the lopsided city leaves too long a drive on one side.
+    const far = fillTour([A, { ...B, date: "2026-12-03" }], [[{ name: "Lopsided", lat: 35, lon: -80, affinity: 0.99 }]], { ...base, maxDriveMi: 300, maxDriveHours: 10 }, testRoad);
+    expect(why(far)).toEqual(["Lopsided: over 300 mi or 10 h a day"]);
+  });
+});

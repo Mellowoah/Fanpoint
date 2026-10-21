@@ -169,24 +169,27 @@ export function fillGap(A: Anchor, B: Anchor, cands: Candidate[], params: FillPa
   type Node = { score: number; prev: [number, string]; i: number; run: number };
   const best: Map<string, Node>[] = Array.from({ length: n + 1 }, () => new Map());
   const locOf = (i: number): Anchor | Candidate => (i < 0 ? A : pool[i] ?? A);
+  // Why an unpicked city never fit: the furthest check it reached (drive < route < shows in a row), for the filter view.
+  const blocked = new Map<number, number>(), placed = new Set<number>();
+  const block = (i: number, level: number) => { if ((blocked.get(i) ?? -1) < level) blocked.set(i, level); };
 
   for (let d = 1; d <= n; d++) {
     if (p.holidaysOff && holidayName(addDays(A.date, d))) continue; // holidays rule: this day stays off
     const w = p.dowWeights[dowOf(addDays(A.date, d))] ?? 0;
     pool.forEach((c, i) => {
-      if (!fits(legOf(c, B), span - d, p)) return; // B must stay reachable
+      if (!fits(legOf(c, B), span - d, p)) { block(i, 1); return; } // B must stay reachable
       const value = c.affinity * w - p.nightFloor;
-      if (value <= 0) return; // not worth more than a night off
+      if (value <= 0) { block(i, 0); return; } // not worth more than a night off
       const consider = (pd: number, pi: number, prevRun: number, prevScore: number, prevKey: string) => {
         const from = locOf(pi);
         const hop = legOf(from, c);
-        if (!fits(hop, d - pd, p)) return; // drive limits, scaled by the days available for this hop
-        if (pi >= 0 && gcMi(from, c) < p.spacingMi) return; // too close to the previous fill
+        if (!fits(hop, d - pd, p)) { block(i, 1); return; } // drive limits, scaled by the days available for this hop
+        if (pi >= 0 && gcMi(from, c) < p.spacingMi) { block(i, 2); return; } // too close to the previous fill
         // No doubling back: strictly forward progress towards B, and away from A.
-        if (!(gcMi(c, B) < gcMi(from, B) - PROGRESS_MI && gcMi(A, c) > gcMi(A, from) + DEPART_MI)) return;
+        if (!(gcMi(c, B) < gcMi(from, B) - PROGRESS_MI && gcMi(A, c) > gcMi(A, from) + DEPART_MI)) { block(i, 2); return; }
         const run = pd === d - 1 ? prevRun + 1 : 1; // a gap day in between resets the streak
-        if (run > p.maxConsecutiveShows) return;
-        if (d === n && run + 1 > p.maxConsecutiveShows) return; // B (the next day) would extend the streak
+        if (run > p.maxConsecutiveShows || (d === n && run + 1 > p.maxConsecutiveShows)) { block(i, 3); return; } // B (the next day) would extend the streak
+        placed.add(i);
         const s = prevScore + value - hop.mi * MILE_PENALTY;
         const key = `${i}|${run}`;
         const cur = best[d]!.get(key);
@@ -224,7 +227,10 @@ export function fillGap(A: Anchor, B: Anchor, cands: Candidate[], params: FillPa
   const last = chosen.get(n);
   const runAtB = last ? last.run + 1 : 1;
   const picked = new Set(days.flatMap((x) => (x.kind === "fill" && x.city ? [x.city] : [])));
-  for (const c of pool) considered.push({ name: c.name, affinity: c.affinity, status: picked.has(c.name) ? "picked" : "didn't fit schedule" });
+  const unfit = (i: number) => placed.has(i) ? "a higher-scoring route used these days"
+    : !blocked.has(i) ? "no open day it could play"
+    : [`heat × night weight never beats the ${p.nightFloor} night floor`, `over ${p.maxDriveMi} mi or ${p.maxDriveHours} h a day`, "too close to the previous stop or doubles back", `would make more than ${p.maxConsecutiveShows} shows in a row`][blocked.get(i)!];
+  pool.forEach((c, i) => considered.push(picked.has(c.name) ? { name: c.name, affinity: c.affinity, status: "picked" } : { name: c.name, affinity: c.affinity, status: "didn't fit schedule", detail: unfit(i) }));
   considered.sort((a, b) => b.affinity - a.affinity);
   const note = picked.size ? undefined
     : !cands.length ? "No candidate cities were read for this corridor."

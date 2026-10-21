@@ -43,21 +43,26 @@ export const DATE_SETS: Record<"east-demo" | "midwest" | "west-coast", AnchorInp
   midwest: [{ city: "Chicago", date: "2027-03-05" }, { city: "Minneapolis", date: "2027-03-11" }, { city: "Kansas City", date: "2027-03-18" }],
   "west-coast": [{ city: "Seattle", date: "2027-03-05" }, { city: "San Francisco", date: "2027-03-12" }, { city: "Los Angeles", date: "2027-03-18" }],
 };
-export interface Example { id: string; label: string; artist: string; dateSet: keyof typeof DATE_SETS }
-/** "Try an example" chips: real test acts from the baseline set in live mode; the fictional demo act in mock mode. */
+/** One-click example runs (Nov-Dec 2026). Live: real acts; mock: the fictional demo act on the same anchors. */
+export const EXAMPLE_ANCHORS: Record<"east" | "coast" | "west", AnchorInput[]> = {
+  east: EAST_DEMO,
+  coast: [{ city: "Boston", date: "2026-12-04", label: "Festival slot" }, { city: "Washington", date: "2026-12-11", label: "Record release" }, { city: "Nashville", date: "2026-12-18", label: "Support slot" }],
+  west: [{ city: "Seattle", date: "2026-12-04", label: "Festival slot" }, { city: "San Francisco", date: "2026-12-11", label: "Record release" }, { city: "Los Angeles", date: "2026-12-18", label: "Support slot" }],
+};
+export interface Example { id: string; label: string; artist: string; anchors: keyof typeof EXAMPLE_ANCHORS }
 export function examples(qloo: "live" | "mock" | undefined): Example[] {
   if (qloo === "live") return [
-    { id: "jb-east", label: "Japanese Breakfast · East run", artist: "Japanese Breakfast", dateSet: "east-demo" },
-    { id: "bt-midwest", label: "Big Thief · Midwest", artist: "Big Thief", dateSet: "midwest" },
-    { id: "kb-west", label: "Khruangbin · West Coast", artist: "Khruangbin", dateSet: "west-coast" },
+    { id: "jb-east", label: "Japanese Breakfast · East", artist: "Japanese Breakfast", anchors: "east" },
+    { id: "bt-coast", label: "Big Thief · Boston to Nashville", artist: "Big Thief", anchors: "coast" },
+    { id: "kb-west", label: "Khruangbin · West Coast", artist: "Khruangbin", anchors: "west" },
   ];
   return [
-    { id: "ms-east", label: "Marigold Static · East run", artist: "Marigold Static", dateSet: "east-demo" },
-    { id: "ms-midwest", label: "Marigold Static · Midwest", artist: "Marigold Static", dateSet: "midwest" },
-    { id: "ms-west", label: "Marigold Static · West Coast", artist: "Marigold Static", dateSet: "west-coast" },
+    { id: "ms-east", label: "Marigold Static · East", artist: "Marigold Static", anchors: "east" },
+    { id: "ms-coast", label: "Marigold Static · Boston to Nashville", artist: "Marigold Static", anchors: "coast" },
+    { id: "ms-west", label: "Marigold Static · West Coast", artist: "Marigold Static", anchors: "west" },
   ];
 }
-export const exampleFill = (e: Example): FillFormState => ({ ...DEMO_FILL, artist: e.artist, anchors: DATE_SETS[e.dateSet].map((a) => ({ ...a })) });
+export const exampleFill = (e: Example): FillFormState => ({ ...DEMO_FILL, artist: e.artist, anchors: EXAMPLE_ANCHORS[e.anchors].map((a) => ({ ...a })) });
 
 const input = "input";
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -78,9 +83,9 @@ function Num({ k, value, onChange, step = 1, min, max }: { k: keyof typeof RULES
   );
 }
 
-export default function FillForm({ value, onChange, onSubmit, busy, onSources, mode, onReset }: {
+export default function FillForm({ value, onChange, onSubmit, busy, onSources, mode, onReset, onExample }: {
   value: FillFormState; onChange: (v: FillFormState) => void; onSubmit: () => void; busy: boolean; onSources?: () => void;
-  mode?: "live" | "mock"; onReset?: () => void;
+  mode?: "live" | "mock"; onReset?: () => void; /** Run an example right after prefilling it. */ onExample?: (f: FillFormState) => void;
 }) {
   const setA = (i: number, p: Partial<AnchorInput>) => onChange({ ...value, anchors: value.anchors.map((a, k) => (k === i ? { ...a, ...p } : a)) });
   const setR = (p: Partial<RuleOverrides>) => onChange({ ...value, rules: { ...value.rules, ...p } });
@@ -105,10 +110,11 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
         <ArtistInput id="artist" label="Artist" value={value.artist} placeholder="Search Qloo artists, e.g. Japanese Breakfast"
           onChange={(v) => { touch("artist"); onChange({ ...value, artist: v }); }} error={show("artist") ? errors.artist : undefined}
           hint={mode === "mock" ? "Mock mode: fictional demo acts only." : "Pick a suggestion to use the exact Qloo name."} />
-        <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 [scrollbar-width:none]" role="group" aria-label="Try an example">
-          <span className="text-[11px] text-plain mr-0.5 shrink-0">Try an example</span>
+        <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 [scrollbar-width:none]" role="group" aria-label="One-click examples" data-examples>
+          <span className="text-[11px] text-plain mr-0.5 shrink-0">{mode === "live" ? "One-click live examples:" : "One-click examples:"}</span>
           {examples(mode).map((x) => (
-            <button key={x.id} type="button" className="chip" onClick={() => { setAttempted(false); setSeen(new Set()); onChange(exampleFill(x)); }}>{x.label}</button>
+            <button key={x.id} type="button" disabled={busy} className="chip" title={EXAMPLE_ANCHORS[x.anchors].map((a) => `${a.city} ${a.date.slice(5)}`).join(" → ")}
+              onClick={() => { setAttempted(false); setSeen(new Set()); const f = exampleFill(x); onChange(f); onExample?.(f); }}>▶ {x.label}</button>
           ))}
         </div>
       </div>

@@ -57,11 +57,11 @@ describe("demo defaults and example chips", () => {
     expect(demoFill("mock").artist).toBe("Marigold Static");
     expect(demoFill(undefined)).toBe(DEMO_FILL);
   });
-  it("example date sets match the frozen baseline inputs and every example is valid", () => {
+  it("baseline date sets stay frozen; every one-click example is valid and in Nov-Dec 2026", () => {
     for (const [k, v] of Object.entries(DATE_SETS)) expect(v).toEqual((inputs.dateSets as Record<string, unknown>)[k]);
     for (const m of ["live", "mock"] as const) for (const x of examples(m)) {
       expect(hasErrors(validateFill(exampleFill(x)))).toBe(false);
-      if (m === "live") expect(inputs.fill.some((f) => f.artist === x.artist && f.dateSet === x.dateSet)).toBe(true);
+      expect(exampleFill(x).anchors.every((a) => a.date >= "2026-11-01" && a.date <= "2026-12-31")).toBe(true);
     }
   });
 });

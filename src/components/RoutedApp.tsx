@@ -18,6 +18,7 @@ import SourcesPanel from "./SourcesPanel";
 import PromoterView from "./PromoterView";
 import { CYAN, PLAIN } from "./palette";
 import BenchmarkCard from "./BenchmarkCard";
+import { BENCHMARK as B } from "@/lib/benchmark";
 import { PlanActions } from "./HoldDraft";
 
 type Tab = "fill" | "cohead";
@@ -119,7 +120,8 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
           </a>
           {role === "agent" ? (<>
           <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Fill every off day <span className="text-accent">between your anchor dates.</span></h1>
-          <p className="text-[15px] sm:text-lg text-plain max-w-2xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint is a decision tool for booking agents and promoters.</b> Indie artists don&apos;t book full tours. They book around the dates they land: a festival slot, a support date. Fanpoint fills the open days between confirmed shows with cities where the act&apos;s fans are, under real touring rules, and finds acts whose fans overlap to share the bill.</p>
+          <p className="text-[15px] sm:text-lg text-plain max-w-3xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint + Qloo books more nights than the same LLM with no tools, with zero rule breaks</b> (median {B.fanpoint.nights.median} vs {B.plainAi.nights.median} of {B.offDaysPerAct} open nights; {B.fanpoint.ruleBreaks} vs {B.plainAi.actsWithBreaks} of {B.acts} plans breaking a rule; longest run {B.fanpoint.longestRun.min}–{B.fanpoint.longestRun.max} vs up to {B.plainAi.longestRun.max} shows).</p>
+          <p className="text-[15px] text-plain max-w-3xl leading-relaxed">Every decision is computed in code from Qloo fan data and sourced touring rules. The LLM only calls tools and explains; any number it writes that isn&apos;t in the data is dropped, and the agent trace shows every Qloo call. Pin your confirmed shows and get ranked gap cities, drive times and a sourced &ldquo;why this city&rdquo; for each. Try a one-click example below.</p>
           </>) : (<>
           <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Book the acts <span className="text-accent">your city already loves.</span></h1>
           <p className="text-[15px] sm:text-lg text-plain max-w-2xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint is a decision tool for booking agents and promoters.</b> Promoters get the other side: the acts their city&apos;s fans love most. Pick your city; get the artists whose fans Qloo ranks strongest there, then hand one to the routing desk.</p>
@@ -138,7 +140,10 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
           <PromoterView onPlan={planFor} live={modes?.qloo === "live"} onSources={openSources} />
         </main>
       ) : (<>
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-5"><BenchmarkCard /></div>
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-5 grid gap-2">
+        <p className="text-sm" data-qloo-line><b className="text-accent-text">How Qloo changes the result:</b> same rules, Qloo turned off, the demo routing books {B.withVsWithout.demo.withoutQloo} of {B.withVsWithout.demo.offDays} open nights instead of {B.withVsWithout.demo.withQloo}.</p>
+        <BenchmarkCard />
+      </div>
       <section id="planner" aria-label="Planner" className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-6 scroll-mt-16">
         <div className="card">
           <div className="flex items-center justify-between gap-3 flex-wrap border-b border-line px-4 sm:px-5 py-3">
@@ -150,7 +155,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             <span className="text-xs text-plain">{tab === "fill" ? "Fixed dates in → gap cities + drive times out" : "Two acts in → complementary fan map out"}</span>
           </div>
           <div className="p-4 sm:p-5">
-            {tab === "fill" ? <FillForm value={fill} onChange={setFill} onSubmit={() => runFill(fill)} busy={busy} onSources={openSources} mode={modes?.qloo} onReset={() => setFill(demoFill(modes?.qloo))} /> : (
+            {tab === "fill" ? <FillForm value={fill} onChange={setFill} onSubmit={() => runFill(fill)} busy={busy} onSources={openSources} mode={modes?.qloo} onReset={() => setFill(demoFill(modes?.qloo))} onExample={(f) => { setRank("with"); void runFill(f); }} /> : (
               <form noValidate onSubmit={(e) => { e.preventDefault(); if (!co.artist.trim()) { setCoTried(true); return; } runCo(co); }} className="grid md:grid-cols-[1fr_1fr_auto] gap-4 items-start">
                 <ArtistInput id="co-artist" label="Your act" value={co.artist} onChange={(v) => setCo({ ...co, artist: v })} error={coTried && !co.artist.trim() ? "Enter your act's name." : undefined} placeholder="Search Qloo artists" />
                 <ArtistInput id="co-partner" label="Proposed co-headliner (optional)" value={co.partner} onChange={(v) => setCo({ ...co, partner: v })} hint="Leave empty and Fanpoint scans peer acts." placeholder="Search Qloo artists" />
@@ -175,7 +180,10 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
           <>
             <div className={`flex justify-between items-center flex-wrap gap-3 ${q ? "card card-pad" : ""}`}>
               {q ? (rank === "with" ? <FillStats q={q} /> : <div className="text-sm text-plain max-w-xl">Without Qloo: the same filtered cities, ordered by Census population and OSM venues. No fan signal, so no schedule is built.</div>) : <div className="text-sm text-plain">{qErr ? "No routing." : <span className="sr-only">Agent is routing…</span>}</div>}
-              <QlooToggle value={rank} onChange={setRank} />
+              <div className="flex items-center gap-2 flex-wrap">
+                <QlooToggle value={rank} onChange={setRank} />
+                {q && <button type="button" data-compare-plain onClick={() => { setBaseline("compare"); setTimeout(() => document.getElementById("plain-compare")?.scrollIntoView({ behavior: "smooth" }), 0); }} className="btn btn-secondary btn-sm">Compare with plain AI</button>}
+              </div>
             </div>
             {!q && !qErr && <Progress events={qEv} />}
             {qErr && <ErrorPanel error={qErr} context="Fanpoint + Qloo" onRetry={busy ? undefined : () => runFill(fill)} />}
@@ -202,9 +210,9 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
                   ...q.ranked.flatMap((g) => g.withoutQloo.slice(0, 5).map((c, i) => ({ lat: c.lat, lon: c.lon, color: PLAIN, label: `${i + 1}. ${c.name}` })))]} />
             )}
 
-            <section className="grid gap-3 border-t border-line pt-5 mt-2">
+            <section id="plain-compare" className="grid gap-3 border-t border-line pt-5 mt-2 scroll-mt-16">
               <div className="flex justify-between items-center flex-wrap gap-2">
-                <div className="text-sm"><b>Secondary baseline: an LLM with no tools.</b> <span className="text-plain">The same anchors given to a plain LLM (no Qloo, no rules), audited in code.</span></div>
+                <div className="text-sm"><b>Fanpoint vs the same LLM with no tools.</b> <span className="text-plain">The same anchors given to a plain LLM (no Qloo, no rules), audited in code; red = breaks a rule.</span></div>
                 <div role="tablist" aria-label="Plain AI baseline" className="seg">
                   {([["off", "Hide"], ["plain", "Plain AI"], ["compare", "Compare"]] as [Baseline, string][]).map(([v, l]) => (
                     <button key={v} role="tab" aria-selected={baseline === v} onClick={() => setBaseline(v)}>{l}</button>

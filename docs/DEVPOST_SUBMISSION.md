@@ -10,15 +10,9 @@
 
 **Tagline:** Fill the open dates between your booked shows with cities where your fans are, and find acts to share the bill.
 
-**Who it's for:** indie artists, their booking agents, and regional promoters.
+**The result:** Fanpoint + Qloo books more nights than the same LLM with no tools, with zero rule breaks: median 7 vs 5 of 13 open nights, 0 vs 3 of 10 plans breaking a touring rule, longest run 3–6 vs up to 16 shows in a row. With the same rules and Qloo turned off, the demo books 0 of 13 open nights instead of 8.
 
-**The problem:** Indie acts don't book full tours. They land a festival slot or a support date, then try to fill the days in between. Every empty day costs a hotel and a van with no show to pay for them.
-
-**What it does:** Enter the dates you've already booked. Fanpoint finds cities along the drive where your fans are strongest and checks touring rules: radius clauses, no doubling back, drive limits and days off. Then it picks a real venue and drafts the hold email. It also finds acts whose fans are strong where yours are weak, so you can share a bill. Promoters get the other side: which acts their city's fans love, and who fits a specific venue.
-
-**Why it needs Qloo:** Every choice that matters comes from Qloo: where the fans are along each drive, which venue, which neighbourhood, and which co-headliner. With the same rules and Qloo turned off, the demo books 0 of 13 open nights instead of 8. In our test of 10 acts, the same AI without Qloo broke touring rules in 3 of 10 plans; Fanpoint broke none.
-
-**Try it in 60 seconds:** open the live link, press **Fill the gaps**, then flip **With Qloo / Without Qloo**.
+**How it stays honest:** every decision is computed in code from Qloo data and sourced touring rules. The LLM only calls tools and explains; a note with any number that isn't in the data is dropped. The agent trace shows every Qloo request.
 
 ## Benchmark: Fanpoint vs plain AI
 
@@ -38,22 +32,33 @@ With vs without Qloo on the same filtered cities: on the 34 legs with more than 
 
 ---
 
-## What it does
-**Fill the gaps.** Enter the act, 2–3 booked dates and a max drive per day.
+## What you get
+**Who it's for:** indie artists, their agents and regional promoters. An act lands a festival slot or a support date and must fill the days between; an empty day still costs a hotel and a van.
+
+**Fill the gaps.** Enter the act and 2–3 booked dates; get ranked gap cities, drive times and a sourced "why this city" for each stop.
 - For each drive, Fanpoint reads the act's Qloo fan heatmap in a corridor around the route and scores the markets in it (385 U.S. cities).
-- Code removes cities that break a rule and says why: inside a 60 mi radius clause, doubling back, no mapped venue within 10 mi, over 7.5 h of driving a day (OSRM), more than 6 shows in a row, or below the heat floor. Thanksgiving, Christmas Eve and Christmas Day stay off by default (an adjustable rule; New Year's Eve stays bookable).
-- An optimiser fills open days by fan heat × night-of-week weight, and leaves a night off when no city beats it.
+- Code removes cities that break a rule and says why: inside a 60 mi radius clause, doubling back, no mapped venue within 10 mi, over 7.5 h of driving a day (OSRM), more than 6 shows in a row, or below the heat floor. A city that passes but doesn't fit the schedule names the limit that stopped it. Thanksgiving, Christmas Eve and Christmas Day stay off by default (an adjustable rule; New Year's Eve stays bookable).
+- An optimiser fills open days by fan heat × night-of-week weight, or leaves the night off.
 - One support act opens the whole run: the Qloo match that is a local fit in the most filled cities and clearly smaller than the headliner, with the taste they share.
 - Each stop names a Qloo venue (address, website, size tier, capacity where Qloo's text states one), the top 3 fan neighbourhoods and promo partners. **Why this stop** cites a source for every line.
 - Each stop gets a hold-request draft (nothing is sent); the run exports to `.ics`.
 
+## Try it: one-click examples
+Open the live link and click an example (each run takes 45–60 s):
+- **Japanese Breakfast · East:** New York Nov 13 → Durham Nov 21 → Atlanta Nov 28
+- **Big Thief · Boston to Nashville:** Boston Dec 4 → Washington Dec 11 → Nashville Dec 18
+- **Khruangbin · West Coast:** Seattle Dec 4 → San Francisco Dec 11 → Los Angeles Dec 18
+
+Then press **Compare with plain AI** for both plans side by side, rule breaks in red. To stress it, set 250 mi and 4 shows in a row in **Touring rules**; the candidate filter shows which cities drop and why.
+
+## Also in Fanpoint
 **Co-headliner match.** Fanpoint takes peers in your Qloo popularity band and ranks them by complementarity: they're strong where you're weak, and the reverse, with overlap penalised. The map shows which act carries each city. The most similar peer is shown on purpose; it shares your strong cities, so it ranks low. Each pair shows shared taste tags, age/gender skews and a joint room.
 
-**With Qloo / Without Qloo.** Without Qloo ranks the same filtered cities by population and venue count, so every act gets the same list, nothing gets booked and co-headliner peers stay unranked.
+**With Qloo / Without Qloo.** Without Qloo ranks the same filtered cities by population and venues: every act gets the same list, nothing is booked, no co-headliner is ranked.
+
+**Adjustable, cited rules.** Drive caps, shows in a row, radius clause, holidays and night weights are editable; each is labelled as sourced or as Fanpoint's assumption.
 
 **Promoter side.** Pick a city (optionally a genre) to get the 10 acts Qloo ranks highest there, each with "Plan a routing". **Who fits this room** ranks acts for one of the city's venues.
-
-The agent trace shows every Qloo request. **Plain AI** sends the same dates to the LLM alone; **Compare** audits both plans.
 
 ## How it uses Qloo
 | Question | Qloo call | Used for |
@@ -84,7 +89,7 @@ With mock heat, Fanpoint books 4 of 13 open days (Camden, Baltimore, Richmond, A
 ## How we built it
 - **Next.js 16 / React 19 / TypeScript / Tailwind 4**, streaming agent events as NDJSON so results fill in live.
 - **Agent:** OpenAI-compatible tool calling (Gemini `gemini-3.5-flash-lite`) over documented Qloo GET endpoints; zod-validated outputs.
-- **Routing:** a dynamic programme per gap on a precomputed OSRM road matrix (148,225 market pairs), so no routing calls at runtime. Every rule is in one cited config file.
+- **Routing:** a dynamic programme per gap on a precomputed OSRM road matrix (148,225 market pairs), so no routing calls at runtime.
 - **Data:** U.S. Census (metros, population) and OpenStreetMap (city centres, venues) on a Leaflet map. Qloo calls are server-side; no Qloo data is stored in the repo.
 
 ## Challenges we ran into
@@ -114,7 +119,8 @@ With mock heat, Fanpoint books 4 of 13 open days (Camden, Baltimore, Richmond, A
 3. With Qloo vs Without Qloo: the same cities, ranked by fan affinity vs population.
 4. Co-headliner map: which act carries each city; the most similar act ranks low.
 5. Promoter view: a city's top acts, and who fits one room (*new*).
-6. Plain AI audit: same dates, no Qloo, rule breaks in red.
+6. Compare with plain AI: same dates, side by side, rule breaks in red (*new*).
+7. One-click examples (*new*).
 
 ---
 

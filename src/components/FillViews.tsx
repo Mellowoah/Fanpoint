@@ -241,13 +241,14 @@ export function FillCompare({ q, p }: { q?: FillPlan; p?: PlainFillPlan }) {
   const outside = pScored.filter((x) => x === undefined).length;
   const weak = pScored.filter((x) => x !== undefined && x < q.params.minAffinity).length;
   const cnt = (f: (a: PlainFillPlan["audit"][number]) => unknown) => p.audit.filter((a) => !a.anchor && f(a)).length;
-  const rows: [string, string, string][] = [
+  const rows: [string, string, string, boolean?][] = [
     ["Off days filled", `${q.result.fills} of ${q.result.offBefore}`, `${p.stops.length} of ${q.result.offBefore}`],
     ["Avg Qloo fan heat of fills (same corridor read)", avg(q.stops.map((s) => s.affinity)), `${avg(pScored)}${outside ? ` · ${outside} outside corridor` : ""}${weak ? ` · ${weak} below floor` : ""}`],
-    ["Fills inside an anchor's radius clause", "0 (enforced)", `${cnt((a) => a.radiusConflict)}`],
-    ["Legs that double back", "0 (enforced)", `${cnt((a) => a.doublesBack)}`],
-    ["Days over max drive (OSRM miles or hours)", "0 (enforced)", `${cnt((a) => a.overDrive)}`],
-    ["Stops not on an off day", "0 (enforced)", `${cnt((a) => a.dateConflict)}`],
+    ["Fills inside an anchor's radius clause", "0 (enforced)", `${cnt((a) => a.radiusConflict)}`, cnt((a) => a.radiusConflict) > 0],
+    ["Legs that double back", "0 (enforced)", `${cnt((a) => a.doublesBack)}`, cnt((a) => a.doublesBack) > 0],
+    ["Days over max drive (OSRM miles or hours)", "0 (enforced)", `${cnt((a) => a.overDrive)}`, cnt((a) => a.overDrive) > 0],
+    ["Longest run of shows in a row", `${q.result.longestRun} (limit ${q.params.maxConsecutiveShows})`, p.longestRun !== undefined ? `${p.longestRun}` : "–", (p.longestRun ?? 0) > (q.params.maxConsecutiveShows ?? Infinity)],
+    ["Stops not on an off day", "0 (enforced)", `${cnt((a) => a.dateConflict)}`, cnt((a) => a.dateConflict) > 0],
     ["Rooms / support acts that are real Qloo entities", `${q.grounding.grounded}/${q.grounding.referenced}`, `0/${p.stops.length} (generic names)`],
   ];
   return (
@@ -255,8 +256,8 @@ export function FillCompare({ q, p }: { q?: FillPlan; p?: PlainFillPlan }) {
       <div className="grid grid-cols-[1.6fr_1fr_1.3fr] bg-black/30 text-xs uppercase tracking-wide">
         <div className="p-2.5 text-plain">Same anchors, two planners</div><div className="p-2.5 text-accent-text">Fanpoint + Qloo</div><div className="p-2.5 text-plain">Plain AI{p.simulated ? " (simulated)" : ""}</div>
       </div>
-      {rows.map(([k, a, b]) => (
-        <div key={k} className="grid grid-cols-[1.6fr_1fr_1.3fr] border-t border-line"><div className="p-2.5 text-plain">{k}</div><div className="p-2.5 font-mono">{a}</div><div className="p-2.5 font-mono text-plain">{b}</div></div>
+      {rows.map(([k, a, b, bad]) => (
+        <div key={k} className="grid grid-cols-[1.6fr_1fr_1.3fr] border-t border-line"><div className="p-2.5 text-plain">{k}</div><div className="p-2.5 font-mono">{a}</div><div className={`p-2.5 font-mono ${bad ? "text-red-400 font-semibold" : "text-plain"}`}>{b}</div></div>
       ))}
     </div>
   );
