@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Routed: tour routing from taste data",
   description: "An AI agent that plans an independent artist's tour from Qloo taste data: audience-strong cities, co-bills, venues and promo angles.",
 };
-export const viewport: Viewport = { themeColor: "#141110", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#0f1115", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (

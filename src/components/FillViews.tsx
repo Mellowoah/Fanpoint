@@ -9,6 +9,8 @@ import { KindBadge } from "./SourcesPanel";
 import type { RankMode, RankedGap } from "@/lib/route/rank";
 import { scoreLine } from "@/lib/route/score-line";
 import type { Marker } from "./MapView";
+import WhyPopover from "./WhyPopover";
+import { CYAN } from "./palette";
 
 const pct = (a?: number) => (a === undefined ? "–" : `${Math.round(a * 100)}`);
 const md = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -27,7 +29,7 @@ export function FillCalendar({ days, plain, flagged }: { days: Day[]; plain?: bo
       <div className="grid grid-flow-col auto-cols-[minmax(68px,1fr)] gap-1 min-w-max">
         {days.map((d) => {
           const bad = flagged?.has(d.date);
-          const cls = d.kind === "anchor" ? "bg-white/10 border-white/60" : d.kind === "fill" ? (plain ? `bg-plain/10 ${bad ? "border-red-500" : "border-plain/50"}` : "bg-accent/15 border-accent/70") : "border-line bg-[repeating-linear-gradient(135deg,#1d1917,#1d1917_6px,#181513_6px,#181513_12px)]";
+          const cls = d.kind === "anchor" ? "bg-white/10 border-white/60" : d.kind === "fill" ? (plain ? `bg-plain/10 ${bad ? "border-red-500" : "border-plain/50"}` : "bg-accent/15 border-accent/70") : "border-line bg-[repeating-linear-gradient(135deg,var(--panel),var(--panel)_6px,var(--background)_6px,var(--background)_12px)]";
           return (
             <div key={d.date} className={`border rounded-md p-1.5 text-[11px] leading-tight h-[92px] flex flex-col ${cls}`}>
               <div className="flex justify-between text-plain"><span>{d.dow}</span><span>{md(d.date)}</span></div>
@@ -109,8 +111,8 @@ export function useFillMap(q?: FillPlan) {
     let n = 0;
     const markers: Marker[] = q.result.calendar.filter((d) => d.kind !== "off").map((d) => d.kind === "anchor"
       ? { lat: d.lat!, lon: d.lon!, color: "#ffffff", radius: 8, label: `★ ${d.city} · ${md(d.date)}`, dir: "left" as const }
-      : { lat: d.lat!, lon: d.lon!, color: "#ee6330", label: `${++n}. ${d.city} ${pct(d.affinity)}` });
-    return { cells, rings, paths: [{ pts: seq, color: "#ee6330", dash: "6 6" }], markers, fit: rings.flat() };
+      : { lat: d.lat!, lon: d.lon!, color: CYAN, label: `${++n}. ${d.city} ${pct(d.affinity)}` });
+    return { cells, rings, paths: [{ pts: seq, color: CYAN, dash: "6 6" }], markers, fit: rings.flat() };
   }, [q]);
 }
 
@@ -158,11 +160,11 @@ export function FillStopCard({ s }: { s: FillStop }) {
       </header>
       <div className="text-xs font-mono text-accent" data-score-line>{scoreLine("with", s.affinity)}</div>
       <div className="grid gap-1"><div className="text-[10px] uppercase tracking-wide text-plain">Why this stop</div><WhyFacts s={s} /></div>
-      {s.aiNote && <p className="text-sm leading-snug"><span className="text-[10px] mr-1.5 px-1.5 py-0.5 rounded bg-white/5 border border-line text-plain align-middle" title="Written by the LLM; every number in it was checked against the data above">AI note</span>{s.aiNote}</p>}
+      {s.aiNote && <div className="text-sm leading-snug flex items-center gap-1.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-line text-plain" title="Written by the LLM; every number in it was checked against the data above">AI note</span><WhyPopover label={`AI note for ${s.city}`}>{s.aiNote}</WhyPopover></div>}
       <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Support</span>{s.support.map((e) => <Chip key={e.id} e={e} />)}<Src>top Qloo match</Src></div>
       <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Rooms</span>{s.venues.map((e) => <Chip key={e.id} e={e} />)}<Src>top Qloo matches</Src></div>
       {s.promo.map((p) => (
-        <div key={p.entity.id} className="text-sm flex gap-2"><span className="text-[10px] mt-0.5 px-1.5 rounded bg-accent/15 text-accent h-fit">{KIND[p.entity.kind] ?? p.entity.kind}</span><span>{p.angle}{p.angleBy === "ai" && <span className="ml-1 text-[10px] text-plain">(AI)</span>}</span></div>
+        <div key={p.entity.id} className="text-sm flex gap-2"><span className="text-[10px] mt-0.5 px-1.5 rounded bg-accent/15 text-accent h-fit">{KIND[p.entity.kind] ?? p.entity.kind}</span>{p.angleBy === "ai" ? <span className="flex items-center gap-1.5"><span className="text-[10px] text-plain">(AI)</span><WhyPopover label={`promo angle: ${p.entity.name}`} title="Angle">{p.angle}</WhyPopover></span> : <span>{p.angle}</span>}</div>
       ))}
     </article>
   );

@@ -15,6 +15,7 @@ import { CandidateFilter, FillCalendar, FillCompare, FillStats, FillStopCard, Fi
 import type { RankMode } from "@/lib/route/rank";
 import SourcesPanel from "./SourcesPanel";
 import PromoterView from "./PromoterView";
+import { CYAN, PLAIN } from "./palette";
 
 type Tab = "fill" | "cohead";
 /** Two sides of the same system: the booking agent's routing tools, or the promoter's city-first view. */
@@ -108,7 +109,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
       </nav>
 
       <header className="relative overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-40 h-[420px] bg-[radial-gradient(60%_60%_at_50%_0%,rgba(238,99,48,0.16),transparent_70%)]" />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-40 h-[420px] bg-[radial-gradient(60%_60%_at_50%_0%,rgba(124,58,237,0.18),transparent_70%)]" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-10 sm:pt-14 pb-6 sm:pb-8 grid gap-4">
           <a href="https://www.qloo.com/" target="_blank" rel="noreferrer" className="justify-self-start inline-flex items-center gap-2 rounded-full border border-line bg-panel/80 px-3 py-1 text-[11px] font-medium text-plain hover:text-foreground">
             <span className="size-1.5 rounded-full bg-accent" aria-hidden />Powered by Qloo Taste AI™
@@ -181,7 +182,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
               <div className="grid lg:grid-cols-[1fr_370px] gap-5">
                 <div className="grid gap-4 content-start min-w-0">
                   {q && <FillCalendar days={q.result.calendar} />}
-                  <MapCard title="Route map" legend={<><Dot c="#ffffff" />Anchor <Dot c="#ee6330" />Fill <span className="inline-block h-1.5 w-8 rounded-full bg-[linear-gradient(90deg,rgb(40,52,80),rgb(120,70,140),rgb(235,110,60),rgb(255,240,200))]" aria-hidden />Qloo fan heat</>}>
+                  <MapCard title="Route map" legend={<><Dot c="#ffffff" />Anchor <Dot c={CYAN} />Fill <span className="inline-block h-1.5 w-8 rounded-full bg-[linear-gradient(90deg,rgb(30,41,59),rgb(6,182,212),rgb(124,58,237),rgb(221,214,254))]" aria-hidden />Qloo fan heat</>}>
                     <MapView rings={qMap?.rings} cells={qMap?.cells} paths={qMap?.paths} markers={qMap?.markers} fit={qMap?.fit} height={420} />
                   </MapCard>
                   {q && <CandidateFilter gaps={q.result.gaps} maxDriveMi={q.params.maxDriveMi} />}
@@ -193,7 +194,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             {rank === "without" && q && (
               <MapView rings={qMap?.rings} fit={qMap?.fit} height={360}
                 markers={[...q.anchors.map((a) => ({ lat: a.lat, lon: a.lon, color: "#ffffff", radius: 8, label: `★ ${a.city}`, dir: "left" as const })),
-                  ...q.ranked.flatMap((g) => g.withoutQloo.slice(0, 5).map((c, i) => ({ lat: c.lat, lon: c.lon, color: "#a39a94", label: `${i + 1}. ${c.name}` })))]} />
+                  ...q.ranked.flatMap((g) => g.withoutQloo.slice(0, 5).map((c, i) => ({ lat: c.lat, lon: c.lon, color: PLAIN, label: `${i + 1}. ${c.name}` })))]} />
             )}
 
             <section className="grid gap-3 border-t border-line pt-5 mt-2">
@@ -209,12 +210,12 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
               {baseline === "plain" && p && (() => {
                 const pc = plainCalendar(p, q);
                 const pts = pc.days.filter((d) => d.kind !== "off" && d.lat !== undefined).map((d) => ({ lat: d.lat!, lon: d.lon! }));
-                const markers = pc.days.filter((d) => d.kind !== "off" && d.lat !== undefined).map((d) => ({ lat: d.lat!, lon: d.lon!, color: d.kind === "anchor" ? "#fff" : pc.flagged.has(d.date) ? "#ef4444" : "#a39a94", label: d.kind === "anchor" ? `★ ${d.city}` : d.city, dir: (d.kind === "anchor" ? "left" : "right") as "left" | "right" }));
+                const markers = pc.days.filter((d) => d.kind !== "off" && d.lat !== undefined).map((d) => ({ lat: d.lat!, lon: d.lon!, color: d.kind === "anchor" ? "#fff" : pc.flagged.has(d.date) ? "#ef4444" : PLAIN, label: d.kind === "anchor" ? `★ ${d.city}` : d.city, dir: (d.kind === "anchor" ? "left" : "right") as "left" | "right" }));
                 return (
                   <div className="grid gap-4">
                     <div className="text-sm text-plain">{p.simulated && <span className="mr-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200">SIMULATED</span>}Baseline for comparison only: the same anchors given to an LLM with no tools, no Qloo and no rules, answering from general knowledge. Its picks are then audited in code with OSRM road data and Routed&apos;s touring rules; red = breaks a rule.</div>
                     <FillCalendar days={pc.days} plain flagged={pc.flagged} />
-                    <div className="grid lg:grid-cols-2 gap-4"><MapView paths={[{ pts, color: "#a39a94", dash: "6 6" }]} markers={markers} fit={qMap?.fit} height={380} /><PlainAudit p={p} q={q} /></div>
+                    <div className="grid lg:grid-cols-2 gap-4"><MapView paths={[{ pts, color: PLAIN, dash: "6 6" }]} markers={markers} fit={qMap?.fit} height={380} /><PlainAudit p={p} q={q} /></div>
                   </div>
                 );
               })()}

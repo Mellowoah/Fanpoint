@@ -7,9 +7,9 @@ export interface LL { lat: number; lon: number }
 export interface Marker extends LL { label?: string; color: string; radius?: number; stroke?: string; permanent?: boolean; dir?: "left" | "right" | "top" | "bottom"; tooltip?: string }
 export interface Path { pts: LL[]; color: string; dash?: string; weight?: number }
 
-/** Heat colour scale for Qloo fan heat (0..1): cool slate -> amber -> hot orange/white. */
+/** Heat colour scale for Qloo fan heat (0..1): dark slate -> cyan -> purple -> pale lavender. */
 export function heatColor(a: number): string {
-  const stops: [number, [number, number, number]][] = [[0.3, [40, 52, 80]], [0.6, [120, 70, 140]], [0.75, [235, 110, 60]], [0.9, [255, 170, 60]], [1, [255, 240, 200]]];
+  const stops: [number, [number, number, number]][] = [[0.3, [30, 41, 59]], [0.6, [6, 182, 212]], [0.75, [79, 120, 225]], [0.9, [124, 58, 237]], [1, [221, 214, 254]]];
   const x = Math.max(0.3, Math.min(1, a));
   for (let i = 1; i < stops.length; i++) {
     const [a0, c0] = stops[i - 1]!, [a1, c1] = stops[i]!;
@@ -17,7 +17,7 @@ export function heatColor(a: number): string {
     const t = (x - a0) / (a1 - a0);
     return `rgb(${c0.map((c, k) => Math.round(c + (c1[k]! - c) * t)).join(",")})`;
   }
-  return "rgb(255,240,200)";
+  return "rgb(221,214,254)";
 }
 
 const NONE: never[] = [];
@@ -44,14 +44,14 @@ export default function MapView({ rings = NONE, cells = NONE, paths = NONE, mark
       const t = (topo as { default?: unknown }).default ?? topo;
       const states = feature(t as never, (t as { objects: { states: never } }).objects.states) as unknown as GeoJSON.FeatureCollection;
       states.features = states.features.filter((f) => !["02", "15", "60", "66", "69", "72", "78"].includes(String(f.id)));
-      L.geoJSON(states, { style: { color: "#3a332f", weight: 1, fillColor: "#1f1b19", fillOpacity: 1 }, interactive: false }).addTo(m);
+      L.geoJSON(states, { style: { color: "#2e3440", weight: 1, fillColor: "#171a21", fillOpacity: 1 }, interactive: false }).addTo(m);
       m.attributionControl.addAttribution("State outlines: US Census / us-atlas");
-      for (const r of rings) L.polygon(r.map((p) => [p.lat, p.lon] as [number, number]), { color: "#ee6330", weight: 1, opacity: 0.35, dashArray: "3 5", fillOpacity: 0.03, interactive: false }).addTo(m);
+      for (const r of rings) L.polygon(r.map((p) => [p.lat, p.lon] as [number, number]), { color: "#7c3aed", weight: 1, opacity: 0.35, dashArray: "3 5", fillOpacity: 0.03, interactive: false }).addTo(m);
       for (const [lat, lon, a] of cells)
         L.circleMarker([lat, lon], { radius: 3 + a * 4, stroke: false, fillColor: heatColor(a), fillOpacity: 0.12 + Math.max(0, a - 0.3) * 0.7, interactive: false }).addTo(m);
       for (const p of paths) L.polyline(p.pts.map((x) => [x.lat, x.lon] as [number, number]), { color: p.color, weight: p.weight ?? 2.5, opacity: 0.9, dashArray: p.dash }).addTo(m);
       for (const k of markers) {
-        const cm = L.circleMarker([k.lat, k.lon], { radius: k.radius ?? 7, color: k.stroke ?? "#141110", weight: 2, fillColor: k.color, fillOpacity: 1 });
+        const cm = L.circleMarker([k.lat, k.lon], { radius: k.radius ?? 7, color: k.stroke ?? "#0f1115", weight: 2, fillColor: k.color, fillOpacity: 1 });
         if (k.label) cm.bindTooltip(k.label, { permanent: k.permanent ?? true, direction: k.dir ?? "right", offset: [k.dir === "left" ? -8 : 8, 0], className: "stop-label" });
         else if (k.tooltip) cm.bindTooltip(k.tooltip, { className: "stop-label" });
         cm.addTo(m);
