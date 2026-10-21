@@ -72,6 +72,8 @@ co-billing as a market-coverage decision.
 
 **4. Receipts and a secondary baseline.** Every Qloo request appears in the agent trace. Below the results, an optional **Plain AI** panel sends the same anchors to the same LLM with no Qloo tools, and **Compare** audits both plans with the same rules.
 
+**Promoter side.** A role switch ("I'm a promoter") turns it around: pick one of the 385 cities (optionally a Qloo music genre tag) and get the top 10 acts Qloo ranks by fan affinity there (`/v2/insights` `filter.type=urn:entity:artist` + `signal.location.query`), each with "Plan a routing" into Fill the gaps.
+
 ## How it uses Qloo
 | Question | Qloo call | Used for |
 |---|---|---|
@@ -172,6 +174,7 @@ Co-headliner sample (mock): Marigold Static with "Saltwater Hymnal (mock)" propo
 ## What's next
 - Holds and avails import (CSV from the agency's calendar), rest-day rules and multi-van routing.
 - Second-run planning: which strong cities the run skipped, and when to come back.
+- Future work, not built: promoter connect (agents and promoters see each other's interest in a city), offers and holds sent through Routed, profit estimates per date (guarantee, ticket price, room size), and a light agent CRM for promoter contacts.
 - Pilot with a few agents and promoters. Pricing would be per seat for small agencies and promoters.
 
 ## Built with

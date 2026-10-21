@@ -77,6 +77,14 @@ function envelope<T>(json: unknown, schema: z.ZodType<T>, what: string): T {
 export const parseInsights = (json: unknown): Parsed<QlooRawEntity> => items(envelope(json, InsightsEnvelope, "insights"), RawEntitySchema);
 export const parseSearch = (json: unknown): Parsed<QlooRawEntity> => items(envelope(json, SearchEnvelope, "search"), RawEntitySchema);
 export const parseHeatmap = (json: unknown): Parsed<QlooRawHeatCell> => items(envelope(json, HeatmapEnvelope, "heatmap"), RawHeatCellSchema);
+const LocalitySchema = z.object({ query: z.object({ localities: z.object({ signal: z.object({ name: z.string(), location: z.object({ lat: optNum, lon: optNum }).optional().catch(undefined) }) }) }) });
+/** Insights entities plus `query.localities.signal` (the locality Qloo matched for signal.location.query), as one item. */
+export function parseInsightsLocal(json: unknown): Parsed<{ entities: QlooRawEntity[]; locality?: { name: string; lat?: number; lon?: number } }> {
+  const p = parseInsights(json);
+  const l = LocalitySchema.safeParse(json);
+  const locality = l.success ? { name: l.data.query.localities.signal.name, lat: l.data.query.localities.signal.location?.lat, lon: l.data.query.localities.signal.location?.lon } : undefined;
+  return { items: [{ entities: p.items, locality }], dropped: p.dropped };
+}
 /** Tags need an id (`id` or legacy `tag_id`); tags without one are dropped. */
 export function parseTags(json: unknown): Parsed<{ id: string; name: string }> {
   const p = items(envelope(json, TagsEnvelope, "tags"), RawTagSchema);

@@ -5,7 +5,7 @@
  */
 import fixtures from "./fixtures/mock-qloo.json";
 import { responseHash } from "./hash";
-import { cleanParams, type HeatCell, type QlooCallLog, type QlooClient, type QlooParams, type QlooRawEntity } from "./types";
+import { cleanParams, type HeatCell, type LocalInsights, type QlooCallLog, type QlooClient, type QlooParams, type QlooRawEntity } from "./types";
 import { parseInsights, parseSearch } from "./schemas";
 import { MOCK_SIMILARITY, mockAffinityAt } from "./fixtures/mock-geo";
 import { US_CITIES, findCity } from "../route/cities";
@@ -60,6 +60,14 @@ export class MockQlooClient implements QlooClient {
 
   async tags(query: string, tagTypes?: string[]) {
     await this.tick();
+    if (tagTypes?.includes("urn:tag:genre:music")) {
+      // Fictional genre tags: match the mock co-bill pool's genre names (e.g. "dream" -> Dream Pop).
+      const q = query.trim().toLowerCase();
+      const names = [...new Set(fixtures.cobillPool.flatMap((x) => x.tags))].filter((t) => t.toLowerCase().includes(q)).sort((a, b) => Number(!a.toLowerCase().startsWith(q)) - Number(!b.toLowerCase().startsWith(q)));
+      const out = names.slice(0, 10).map((t) => ({ id: `urn:tag:genre:music:${t.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, name: `${t} (mock)` }));
+      this.log("/v2/tags", { "filter.query": query, "filter.tag.types": tagTypes.join(",") }, out);
+      return out;
+    }
     const out = [{ id: "urn:tag:category:place:music_venue", name: "Music Venue (mock tag id - verify live)" }];
     this.log("/v2/tags", { "filter.query": query, "filter.tag.types": tagTypes?.join(",") }, out);
     return out;
@@ -89,7 +97,10 @@ export class MockQlooClient implements QlooClient {
         }));
     } else if (type === "urn:entity:artist") {
       const exclude = new Set(String(p["filter.exclude.entities"] ?? "").split(",").concat(signal));
-      const c = city ? findCity(city) : undefined;
+      const point = /^POINT\((-?[\d.]+) (-?[\d.]+)\)$/.exec(String(p["signal.location"] ?? ""));
+      const c = city ? findCity(city) : point ? { lat: Number(point[2]), lon: Number(point[1]) } : undefined;
+      const tagFilter = new Set(String(p["filter.tags"] ?? "").split(",").filter(Boolean));
+      const tagUrn = (t: string) => `urn:tag:genre:music:${t.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
       // No location: taste similarity. With a location: similarity blended with the peer's local mock fan heat.
       out = fixtures.cobillPool
         .map((x) => {
@@ -98,7 +109,7 @@ export class MockQlooClient implements QlooClient {
           const a = c ? 0.5 * sim + 0.5 * mockAffinityAt(id, c.lat, c.lon) : sim;
           return { x, id, a };
         })
-        .filter((r) => !exclude.has(r.id))
+        .filter((r) => !exclude.has(r.id) && (!tagFilter.size || r.x.tags.some((t) => tagFilter.has(tagUrn(t)))))
         .sort((a, b) => b.a - a.a)
         .slice(0, take)
         .map(({ x, id, a }) => ({
@@ -123,6 +134,12 @@ export class MockQlooClient implements QlooClient {
     }
     this.log("/v2/insights", p, out);
     return parseInsights({ results: { entities: out } }).items; // same validator as live responses
+  }
+
+  async insightsLocal(p: QlooParams): Promise<LocalInsights> {
+    const entities = await this.insights(p);
+    const c = p["signal.location.query"] ? findCity(String(p["signal.location.query"])) : undefined;
+    return { entities, locality: c ? { name: `${c.name} (mock)`, lat: c.lat, lon: c.lon } : undefined };
   }
 
   async heatmap(p: QlooParams): Promise<HeatCell[]> {

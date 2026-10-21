@@ -14,8 +14,11 @@ import CoheadView from "./CoheadView";
 import { CandidateFilter, FillCalendar, FillCompare, FillStats, FillStopCard, FillSummary, PlainAudit, RankedLists, plainCalendar, useFillMap } from "./FillViews";
 import type { RankMode } from "@/lib/route/rank";
 import SourcesPanel from "./SourcesPanel";
+import PromoterView from "./PromoterView";
 
 type Tab = "fill" | "cohead";
+/** Two sides of the same system: the booking agent's routing tools, or the promoter's city-first view. */
+type Role = "agent" | "promoter";
 /** Secondary LLM baseline panel (the primary comparison is the deterministic With/Without Qloo toggle). */
 type Baseline = "off" | "plain" | "compare";
 
@@ -24,6 +27,13 @@ const resultOf = <T,>(ev: AgentEvent[]) => ev.find((e) => e.type === "result")?.
 export default function RoutedApp({ initialModes }: { initialModes?: NonNullable<Modes> }) {
   const sp = useSearchParams();
   const [modes, setModes] = useState<Modes>(initialModes ?? null);
+  const [role, setRoleState] = useState<Role>(sp.get("role") === "promoter" ? "promoter" : "agent");
+  const setRole = useCallback((r: Role) => {
+    setRoleState(r);
+    const u = new URL(window.location.href);
+    if (r === "promoter") u.searchParams.set("role", "promoter"); else u.searchParams.delete("role");
+    window.history.replaceState(null, "", u);
+  }, []);
   const [tab, setTab] = useState<Tab>(sp.get("tab") === "cohead" ? "cohead" : "fill");
   const [rank, setRank] = useState<RankMode>(() => (sp.get("qloo") === "0" ? "without" : "with"));
   const [baseline, setBaseline] = useState<Baseline>(() => { const v = sp.get("view"); return v === "plain" || v === "compare" ? v : "off"; });
@@ -68,6 +78,12 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
     return () => clearTimeout(t);
   }, [auto, modes]); // eslint-disable-line react-hooks/exhaustive-deps -- run the ?auto=1 demo once, when the mode is known
 
+  /** Promoter -> agent hand-off: the chosen act lands in Fill the gaps, anchors untouched. */
+  const planFor = useCallback((artist: string) => {
+    setFill((f) => ({ ...f, artist })); setTab("fill"); setQEv([]); setPEv([]); setRole("agent");
+    setTimeout(() => document.getElementById("planner")?.scrollIntoView({ behavior: "smooth" }), 0);
+  }, [setRole]);
+
   const q = resultOf<FillPlan>(qEv), p = resultOf<PlainFillPlan>(pEv), c = resultOf<CoheadPlan>(cEv);
   const qErr = errorOf(qEv), pErr = errorOf(pEv), cErr = errorOf(cEv);
   const qMap = useFillMap(q);
@@ -83,7 +99,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             <img src="/routed-logo.svg" alt="Routed" width={104} height={29} className="h-[26px] w-auto" />
           </Link>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
-            <a href="#how" className="btn btn-ghost btn-sm hidden md:inline-flex">How it works</a>
+            {role === "agent" && <a href="#how" className="btn btn-ghost btn-sm hidden md:inline-flex">How it works</a>}
             <button onClick={() => (sources ? setSources(false) : openSources())} aria-pressed={sources} className={`btn btn-ghost btn-sm hidden sm:inline-flex ${sources ? "!text-accent" : ""}`}>Sources</button>
             <ModePill modes={modes} />
             <a href={GITHUB} target="_blank" rel="noreferrer" aria-label="Routed on GitHub" className="btn btn-ghost btn-sm !px-2"><GitHubIcon /></a>
@@ -97,12 +113,28 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
           <a href="https://www.qloo.com/" target="_blank" rel="noreferrer" className="justify-self-start inline-flex items-center gap-2 rounded-full border border-line bg-panel/80 px-3 py-1 text-[11px] font-medium text-plain hover:text-foreground">
             <span className="size-1.5 rounded-full bg-accent" aria-hidden />Powered by Qloo Taste AI™
           </a>
+          {role === "agent" ? (<>
           <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Fill every off day <span className="text-accent">between your anchor dates.</span></h1>
           <p className="text-[15px] sm:text-lg text-plain max-w-2xl leading-relaxed"><b className="text-foreground font-semibold">Routed is a decision tool for booking agents and promoters.</b> Enter the confirmed shows; get the gap cities where the act&apos;s fans are, with real road miles and drive hours that pass your touring rules.</p>
+          </>) : (<>
+          <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Book the acts <span className="text-accent">your city already loves.</span></h1>
+          <p className="text-[15px] sm:text-lg text-plain max-w-2xl leading-relaxed"><b className="text-foreground font-semibold">Routed is a decision tool for booking agents and promoters.</b> Pick your city; get the artists whose fans Qloo ranks strongest there, then hand one to the routing desk.</p>
+          </>)}
+          <div role="tablist" aria-label="Your role" className="seg justify-self-start mt-1">
+            {([["agent", "I'm an agent"], ["promoter", "I'm a promoter"]] as [Role, string][]).map(([r, l]) => (
+              <button key={r} role="tab" aria-selected={role === r} onClick={() => setRole(r)} className="seg-accent">{l}</button>
+            ))}
+          </div>
         </div>
       </header>
 
-      <section aria-label="Planner" className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-6">
+      {role === "promoter" ? (
+        <main className="pb-16 grid gap-5">
+          {sources && <div className="max-w-7xl w-full mx-auto px-4 sm:px-6"><SourcesPanel onClose={() => setSources(false)} /></div>}
+          <PromoterView onPlan={planFor} live={modes?.qloo === "live"} onSources={openSources} />
+        </main>
+      ) : (<>
+      <section id="planner" aria-label="Planner" className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-6 scroll-mt-16">
         <div className="card">
           <div className="flex items-center justify-between gap-3 flex-wrap border-b border-line px-4 sm:px-5 py-3">
             <div role="tablist" aria-label="Tool" className="seg w-full sm:w-auto">
@@ -209,6 +241,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
           </div>
         )}
       </main>
+      </>)}
       <footer className="border-t border-line bg-panel/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid gap-6 md:grid-cols-[1fr_2fr] text-xs text-plain">
           <div className="grid gap-2 content-start">

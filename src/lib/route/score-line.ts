@@ -8,3 +8,8 @@ export function scoreLine(mode: RankMode, affinity?: number): string {
   if (mode === "without") return WITHOUT_QLOO_LINE;
   return `Qloo affinity: ${affinity === undefined ? "no reading" : affinity.toFixed(2)} | Ranked by affinity after filters`;
 }
+
+/** Score line for a Promoter view row: same "Qloo affinity: 0.XX" format, ranked by Qloo for one city. */
+export function promoterScoreLine(affinity?: number): string {
+  return `Qloo affinity: ${affinity === undefined ? "no reading" : affinity.toFixed(2)} | Ranked by Qloo for this city`;
+}

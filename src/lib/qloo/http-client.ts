@@ -4,9 +4,9 @@ import { ProviderError } from "../net/errors";
 import { requestWithRetry, type HttpDeps, type RetryPolicy } from "../net/http";
 import { checkQlooBaseUrl } from "./base-url";
 import { sharedLimiter } from "../net/rate-limiter";
-import { countResults, parseHeatmap, parseInsights, parseSearch, parseTags, type Parsed } from "./schemas";
+import { countResults, parseHeatmap, parseInsights, parseInsightsLocal, parseSearch, parseTags, type Parsed } from "./schemas";
 import { responseHash } from "./hash";
-import { cleanParams, type HeatCell, type QlooCallLog, type QlooClient, type QlooParams, type QlooRawEntity } from "./types";
+import { cleanParams, type HeatCell, type LocalInsights, type QlooCallLog, type QlooClient, type QlooParams, type QlooRawEntity } from "./types";
 
 export interface QlooHttpOptions {
   retry: RetryPolicy;
@@ -102,6 +102,10 @@ export class HttpQlooClient implements QlooClient {
 
   insights(params: QlooParams): Promise<QlooRawEntity[]> {
     return this.get("/v2/insights", params, parseInsights);
+  }
+
+  async insightsLocal(params: QlooParams): Promise<LocalInsights> {
+    return (await this.get("/v2/insights", params, parseInsightsLocal))[0] ?? { entities: [] };
   }
 
   async heatmap(params: QlooParams): Promise<HeatCell[]> {

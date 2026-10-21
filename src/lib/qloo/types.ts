@@ -42,11 +42,19 @@ export interface Entity {
 /** One heatmap grid point (GET /v2/insights?filter.type=urn:heatmap -> results.heatmap[]), normalized. */
 export interface HeatCell { lat: number; lon: number; geohash?: string; affinity: number; affinityRank?: number; popularity?: number; mock: boolean }
 
+/** Entities from /v2/insights with the matched locality, when Qloo reports one. */
+export interface LocalInsights { entities: QlooRawEntity[]; locality?: { name: string; lat?: number; lon?: number } }
+
 export interface QlooClient {
   readonly mode: "live" | "mock";
   search(query: string, types: string[], take?: number): Promise<QlooRawEntity[]>;
   insights(params: QlooParams): Promise<QlooRawEntity[]>;
   tags(query: string, tagTypes?: string[]): Promise<{ id: string; name: string }[]>;
+  /**
+   * /v2/insights plus the locality Qloo matched for `signal.location.query` (response `query.localities.signal`),
+   * so callers can check the fuzzy match against the city they meant.
+   */
+  insightsLocal(params: QlooParams): Promise<LocalInsights>;
   /** filter.type=urn:heatmap. Returns grid cells; `take` is ignored by Qloo for heatmaps. */
   heatmap(params: QlooParams): Promise<HeatCell[]>;
   /** Every request made through this client instance, in order (for the trace). */
