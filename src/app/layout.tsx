@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
 import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { themeColor: "#141110", width: "device-width", initialScale: 1 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
