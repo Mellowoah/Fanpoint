@@ -1,0 +1,18 @@
+name: Keep demo awake
+
+# Render's free plan sleeps after 15 idle minutes; a cold start takes about a minute.
+# This pings the health endpoint every 10 minutes so judges don't hit a sleeping app.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping health endpoint
+        run: curl -fsS --retry 3 --retry-delay 20 --max-time 90 https://routed-kt93.onrender.com/api/health
