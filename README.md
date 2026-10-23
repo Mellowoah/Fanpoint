@@ -1,6 +1,6 @@
 # Fanpoint
 
-**Fanpoint is a decision tool for booking agents and promoters.** It answers two routing questions with
+**Fanpoint fills the empty nights on a tour.** An empty night still costs a hotel, a van and a crew, and earns nothing. Fanpoint is a decision tool for booking agents and promoters. It answers two routing questions with
 [Qloo Taste AI™](https://docs.qloo.com/) data:
 
 1. **Fill the gaps.** Fixed dates in, gap cities with real road miles and drive hours out. Enter the shows that are already confirmed

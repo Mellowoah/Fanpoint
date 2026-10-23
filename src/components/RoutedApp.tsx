@@ -119,7 +119,8 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             <span className="size-1.5 rounded-full bg-accent" aria-hidden />Powered by Qloo Taste AI™
           </a>
           {role === "agent" ? (<>
-          <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Fill every off day <span className="text-accent">between your anchor dates.</span></h1>
+          <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Fill the empty nights <span className="text-accent">between your booked shows.</span></h1>
+          <p className="text-[15px] sm:text-lg text-plain max-w-3xl leading-relaxed">An empty night on tour still costs a hotel, a van and a crew, and earns nothing.</p>
           <p className="text-[15px] sm:text-lg text-plain max-w-3xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint + Qloo books more nights than the same LLM with no tools, with zero rule breaks</b> (median {B.fanpoint.nights.median} vs {B.plainAi.nights.median} of {B.offDaysPerAct} open nights; {B.fanpoint.ruleBreaks} vs {B.plainAi.actsWithBreaks} of {B.acts} plans breaking a rule; longest run {B.fanpoint.longestRun.min}–{B.fanpoint.longestRun.max} vs up to {B.plainAi.longestRun.max} shows).</p>
           <p className="text-[15px] text-plain max-w-3xl leading-relaxed">Every decision is computed in code from Qloo fan data and sourced touring rules. The LLM only calls tools and explains; any number it writes that isn&apos;t in the data is dropped, and the agent trace shows every Qloo call. Pin your confirmed shows and get ranked gap cities, drive times and a sourced &ldquo;why this city&rdquo; for each. Try a one-click example below.</p>
           </>) : (<>

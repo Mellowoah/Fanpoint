@@ -8,9 +8,13 @@
 
 **Try it out:** Live demo https://routed-kt93.onrender.com · Repo https://github.com/Mellowoah/Fanpoint (MIT license, visible in About) · (no demo video required)
 
-**Tagline:** Fill the open dates between your booked shows with cities where your fans are, and find acts to share the bill.
+**Tagline:** Fill the empty nights on a tour. Fanpoint reads Qloo fan data to book more shows between an act's fixed dates, with zero touring-rule breaks.
 
-**The result:** Fanpoint + Qloo books more nights than the same LLM with no tools, with zero rule breaks: median 7 vs 5 of 13 open nights, 0 vs 3 of 10 plans breaking a touring rule, longest run 3–6 vs up to 16 shows in a row. With the same rules and Qloo turned off, the demo books 0 of 13 open nights instead of 8.
+An empty night on tour still costs a hotel, a van and a crew, and earns nothing. When an act lands a festival slot or a support date, its agent has to fill the days in between, usually by gut feel about which cities hold fans.
+
+Fanpoint fills those nights. Enter the act and 2–3 booked dates. It reads where the act's fans are along each drive from Qloo, cuts every city that would break a touring rule, and returns a bookable run with named rooms, one support act and hold-request drafts.
+
+**The result**, measured on 10 acts: a median of 7 of 13 open nights booked versus 5 for the same LLM with no tools, and 0 versus 3 of 10 plans breaking a touring rule. With Qloo turned off and the same rules, the demo books 0 of 13 nights instead of 8.
 
 **How it stays honest:** every decision is computed in code from Qloo data and sourced touring rules. The LLM only calls tools and explains; a note with any number that isn't in the data is dropped. The agent trace shows every Qloo request.
 
