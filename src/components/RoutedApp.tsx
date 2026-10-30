@@ -157,8 +157,9 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             </div>
           </div>
           {role === "agent" ? (<>
+          <div className="eyebrow text-accent-text" data-hero-eyebrow>Tour routing desk for booking agents and promoters</div>
           <h1 className="text-[30px] leading-[1.1] sm:text-[38px] font-semibold tracking-[-0.025em]">Fill the empty nights <span className="text-accent">between your booked shows.</span></h1>
-          <p className="text-[15px] sm:text-base text-plain max-w-6xl leading-relaxed" data-hero>An empty night on tour still costs a hotel, a van and a crew, and earns nothing. Fanpoint uses Qloo fan data to book those open dates in the cities where the act&apos;s fans are strongest, and never breaks a touring limit. <b className="text-foreground font-semibold">In tests it filled more open dates than a plain AI chatbot (typically {B.fanpoint.nights.median} vs {B.plainAi.nights.median} of {B.offDaysPerAct}), with {B.fanpoint.ruleBreaks} shows that broke touring limits.</b></p>
+          <p className="text-[15px] sm:text-base text-plain max-w-6xl leading-relaxed" data-hero>An empty night on tour still costs hotel rooms, per diems and fuel, and earns nothing. Fanpoint turns Qloo taste intelligence into booked nights: Qloo data ranks the fan cities, rooms, openers and cross-domain sponsor hooks, code enforces the touring rules, and you leave with the cost avoided, a CSV of every stop and hold requests ready to send. <b className="text-foreground font-semibold">In tests it filled more open dates than a plain AI chatbot (typically {B.fanpoint.nights.median} vs {B.plainAi.nights.median} of {B.offDaysPerAct}), with {B.fanpoint.ruleBreaks} shows that broke touring limits.</b></p>
           </>) : (<>
           <h1 className="text-[30px] leading-[1.1] sm:text-[38px] font-semibold tracking-[-0.025em]">Book the acts <span className="text-accent">your city already loves.</span></h1>
           <p className="text-[15px] sm:text-base text-plain max-w-6xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint is a decision tool for booking agents and promoters.</b> Promoters get the other side: the acts their city&apos;s fans love most. Pick your city; get the artists whose fans Qloo ranks strongest there, then hand one to the routing desk.</p>
@@ -375,11 +376,11 @@ function Landing() {
   const steps = [
     ["Enter the booked shows", "The dates already confirmed: festival slots, support dates, a hometown show."],
     ["Qloo shows where the fans are", "Fanpoint maps the act's fans along each drive and drops any city that breaks a touring limit: too close to a booked show, doubling back, or too far to drive in a day."],
-    ["Book with proof", "Open dates fill with the strongest fan cities left. Every number links to its source; the AI only explains."],
+    ["Book with proof", "Open dates fill with the strongest fan cities left, each with a room, an opener and what those fans like outside music. You get the empty-night cost avoided, a CSV and hold requests. Every number links to its source; the AI only explains."],
   ];
   return (
     <section id="how" aria-labelledby="how-title" className="grid gap-3">
-      <h2 id="how-title" className="eyebrow">How it works</h2>
+      <h2 id="how-title" className="eyebrow">How the routing desk works</h2>
       <ol className="grid md:grid-cols-3 gap-3">
         {steps.map(([t, d], i) => (
           <li key={t} className="card card-pad grid gap-1.5 content-start">

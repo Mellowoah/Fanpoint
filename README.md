@@ -28,6 +28,8 @@ Qloo access and audits that plan with the same touring rules.
 ![Fill the gaps: form beside the route map, readable stats](screens/03-fill-the-gaps.png)
 ![A stop card with "Fans here also like" (Qloo cross-domain taste)](screens/15-fans-also-like.png)
 ![Across the tour: picks that come up in two or more cities](screens/16-tour-also-like.png)
+![What the empty nights would have cost: editable defaults, nights filled, cost avoided](screens/17-empty-night-cost.png)
+![One-click CSV export, calendar file and hold emails](screens/18-export.png)
 ![Co-headliner match](screens/08-cohead-complementarity-map.png)
 
 Screenshots in `screens/` are mock-mode captures of the current build (fictional "(mock)" acts). Live captures stay out of the repo (Qloo terms; see `docs/DEPLOY.md`).
@@ -37,6 +39,10 @@ Screenshots in `screens/` are mock-mode captures of the current build (fictional
 - **Map first.** The form sits beside the route map, so the map is visible on first load; the result stats read in plain English ("Open dates we filled 8 of 13", "Shows that broke touring limits: 0").
 - **Plain-English labels.** "fans" (not "heat"), "open" (not "OFF"), "too few fans", "too close to a booked show". Longer explanations sit behind ⓘ info buttons; the Qloo request log sits behind **Show trace**. Text is at least 12 px.
 - **Fans here also like.** Every filled stop lists what the act's fans in that city also like outside music, from Qloo: brands (fashion brands marked from Qloo's own tags), podcasts, food and drink, TV, film, books, video games, people and travel destinations. Each row carries a fixed plain-English use (sponsor or merch collab, ad read or guest spot, pre-show spot or hospitality partner, themed promo…). An **Across the tour** card lists the picks that come up in two or more filled cities. Names are Qloo results picked in code; only the promo ideas marked "AI" are model-written, and number-checked.
+- **Rooms and holds.** Each stop shows Qloo's top room and the next best one. **Copy hold request** copies that stop's hold email (built from the plan, no AI); **Draft email to hold this date** opens it to read first. Nothing is sent.
+- **What the empty nights would have cost.** Below the stop cards: nights filled × (hotel × rooms + per diem × people), minus fuel for the extra road miles versus driving straight between the booked shows (OSRM). Defaults ($150 a room, 4 rooms, $50 per diem, 6 people, $0.60 a mile) are visible and editable; they are planning assumptions, not Qloo data.
+- **Take the plan with you.** **Export all stops (.csv)** downloads one row per filled stop: date, city, fan strength, drive, top and other rooms, opening act, local opener, fan neighborhoods, cross-domain picks and the hold email. Built in the browser. Also **Add to calendar (.ics)** and **Copy all hold emails**.
+- **Receipts behind a toggle.** Every city considered (and why it was or wasn't booked) and the full agent trace with every Qloo call sit in one **Receipts** section, closed by default.
 
 ## Who it's for
 
@@ -175,9 +181,10 @@ npm run ci           # everything CI runs: lint, typecheck, coverage, build, bun
 - `tests/deterministic.test.ts`: models that try to decide. They invent numbers, skip city intel, pick their own peers or widen the corridor, and code wins every time. Also unit tests for `vetText`.
 - `tests/data.test.ts`: data integrity for the market universe and the OSRM matrix. Covers known drives, road distance ≥ straight line, near-symmetry, decoding, and lookups. Also checks that every rule has a `docs/SOURCES.md` entry and that cited rules have sources.
 - `tests/api.test.ts`, `tests/stream.test.ts`: request validation, the NDJSON route, and the browser stream reader.
+- `tests/plan-export.test.ts`: the empty-night cost math (defaults, edits, negative or blank inputs, detour miles) and the CSV export (one row per stop, round-trip through a CSV parser, formula injection neutralised).
 - `tests/crossdomain.test.ts`: "Fans here also like": display order, no extra model turns, a 403 category asked once then dropped, errors that are fatal elsewhere (rate limit) never fail the run, the call-cap guard, the food-and-drink filter, the tour card, fashion tags.
 
-406 tests in 22 files (2026-10-30).
+411 tests in 23 files (2026-10-30).
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests with coverage, build and the bundle check on every push and PR.
 

@@ -46,7 +46,9 @@ With vs without Qloo on the same filtered cities: on the 34 legs with more than 
 - One support act opens the whole run: the Qloo match that is a local fit in the most filled cities and clearly smaller than the headliner, with the taste they share.
 - Each stop names a Qloo venue (address, website, size tier, capacity where Qloo's text states one), the top 3 fan neighbourhoods and promo partners. **Why this stop** cites a source for every line.
 - **Fans here also like:** each stop lists what the act's fans in that city like outside music (Qloo cross-domain taste): brands (fashion brands marked), podcasts, food and drink, TV, film, books, video games, people and travel, each row with a plain-English use (sponsor, merch, promo, pre-show). **Across the tour** lists picks that come up in two or more cities. Names are Qloo results picked in code; these lookups add no AI turns and change no routing pick.
-- Each stop gets a hold-request draft (nothing is sent); the run exports to `.ics`.
+- Each stop shows Qloo's top room and the next best one, with **Copy hold request** and a hold-request draft (nothing is sent).
+- **What the empty nights would have cost:** nights filled × (hotel × rooms + per diem × people), minus fuel for the extra road miles; defaults visible and editable, labelled as assumptions, not Qloo data.
+- **Export all stops (.csv)**: one row per stop with room, opener, fan neighbourhoods, cross-domain picks and the hold email; also `.ics` and copy-all hold emails.
 
 ## Try it: one-click examples
 Open the live link and click an example (each run takes about 30–70 s):
@@ -129,6 +131,8 @@ With mock heat, Fanpoint books 4 of 13 open days (Camden, Baltimore, Richmond, A
 7. One-click examples (*new*).
 8. Fans here also like: what one city's fans like outside music, with a use per row (*new*).
 9. Across the tour: picks that come up in two or more cities (*new*).
+10. What the empty nights would have cost: editable defaults, nights filled, estimated cost avoided (*new*).
+11. Take the plan with you: CSV of every stop, calendar file, hold emails (*new*).
 
 ---
 
