@@ -25,8 +25,18 @@ Qloo access and audits that plan with the same touring rules.
 > banner says so on every screen. Without an LLM key, the plain-AI baseline is a **simulated** heuristic (labeled SIMULATED),
 > not a model output. Add keys ([`docs/ENV.md`](docs/ENV.md)) and the identical code path goes live.
 
-![Fill the gaps](screens/03-fill-the-gaps.png)
+![Fill the gaps: form beside the route map, readable stats](screens/03-fill-the-gaps.png)
+![A stop card with "Fans here also like" (Qloo cross-domain taste)](screens/15-fans-also-like.png)
+![Across the tour: picks that come up in two or more cities](screens/16-tour-also-like.png)
 ![Co-headliner match](screens/08-cohead-complementarity-map.png)
+
+Screenshots in `screens/` are mock-mode captures of the current build (fictional "(mock)" acts). Live captures stay out of the repo (Qloo terms; see `docs/DEPLOY.md`).
+
+## What you see
+
+- **Map first.** The form sits beside the route map, so the map is visible on first load; the result stats read in plain English ("Open dates we filled 8 of 13", "Shows that broke touring limits: 0").
+- **Plain-English labels.** "fans" (not "heat"), "open" (not "OFF"), "too few fans", "too close to a booked show". Longer explanations sit behind ⓘ info buttons; the Qloo request log sits behind **Show trace**. Text is at least 12 px.
+- **Fans here also like.** Every filled stop lists what the act's fans in that city also like outside music, from Qloo: brands (fashion brands marked from Qloo's own tags), podcasts, food and drink, TV, film, books, video games, people and travel destinations. Each row carries a fixed plain-English use (sponsor or merch collab, ad read or guest spot, pre-show spot or hospitality partner, themed promo…). An **Across the tour** card lists the picks that come up in two or more filled cities. Names are Qloo results picked in code; only the promo ideas marked "AI" are model-written, and number-checked.
 
 ## Who it's for
 
@@ -43,9 +53,10 @@ All calls are `GET https://hackathon.api.qloo.com/...` with `X-Api-Key`, made se
 | Where the fans are **along each drive** | `/v2/insights?filter.type=urn:heatmap&signal.interests.entities=<act>&filter.location=POLYGON(<corridor>)` | One heatmap per anchor-to-anchor corridor (a buffered polygon around the leg). Each touring city takes the strongest cell within 5 mi (15 mi on the coarser lower-48 heatmap), and cities are ranked by that fan heat |
 | Fallback city ranking | `/v2/insights?filter.type=urn:entity:destination&signal.interests.entities=…&filter.location=POLYGON(…)` | Used only if a corridor heatmap returns no cells |
 | Room category | `/v2/tags?filter.query=music venue&filter.tag.types=urn:tag:category:place` | Venue tag id |
-| Rooms per fill | `/v2/insights?filter.type=urn:entity:place&signal.interests.entities=…&filter.location.query=<city>&filter.tags=<venue tag>` | Rooms whose crowd matches the act |
+| Rooms per fill | `/v2/insights?filter.type=urn:entity:place&signal.interests.entities=…&filter.location=POINT(<market centre>)&filter.location.radius=16000&filter.tags=<venue tags>` | Rooms whose crowd matches the act |
 | Support act per fill | `/v2/insights?filter.type=urn:entity:artist&signal.interests.entities=…&signal.location.query=<city>&filter.exclude.entities=…&filter.popularity.max=<act popularity>` | Local, taste-adjacent, no bigger than the act |
 | Promo hooks per fill | `urn:entity:brand` and `urn:entity:podcast` with `signal.location.query=<city>` | Cross-domain partner ideas |
+| Fans here also like (per fill, in code after routing) | `urn:entity:tv_show`, `urn:entity:movie`, `urn:entity:book`, `urn:entity:videogame`, `urn:entity:person`, `urn:entity:destination` with `signal.location.query=<city>`; restaurants: `urn:entity:place` + `filter.tags=urn:tag:category:place:restaurant` + the market POINT/radius | Cross-domain taste per stop and across the tour. Places are kept only if their Qloo category is food or drink. A category that returns 403 or errors is dropped for the rest of the run; one that is empty is left off that stop. All nine categories returned data on live Qloo (2026-10-30) |
 | Co-headliner candidates | `/v2/insights?filter.type=urn:entity:artist&signal.interests.entities=…&filter.popularity.min/max=<band>` | Peers in the act's popularity band |
 | Complementarity | `/v2/insights?filter.type=urn:heatmap&signal.interests.entities=<each act>&filter.location=POLYGON(lower 48)` | Per-city fan heat for both acts, then the score below |
 
@@ -101,6 +112,7 @@ Browser ─POST /api/plan─▶ agent loop (src/lib/agent/run.ts) ─NDJSON even
                             ▼
                          tools (src/lib/agent/tools.ts)
                             fill:   resolve_artist → scan_corridor ×gaps → fill_gaps (code) → get_city_intel ×fills → submit_fill
+                                    (on submit, in code: run_support, then cross_domain "Fans here also like")
                             cohead: resolve_artist (+partner) → find_peer_acts → compare_fan_geography (code) → submit_cohead
                             │
                             ▼
@@ -139,7 +151,7 @@ Browser ─POST /api/plan─▶ agent loop (src/lib/agent/run.ts) ─NDJSON even
 - **Base-URL allowlist.** The Qloo key is only sent over https to `hackathon.api.qloo.com` or `api.qloo.com`. Any other `QLOO_BASE_URL` (a proxy or a local mock) must also be set, exactly, in `QLOO_TRUSTED_BASE_URL`. Otherwise the run stops with a config error before any request goes out.
 - **Rate limit.** Request starts are spaced ≥ 220 ms apart per process (~4.5 req/s). Qloo doesn't publish a number; the developer guide only says limits are "set high enough" and can be raised on Discord, so this is a self-imposed ceiling. Each run is also capped at 150 Qloo network calls to protect the monthly quota.
 - **Validation.** Every Qloo and LLM response is checked with zod. A wrong envelope fails that call with `invalid_response`; single bad items (an entity without an id, a heat cell without affinity) are dropped and counted in the trace. Tool arguments from the model are validated against the same schemas that generate the tool definitions, and the user's touring rules always override the model's.
-- **Graceful degradation.** A failed corridor heatmap falls back to Qloo destination insights; if both fail, that gap stays open and the result says so. One failed city-intel sub-call only empties that list. A failed peer heatmap drops that peer. These show as "Partial data" warnings next to the plan.
+- **Graceful degradation.** Cross-domain lookups ("Fans here also like") never fail a run: any error just leaves that category out, and they stop at 135 Qloo calls so the 150-call cap is never reached. A live fill makes about 65–101 Qloo calls (5–8 filled cities, measured 2026-10-30). A failed corridor heatmap falls back to Qloo destination insights; if both fail, that gap stays open and the result says so. One failed city-intel sub-call only empties that list. A failed peer heatmap drops that peer. These show as "Partial data" warnings next to the plan.
 - **Clear errors.** Fatal problems (bad key, rate limited after retries, budget, LLM down) end the run with a typed error. The UI shows what happened, which provider, and a "Try again" button when retrying can help.
 - **Keys stay on the server.** `config.ts` and both HTTP clients import `server-only`, so the build fails if a client component imports them. CI builds with canary key values and `npm run check:bundle` proves that neither the values nor server-only markers (Qloo host, `X-Api-Key`, `/chat/completions`) appear in the client bundle.
 - **API input.** `POST /api/plan` accepts JSON only (415 otherwise), ≤ 8 KB (413), strict schemas (unknown keys rejected), real calendar dates, 2–4 anchors with distinct dates and cities, a tour of ≤ 45 days, and printable text.
@@ -163,6 +175,9 @@ npm run ci           # everything CI runs: lint, typecheck, coverage, build, bun
 - `tests/deterministic.test.ts`: models that try to decide. They invent numbers, skip city intel, pick their own peers or widen the corridor, and code wins every time. Also unit tests for `vetText`.
 - `tests/data.test.ts`: data integrity for the market universe and the OSRM matrix. Covers known drives, road distance ≥ straight line, near-symmetry, decoding, and lookups. Also checks that every rule has a `docs/SOURCES.md` entry and that cited rules have sources.
 - `tests/api.test.ts`, `tests/stream.test.ts`: request validation, the NDJSON route, and the browser stream reader.
+- `tests/crossdomain.test.ts`: "Fans here also like": display order, no extra model turns, a 403 category asked once then dropped, errors that are fatal elsewhere (rate limit) never fail the run, the call-cap guard, the food-and-drink filter, the tour card, fashion tags.
+
+406 tests in 22 files (2026-10-30).
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests with coverage, build and the bundle check on every push and PR.
 
@@ -213,6 +228,7 @@ Every decision point in the code, and whether it depends on Qloo. "Without Qloo"
 | Ranked gap-city list | `rankGaps` | Qloo affinity desc; ties by the heat cell's Qloo popularity | Census city population desc; ties by OSM venue count |
 | Corridor filter table order | `fillGap` `considered` | Qloo affinity | n/a |
 | Support act, rooms, brand/podcast hooks | `get_city_intel` | Top Qloo Insights results (rooms filtered by Qloo's music-venue tag) | n/a |
+| "Fans here also like", "Across the tour" | `Tools.crossDomain`, `tourAlsoLike` | Top Qloo Insights results per category, in Qloo's order; tour card = picks seen in 2+ filled cities. Shows only, decides nothing | n/a |
 | "Why this stop" | `WhyFacts` | Explains only: Qloo heat + rank, OSRM leg, night weight, Census, OSM. Chooses nothing | n/a |
 | Co-headliner peers | `find_peer_acts` | Qloo artist insights in a Qloo popularity band | Same names, shown alphabetically |
 | Co-headliner ranking and "recommended" | `complementarity`, `compareGeography` | Per-city Qloo affinity of both acts (strong/weak thresholds); ties by combined strong cities | Unranked, nothing recommended |

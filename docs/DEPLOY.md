@@ -114,7 +114,7 @@ BASE_URL=http://localhost:3300 npm run eval -- "Act A" "Act B" …   # real Plai
 OUT=screens-live BASE_URL=http://localhost:3300 npm run screens   # live captures, gitignored
 ```
 
-Gemini's free tier is paced in code (6.5 s between LLM calls, `LLM_MIN_INTERVAL_MS`), so a live plan takes about a minute. Live eval output and live screenshots are Qloo-derived: keep them in `baselines/`, `screens-live/` and `docs-live/` (all gitignored).
+Gemini's free tier is paced in code (6.5 s between LLM calls, `LLM_MIN_INTERVAL_MS`), so a live plan takes about 30–70 s and makes about 65–101 Qloo calls (measured 2026-10-30, including the cross-domain "Fans here also like" lookups). Live eval output and live screenshots are Qloo-derived: keep them in `baselines/`, `screens-live/` and `docs-live/` (all gitignored).
 
 You can also point `--base` at the deployed URL. `--only fill-demo,cohead-demo` runs a subset, and `--force` overwrites an existing folder. Expect about 250 Qloo requests in total (250 in mock; live can differ with paging and cache hits). The server's in-memory cache lasts 6 h, so repeat runs within that window are mostly cache hits. Each Qloo request is logged with status `cache` and the response hash it got the first time. The two `*-demo` inputs use fictional mock acts and are expected to fail live with an entity-not-found error. The report lists them under "Errored or missing inputs". The mock values for real artist names are synthetic (hashed profiles), so the mock vs live change in ranking says nothing about quality on its own. Use it to see **what moved and why**.
 

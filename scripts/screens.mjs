@@ -23,7 +23,7 @@ await p.screenshot({ path: `${OUT}/01-landing.png` });
 await (await p.$("#fill-form button[type=submit]")).click();
 await wait(500);
 await p.screenshot({ path: `${OUT}/02-agent-running.png` });
-await p.waitForFunction(() => document.body.innerText.includes("Corridor candidates"), { timeout: 180000 });
+await p.waitForSelector("[data-also-like]", { timeout: 180000 });
 await wait(1800);
 await p.screenshot({ path: `${OUT}/03-fill-the-gaps.png` });
 await p.screenshot({ path: `${OUT}/03b-fill-the-gaps-full.png`, fullPage: true });
@@ -31,20 +31,25 @@ await p.screenshot({ path: `${OUT}/03b-fill-the-gaps-full.png`, fullPage: true }
 await tab("Without Qloo");
 await p.screenshot({ path: `${OUT}/03c-without-qloo.png` });
 await tab("With Qloo");
-const filter = await p.$("xpath/.//h3[normalize-space()='Corridor candidates → realistic fills']/ancestor::div[contains(@class,'bg-panel')][1]");
-await filter.screenshot({ path: `${OUT}/04-candidate-filter.png` });
+const filter = await p.$("xpath/.//h3[starts-with(normalize-space(),'Every city we considered')]/ancestor::div[contains(@class,'bg-panel')][1]");
+if (filter) await filter.screenshot({ path: `${OUT}/04-candidate-filter.png` });
 
 // expand the corridor-scan tool lines to show the exact heatmap requests
 const btns = await p.$$(".font-mono button");
 if (btns[4]) await btns[4].click(); // also expand the first get_city_intel
 await p.evaluate(() => document.querySelectorAll(".max-h-72").forEach((n) => n.classList.remove("max-h-72")));
 await wait(300);
-const trace = await p.$("xpath/.//h3[starts-with(normalize-space(),'Agent trace')]/ancestor::div[contains(@class,'bg-panel')][1]");
-await trace.screenshot({ path: `${OUT}/05-agent-trace-qloo-calls.png` });
+const trace = await p.$("xpath/.//h3[starts-with(normalize-space(),'What the agent did')]/ancestor::div[contains(@class,'bg-panel')][1]");
+if (trace) await trace.screenshot({ path: `${OUT}/05-agent-trace-qloo-calls.png` });
 
 // "Why this stop": the first stop card, every fact with its source
-const card = await p.$("xpath/.//article[.//div[normalize-space()='Why this stop']][1]");
+const card = await p.$("xpath/(//article[.//*[@data-why-stop]])[1]");
 if (card) { await card.scrollIntoView(); await wait(300); await card.screenshot({ path: `${OUT}/12-why-this-stop.png` }); }
+// "Fans here also like" (cross-domain taste) on the first stop, with "More" opened, and the tour-wide card
+const xdCard = await p.$("xpath/(//*[@data-also-like])[1]/ancestor::article[1]");
+if (xdCard) { const more = await p.$("[data-also-like] details summary"); if (more) { await more.click(); await wait(300); } await xdCard.scrollIntoView(); await wait(300); await xdCard.screenshot({ path: `${OUT}/15-fans-also-like.png` }); if (more) await more.click(); }
+const tourXd = await p.$("[data-tour-also-like]");
+if (tourXd) { await tourXd.scrollIntoView(); await wait(300); await tourXd.screenshot({ path: `${OUT}/16-tour-also-like.png` }); }
 
 // Touring rules: the adjustable assumptions, open
 await p.evaluate(() => { const d = document.querySelector("form details"); if (d) d.open = true; window.scrollTo(0, 0); });
@@ -80,7 +85,7 @@ await p.screenshot({ path: `${OUT}/07-compare.png` });
 
 if (want("cohead")) {
 await p.goto(BASE + "/?tab=cohead&auto=1", { waitUntil: "networkidle0" });
-await p.waitForFunction(() => document.body.innerText.includes("Peers in"), { timeout: 180000 });
+await p.waitForFunction(() => document.body.innerText.includes("Most similar ≠ best partner"), { timeout: 180000 });
 await wait(1800);
 await p.screenshot({ path: `${OUT}/08-cohead-complementarity-map.png` });
 await p.screenshot({ path: `${OUT}/08b-cohead-full.png`, fullPage: true });
@@ -97,7 +102,7 @@ await p.screenshot({ path: `${OUT}/08c-cohead-without-qloo.png` });
 if (want("mobile")) {
 await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
 await p.goto(BASE + "/?auto=1", { waitUntil: "networkidle0" });
-await p.waitForFunction(() => document.body.innerText.includes("Corridor candidates"), { timeout: 180000 });
+await p.waitForSelector("[data-also-like]", { timeout: 180000 });
 await wait(1500);
 await p.screenshot({ path: `${OUT}/10-mobile-fill.png` });
 }

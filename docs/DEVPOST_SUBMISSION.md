@@ -45,10 +45,11 @@ With vs without Qloo on the same filtered cities: on the 34 legs with more than 
 - An optimiser fills open days by fan heat × night-of-week weight, or leaves the night off.
 - One support act opens the whole run: the Qloo match that is a local fit in the most filled cities and clearly smaller than the headliner, with the taste they share.
 - Each stop names a Qloo venue (address, website, size tier, capacity where Qloo's text states one), the top 3 fan neighbourhoods and promo partners. **Why this stop** cites a source for every line.
+- **Fans here also like:** each stop lists what the act's fans in that city like outside music (Qloo cross-domain taste): brands (fashion brands marked), podcasts, food and drink, TV, film, books, video games, people and travel, each row with a plain-English use (sponsor, merch, promo, pre-show). **Across the tour** lists picks that come up in two or more cities. Names are Qloo results picked in code; these lookups add no AI turns and change no routing pick.
 - Each stop gets a hold-request draft (nothing is sent); the run exports to `.ics`.
 
 ## Try it: one-click examples
-Open the live link and click an example (each run takes 45–60 s):
+Open the live link and click an example (each run takes about 30–70 s):
 - **Japanese Breakfast · East:** New York Nov 13 → Durham Nov 21 → Atlanta Nov 28
 - **Big Thief · Boston to Nashville:** Boston Dec 4 → Washington Dec 11 → Nashville Dec 18
 - **Khruangbin · West Coast:** Seattle Dec 4 → San Francisco Dec 11 → Los Angeles Dec 18
@@ -73,6 +74,7 @@ Then press **Compare with plain AI** for both plans side by side, rule breaks in
 | Which neighbourhoods? | `urn:heatmap` + `output.heatmap.boundary=urn:entity:locality` + same POINT | Top 3 fan neighbourhoods per stop |
 | Who supports? | `urn:entity:artist` + `filter.popularity.max` (headliner − 0.02), nationally and per city with `signal.location.query`; `/v2/analysis/compare` | One opener for the run (most filled cities, then national fit), shared taste; per-city alternatives |
 | Promo hooks | `urn:entity:brand`, `urn:entity:podcast` + `signal.location.query` | Partner ideas |
+| What else do these fans like? | `urn:entity:tv_show`, `movie`, `book`, `videogame`, `person`, `destination` + `signal.location.query`; restaurants via `urn:entity:place` + restaurant tag + POINT/radius | "Fans here also like" per stop, "Across the tour" card |
 | Who could co-headline? | `urn:entity:artist` + `filter.popularity.min/max` | Peers in the same band |
 | Do their markets complement ours? | `urn:heatmap` per act over the lower 48 | City-by-city complementarity |
 | What do the audiences share? | `/v2/analysis/compare`, `urn:demographics`, `urn:entity:place` | Shared tags, age/gender skews, a joint room |
@@ -125,6 +127,8 @@ With mock heat, Fanpoint books 4 of 13 open days (Camden, Baltimore, Richmond, A
 5. Promoter view: a city's top acts, and who fits one room (*new*).
 6. Compare with plain AI: same dates, side by side, rule breaks in red (*new*).
 7. One-click examples (*new*).
+8. Fans here also like: what one city's fans like outside music, with a use per row (*new*).
+9. Across the tour: picks that come up in two or more cities (*new*).
 
 ---
 
