@@ -159,3 +159,7 @@ git log --format='%h %an <%ae>' publish | sort -u -k2                  # only Me
 ```
 
 `LICENSE` names "Robert Clark (Mellowoah)" as the copyright holder (MIT).
+
+## Auto-deploy
+
+Render auto-deploys `main` after CI checks pass, through the Render GitHub app installed on Mellowoah/Fanpoint (connected Oct 30, 2026).
