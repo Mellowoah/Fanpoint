@@ -8,7 +8,7 @@ import { MockLlmClient } from "@/lib/llm/mock";
 import { ProviderError, type ErrorCode } from "@/lib/net/errors";
 import { normalize } from "@/lib/qloo/normalize";
 import type { Entity, QlooParams } from "@/lib/qloo/types";
-import { DINING_TAG, isFashionBrand, XD_CALL_CEILING, XD_FETCH, XD_META, XD_ORDER } from "@/lib/qloo/crossdomain";
+import { DINING_TAG, isFashionBrand, isFoodDrink, XD_CALL_CEILING, XD_FETCH, XD_META, XD_ORDER } from "@/lib/qloo/crossdomain";
 
 const DEMO: FillRequest = {
   task: "fill", artist: "Marigold Static", maxDriveMi: 350, minAffinity: 0.6,
@@ -123,6 +123,11 @@ describe("tour-wide view and labels", () => {
     ]);
     const t = tourAlsoLike(["A", "B", "C"], by);
     expect(t).toEqual([{ key: "tv", items: [{ entity: e("x"), cities: ["A", "B", "C"] }, { entity: e("y"), cities: ["A", "C"] }] }]);
+  });
+  it("keeps only food-and-drink places under Food & drink (live restaurant-tag results were loose)", () => {
+    for (const c of ["restaurant", "cafe", "food_court", "cocktail_bar", "brewery", "sandwich_shop", "tea_house", "bar", "pizzeria", "ice_cream_shop", "american"]) expect(isFoodDrink(c, c === "american" ? "American restaurant" : undefined)).toBe(true);
+    for (const c of ["hotel", "golf_course", "truck_stop", "tourist_attraction", "performing_arts_theater", "live_music_venue", "live_music_bar", "farm", "shopping_mall", "recording_studio", "public_library", "ice_rink", "food_bank", "barber_shop"]) expect(isFoodDrink(c, c.replace(/_/g, " "))).toBe(false);
+    expect(isFoodDrink(undefined)).toBe(false);
   });
   it("marks fashion brands only from Qloo's own tags", () => {
     expect(isFashionBrand(["Streetwear"])).toBe(true);

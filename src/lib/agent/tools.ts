@@ -34,7 +34,7 @@ import { rankGaps, type RankedGap } from "../route/rank";
 import type { RoadFn } from "../route/road";
 import { RULE_VALUES } from "../touring/rules";
 import type { ToolDef } from "../llm/types";
-import { DINING_TAG, DINING_TAG_ALT, XD_CALL_CEILING, XD_FETCH, XD_ORDER, XD_TAKE, type XdFetch, type XdKey, type XdStatus } from "../qloo/crossdomain";
+import { DINING_TAG, DINING_TAG_ALT, isFoodDrink, XD_CALL_CEILING, XD_FETCH, XD_ORDER, XD_TAKE, type XdFetch, type XdKey, type XdStatus } from "../qloo/crossdomain";
 import type { AlsoLike, CoheadExtras, Corridor, CrossDomainReport, PeerMatch, RunSupport, TourAlsoLike } from "./types";
 
 // ---------- Argument schemas (single source of truth for validation and for the model-facing JSON Schema) ----------
@@ -346,7 +346,7 @@ export class Tools {
             if (raw.length) diningTag = DINING_TAG_ALT;
           }
           let items = raw.map((r) => normalize(r, cat.type)).filter((e) => e.id !== artistId && e.name.trim());
-          if (cat.key === "dining") items = items.filter((v) => v.lat === undefined || v.lon === undefined || gcMi({ lat: v.lat, lon: v.lon }, c) <= VENUE_MAX_MI);
+          if (cat.key === "dining") items = items.filter((v) => isFoodDrink(v.place?.category, v.place?.categoryName) && (v.lat === undefined || v.lon === undefined || gcMi({ lat: v.lat, lon: v.lon }, c) <= VENUE_MAX_MI));
           if (cat.key === "travel") items = items.filter((d) => !sameName(d.name, c.name) && !sameName(d.name, where));
           return { cat, items: items.slice(0, XD_TAKE) };
         } catch (e) {

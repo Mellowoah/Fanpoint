@@ -135,7 +135,7 @@ export class MockQlooClient implements QlooClient {
       // Restaurants ("Fans here also like"): no coordinates, so the distance filter keeps them.
       const where = cityOf(p)?.name ?? city;
       out = this.pick(fixtures.diningPool, artist.entity_id + where, take, "urn:entity:place", "place")
-        .map((e) => ({ ...e, name: e.name.replace(" (mock)", ` ${where} (mock)`), entity_id: `${e.entity_id}-${slug(where)}`, properties: { geocode: { name: where, country_code: "US" } } }));
+        .map((e) => ({ ...e, name: e.name.replace(" (mock)", ` ${where} (mock)`), entity_id: `${e.entity_id}-${slug(where)}`, properties: { geocode: { name: where, country_code: "US" }, primary_genre: { id: "urn:tag:genre:place:restaurant", name: "Restaurant" } } }));
     } else if (type === "urn:entity:place") {
       const c = cityOf(p);
       const where = c?.name ?? city;

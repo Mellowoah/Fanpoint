@@ -23,12 +23,12 @@ export interface XdCategory {
 export const XD_META: Readonly<Record<XdKey, XdCategory>> = {
   brands: { key: "brands", label: "Brands", use: "sponsor or merch collab" },
   podcasts: { key: "podcasts", label: "Podcasts", use: "ad read or guest spot" },
-  dining: { key: "dining", label: "Dining", use: "pre-show spot or hospitality partner" },
+  dining: { key: "dining", label: "Food & drink", use: "pre-show spot or hospitality partner" },
   tv: { key: "tv", label: "TV", use: "themed promo posts" },
   film: { key: "film", label: "Film", use: "themed promo or screening tie-in" },
   books: { key: "books", label: "Books", use: "bookstore pop-up or merch idea" },
   games: { key: "games", label: "Games", use: "promo or sponsor idea" },
-  people: { key: "people", label: "People", use: "who to ask for a promo shout-out" },
+  people: { key: "people", label: "People", use: "collab or shout-out idea" },
   travel: { key: "travel", label: "Travel", use: "where these fans also like to go" },
 };
 export const XD_ORDER: readonly XdKey[] = ["brands", "podcasts", "dining", "tv", "film", "books", "games", "people", "travel"];
@@ -49,7 +49,7 @@ export const XD_CALL_CEILING = 135;
 export interface XdFetch { key: Exclude<XdKey, "brands" | "podcasts">; type: string; params: (a: { artistId: string; where: string; area: QlooParams; tag?: string }) => QlooParams }
 export const XD_FETCH: readonly XdFetch[] = [
   // Dining is filtered to the market area (POINT + radius, like rooms): restaurants near the stop.
-  { key: "dining", type: "urn:entity:place", params: ({ artistId, area, tag }) => ({ "filter.type": "urn:entity:place", "signal.interests.entities": artistId, ...area, "filter.tags": tag ?? DINING_TAG, take: XD_TAKE + 2 }) },
+  { key: "dining", type: "urn:entity:place", params: ({ artistId, area, tag }) => ({ "filter.type": "urn:entity:place", "signal.interests.entities": artistId, ...area, "filter.tags": tag ?? DINING_TAG, take: DINING_FETCH }) },
   { key: "tv", type: "urn:entity:tv_show", params: ({ artistId, where }) => ({ "filter.type": "urn:entity:tv_show", "signal.interests.entities": artistId, "signal.location.query": where, take: XD_TAKE }) },
   { key: "film", type: "urn:entity:movie", params: ({ artistId, where }) => ({ "filter.type": "urn:entity:movie", "signal.interests.entities": artistId, "signal.location.query": where, take: XD_TAKE }) },
   { key: "books", type: "urn:entity:book", params: ({ artistId, where }) => ({ "filter.type": "urn:entity:book", "signal.interests.entities": artistId, "signal.location.query": where, take: XD_TAKE }) },
@@ -57,6 +57,18 @@ export const XD_FETCH: readonly XdFetch[] = [
   { key: "people", type: "urn:entity:person", params: ({ artistId, where }) => ({ "filter.type": "urn:entity:person", "signal.interests.entities": artistId, "filter.exclude.entities": artistId, "signal.location.query": where, take: XD_TAKE }) },
   { key: "travel", type: "urn:entity:destination", params: ({ artistId, where }) => ({ "filter.type": "urn:entity:destination", "signal.interests.entities": artistId, "signal.location.query": where, take: XD_TAKE + 1 }) },
 ];
+
+/**
+ * The restaurant tag alone is loose on live data (it also returned theatres, hotels, golf courses and truck stops in
+ * tests on 2026-10-30), so a place is kept only if its own Qloo category is food or drink. Music rooms are left out:
+ * they are already the stop's "rooms".
+ */
+const FOOD_CATEGORY = /(?:^|[_\s])(?:restaurant|cafe|café|coffee|tea|bakery|bistro|diner|eatery|food|brewery|brewpub|taproom|winery|wine|cocktail|distillery|pub|bar|gastropub|sandwich|pizz\w*|taco\w*|burger\w*|deli|grill|kitchen|ramen|sushi|barbecue|bbq|steak\w*|seafood|noodle\w*|dessert|ice_cream|creamery|juice)(?=[_\s]|$)/i;
+const MUSIC_ROOM = new Set(["food_bank", "live_music_venue", "live_music_bar", "music_venue", "night_club", "jazz_club", "concert_hall", "performing_arts_theater", "amphitheater", "arena", "stadium"]);
+export const isFoodDrink = (category?: string, categoryName?: string) =>
+  !!category && !MUSIC_ROOM.has(category) && (FOOD_CATEGORY.test(category) || FOOD_CATEGORY.test(categoryName ?? ""));
+/** Places asked for per city before the food-and-drink filter. */
+export const DINING_FETCH = 12;
 
 /** Brand tags that mark a fashion / apparel brand (Qloo's own tags; nothing is inferred from the name). */
 const FASHION = /\b(fashion|apparel|clothing|streetwear|sneakers?|footwear|shoes?|athleisure|sportswear|denim|vintage clothing|accessories)\b/i;
