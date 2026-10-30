@@ -34,6 +34,8 @@ await p.screenshot({ path: `${OUT}/03b-fill-the-gaps-full.png`, fullPage: true }
 await tab("Without Qloo");
 await p.screenshot({ path: `${OUT}/03c-without-qloo.png` });
 await tab("With Qloo");
+await p.evaluate(() => { const d = document.querySelector("[data-receipts]"); if (d) d.open = true; });
+await wait(300);
 const filter = await p.$("xpath/.//h3[starts-with(normalize-space(),'Every city we considered')]/ancestor::div[contains(@class,'bg-panel')][1]");
 if (filter) await filter.screenshot({ path: `${OUT}/04-candidate-filter.png` });
 

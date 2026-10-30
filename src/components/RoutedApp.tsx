@@ -22,6 +22,7 @@ import BenchmarkCard from "./BenchmarkCard";
 import WhyPopover from "./WhyPopover";
 import { BENCHMARK as B } from "@/lib/benchmark";
 import { PlanActions } from "./HoldDraft";
+import { CostCard } from "./CostCard";
 
 type Tab = "fill" | "cohead";
 /** Two sides of the same system: the booking agent's routing tools, or the promoter's city-first view. */
@@ -221,23 +222,28 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             {qErr && <ErrorPanel error={qErr} context="Fanpoint + Qloo" onRetry={busy ? undefined : () => runFill(fill)} />}
             {q && <WarningList warnings={q.warnings} />}
             {q && <RankedLists ranked={q.ranked} mode={rank} picked={new Set(q.stops.map((x) => x.city))} />}
-            {q && rank === "with" && <div className="grid gap-3"><FillSummary q={q} /><PlanActions q={q} /></div>}
+            {q && rank === "with" && <FillSummary q={q} />}
             {rank === "with" && (
               <div className="grid gap-4 min-w-0">
                 {q && <FillCalendar days={q.result.calendar} legend />}
                 {q?.support && <RunSupportCard s={q.support} headliner={q.artist.name} />}
                 {q && <TourAlsoLikeCard x={q.crossDomain} artist={q.artist.name} stops={q.stops.length} />}
                 {q && <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{q.stops.map((s) => <FillStopCard key={s.date} s={s} q={q} />)}</div>}
-                <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-4 items-start">
-                  {q ? <CandidateFilter gaps={q.result.gaps} maxDriveMi={q.params.maxDriveMi} /> : <div />}
-                  <AgentTrace events={qEv} title="What the agent did" />
-                </div>
+                {q && q.stops.length > 0 && <CostCard q={q} />}
+                {q && <div className="card card-pad grid gap-2" data-export-row><div className="text-sm"><b>Take the plan with you</b> <span className="text-plain">· every stop with its room, opener, fan neighborhoods, cross-domain picks and hold email, in one spreadsheet. Built in your browser; nothing is uploaded.</span></div><PlanActions q={q} /></div>}
+                {q ? <details className="group card card-pad" data-receipts>
+                  <summary className="cursor-pointer text-sm font-semibold list-none flex items-center gap-2"><span aria-hidden className="text-plain group-open:rotate-90 transition-transform">▸</span>Receipts: every city considered and every Qloo call the agent made <span className="font-normal text-plain">({q.qlooCalls.length} Qloo calls)</span></summary>
+                  <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-4 items-start mt-3">
+                    <CandidateFilter gaps={q.result.gaps} maxDriveMi={q.params.maxDriveMi} />
+                    <AgentTrace events={qEv} title="What the agent did" />
+                  </div>
+                </details> : <AgentTrace events={qEv} title="What the agent did" />}
               </div>
             )}
 
             <section id="plain-compare" className="grid gap-3 border-t border-line pt-5 mt-2 scroll-mt-16">
               <div className="flex justify-between items-center flex-wrap gap-2">
-                <div className="text-sm flex items-center gap-1.5 flex-wrap"><b>Fanpoint vs a plain AI chatbot</b> <span className="text-plain">Red = breaks a touring limit.</span><WhyPopover label="the plain AI comparison" title="How">The same booked shows go to the same AI model with no tools, no Qloo and no touring limits, answering from general knowledge. Fanpoint then checks its picks in code against real road distances (OSRM) and the same touring limits.</WhyPopover></div>
+                <div className="text-sm flex items-center gap-1.5 flex-wrap"><b>Fanpoint vs a plain AI chatbot</b> <span className="text-plain">Red = breaks a touring limit.</span><WhyPopover label="the plain AI comparison" title="How">The same booked shows go to the same AI model with no tools, no Qloo and no touring limits, answering from general knowledge. Fanpoint then checks its picks in code against real road distances (OSRM) and the same touring limits. This is one run on these dates, not a controlled study, and the plain AI is not told the touring limits, so it is a check on what a general chatbot gives you, not a contest it could win. The <b>Without Qloo</b> list above is the fairer baseline: same cities, same limits, only the fan data removed.</WhyPopover></div>
                 <div role="tablist" aria-label="Plain AI baseline" className="seg">
                   {([["off", "Hide"], ["plain", "Plain AI"], ["compare", "Side by side"]] as [Baseline, string][]).map(([v, l]) => (
                     <button key={v} role="tab" aria-selected={baseline === v} onClick={() => setBaseline(v)}>{l}</button>

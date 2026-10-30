@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import type { FillPlan, FillStop } from "@/lib/agent/types";
 import { allHolds, holdDraft, holdMailto, holdText } from "@/lib/client/holds";
 import { downloadIcs } from "@/lib/client/ics";
+import { downloadCsv } from "@/lib/client/plan-export";
 
 function useCopy() {
   const [done, setDone] = useState(false);
@@ -15,9 +16,13 @@ export function HoldDraftButton({ q, s }: { q: FillPlan; s: FillStop }) {
   const [copied, copy] = useCopy();
   const h = holdDraft(q, s);
   const id = `hold-${s.date}`;
+  const [copiedCard, copyCard] = useCopy();
   return (
     <>
-      <button type="button" className="btn btn-secondary btn-sm justify-self-start" aria-haspopup="dialog" aria-controls={id} onClick={() => ref.current?.showModal()}>Draft email to hold this date</button>
+      <div className="flex flex-wrap gap-2">
+      <button type="button" className="btn btn-secondary btn-sm" aria-haspopup="dialog" aria-controls={id} onClick={() => ref.current?.showModal()}>Draft email to hold this date</button>
+      <button type="button" className="btn btn-ghost btn-sm" data-copy-hold onClick={() => copyCard(holdText(h))}>{copiedCard ? "Copied" : "Copy hold request"}</button>
+      </div>
       <dialog ref={ref} id={id} aria-labelledby={`${id}-h`} data-hold-dialog
         className="m-auto w-[min(36rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-2rem)] rounded-2xl border border-line bg-panel p-0 text-foreground shadow-2xl backdrop:bg-black/60"
         onClick={(e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }}>
@@ -44,6 +49,7 @@ export function PlanActions({ q }: { q: FillPlan }) {
   const [copied, copy] = useCopy();
   return (
     <div className="flex flex-wrap gap-2" data-plan-actions>
+      {q.stops.length > 0 && <button type="button" className="btn btn-primary btn-sm" data-export-csv onClick={() => downloadCsv(q)}>Export all stops (.csv)</button>}
       <button type="button" className="btn btn-secondary btn-sm" onClick={() => downloadIcs(q)}>Add to calendar (.ics)</button>
       {q.stops.length > 0 && <button type="button" className="btn btn-secondary btn-sm" onClick={() => copy(allHolds(q))}>{copied ? "Copied" : `Copy all hold emails (${q.stops.length})`}</button>}
     </div>
