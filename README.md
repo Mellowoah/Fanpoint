@@ -1,6 +1,6 @@
 # Fanpoint
 
-**Fanpoint fills the empty nights on a tour.** An empty night still costs a hotel, a van and a crew, and earns nothing. Fanpoint is a decision tool for booking agents and promoters. It answers two routing questions with
+**Fanpoint is a tour routing desk for booking agents and promoters.** It fills the empty nights between an act's booked shows. An empty night still costs hotel rooms, per diems and fuel, and earns nothing. Fanpoint turns Qloo taste intelligence into booked nights and avoided cost: Qloo data ranks the fan cities, rooms, openers and cross-domain sponsor hooks, code enforces the touring rules, and the plan leaves as a CSV and hold requests. It is not a fan-facing tour finder. It answers two routing questions with
 [Qloo Taste AI™](https://docs.qloo.com/) data:
 
 1. **Fill the gaps.** Fixed dates in, gap cities with real road miles and drive hours out. Enter the shows that are already confirmed
