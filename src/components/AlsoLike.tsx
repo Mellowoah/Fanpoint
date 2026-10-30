@@ -41,7 +41,7 @@ export function AlsoLikePanel({ s, artist, status }: { s: FillStop; artist: stri
         <span className="text-xs font-semibold text-foreground">Fans here also like</span>
         <WhyPopover label={`what fans in ${s.city} also like`} title="What is this">
           Qloo cross-domain taste data: what {artist}&apos;s fans in {s.city} also like outside music, strongest match first (number = how strongly it matches these fans, 0–100).
-          Every name is a Qloo result; nothing here is written by the AI. The note on each row is Fanpoint&apos;s suggestion for how a promoter could use it, not a deal or a partnership.
+          Every name is a Qloo result, picked in code, not by the AI. Only the promo ideas marked &quot;AI&quot; are AI-written (their numbers are checked against the data). The note on each row is Fanpoint&apos;s fixed suggestion for how a promoter could use it, not a deal or a partnership.
           A category appears only when Qloo returned results for it.{missing(status)}
         </WhyPopover>
       </div>
