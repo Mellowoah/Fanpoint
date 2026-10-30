@@ -49,6 +49,7 @@ With vs without Qloo on the same filtered cities: on the 34 legs with more than 
 - **Fans here also like:** each stop lists what the act's fans in that city like outside music (Qloo cross-domain taste): brands (fashion brands marked), podcasts, food and drink, TV, film, books, video games, people and travel, each row with a plain-English use (sponsor, merch, promo, pre-show). **Across the tour** lists picks that come up in two or more cities. Names are Qloo results picked in code; these lookups add no AI turns and change no routing pick.
 - Each stop shows Qloo's top room and the next best one, with **Copy hold request** and a hold-request draft (nothing is sent).
 - **What the empty nights would have cost:** nights filled × (hotel × rooms + per diem × people), minus fuel for the extra road miles; defaults visible and editable, labelled as assumptions, not Qloo data.
+- **Ad launch packs:** each stop gets a draft ad pack for Meta (Facebook + Instagram), X and Snapchat: location and date window around the show, 18+, interests from that city's Qloo taste data (each with its Qloo receipt; sensitive categories filtered in code), and copy within each platform's character limits, with Copy all, JSON/CSV download, Open Ads Manager and an organic X post link. Nothing is posted or spent by Fanpoint; you launch in each platform after review.
 - **Export all stops (.csv)**: one row per stop with room, opener, fan neighbourhoods, cross-domain picks and the hold email; also `.ics` and copy-all hold emails.
 
 ## Try it: one-click examples

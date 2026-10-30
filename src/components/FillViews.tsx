@@ -16,6 +16,7 @@ import ScoreLineText from "./ScoreLineText";
 import { FanHoods, RoomCard } from "./QlooPlus";
 import { FanScore } from "./FanScore";
 import { AlsoLikePanel } from "./AlsoLike";
+import { AdPackButton } from "./AdLaunch";
 
 const pct = (a?: number) => (a === undefined ? "–" : `${Math.round(a * 100)}`);
 const md = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -198,6 +199,7 @@ export function FillStopCard({ s, q }: { s: FillStop; q: FillPlan }) {
       <FanHoods hoods={s.neighborhoods} city={s.city} />
       <AlsoLikePanel s={s} artist={q.artist.name} status={q.crossDomain?.status} />
       <HoldDraftButton q={q} s={s} />
+      <AdPackButton q={q} s={s} />
     </article>
   );
 }

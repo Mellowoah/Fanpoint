@@ -30,6 +30,7 @@ Qloo access and audits that plan with the same touring rules.
 ![Across the tour: picks that come up in two or more cities](screens/16-tour-also-like.png)
 ![What the empty nights would have cost: editable defaults, nights filled, cost avoided](screens/17-empty-night-cost.png)
 ![One-click CSV export, calendar file and hold emails](screens/18-export.png)
+![Ad launch pack for one stop: Meta, X and Snapchat tabs, Qloo-sourced interests, copy within limits (draft, nothing posted)](screens/19-ad-launch-pack.png)
 ![Co-headliner match](screens/08-cohead-complementarity-map.png)
 
 Screenshots in `screens/` are mock-mode captures of the current build (fictional "(mock)" acts). Live captures stay out of the repo (Qloo terms; see `docs/DEPLOY.md`).
@@ -43,6 +44,14 @@ Screenshots in `screens/` are mock-mode captures of the current build (fictional
 - **Rooms and holds.** Each stop shows Qloo's top room and the next best one. **Copy hold request** copies that stop's hold email (built from the plan, no AI); **Draft email to hold this date** opens it to read first. Nothing is sent.
 - **What the empty nights would have cost.** Below the stop cards: nights filled × (hotel × rooms + per diem × people), minus fuel for the extra road miles versus driving straight between the booked shows (OSRM). Defaults ($150 a room, 4 rooms, $50 per diem, 6 people, $0.60 a mile) are visible and editable; they are planning assumptions, not Qloo data.
 - **Take the plan with you.** **Export all stops (.csv)** downloads one row per filled stop: date, city, fan strength, drive, top and other rooms, opening act, local opener, fan neighborhoods, cross-domain picks and the hold email. Built in the browser. Also **Add to calendar (.ics)** and **Copy all hold emails**.
+- **Ad launch packs (Meta, X, Snapchat).** Every filled stop has an **Ad launch pack** with tabs for Meta (Facebook + Instagram), X and Snapchat, and a tour-level card downloads every stop's pack at once. Each pack is a draft, never a live campaign:
+  - *Audience:* 25 mi around the room (or the city centre), the 14 days up to the show, ages 18+, and up to 10 interests drawn from the plan's Qloo results (the act, the local opener, the promo picks and the cross-domain brands, podcasts, TV, film, books, games and people), strongest Qloo affinity first. Each interest shows its receipt (Qloo category, rank, affinity, entity id) and is written in each platform's style: a Meta interest name, an X keyword, the closest Snapchat lifestyle category. They are marked "verify in Ads Manager": platform taxonomies can't be checked without each platform's ads API.
+  - *Filtered in code:* politics, religion, health, sexual orientation or gender identity, race or ethnicity, personal finances and age-restricted products (alcohol, gambling, tobacco, cannabis, firearms) are never used for targeting; anything dropped is listed with the reason. Restaurants and travel destinations are not used as interests (restaurants are listed as local partner ideas).
+  - *Creative:* template copy built from the plan (show, room, date and a Qloo hook, "Fans here also love …"), sized to each platform's limits with live counters: Meta primary text 125 (recommended) and headline 40, X post 280 (links count 23), Snapchat headline 34 and brand name 25. No AI call; an existing AI promo idea from the plan is shown only with its AI label. A placeholder image is drawn in the browser at 1080×1080 and 1080×1920.
+  - *One click:* **Copy all**, **Download .json / .csv** per stop or for all stops (same formula-injection guard as the plan CSV), **Open Ads Manager** (adsmanager.facebook.com, ads.x.com, ads.snapchat.com, new tab) and **Post on X** via `x.com/intent/post` (organic; you press Post).
+  - *Your numbers:* optional ticket link, daily budget and days, labelled "Your numbers, not Qloo data"; only the total is shown. No reach, CPM or conversion estimates.
+  - *Approval gate:* "Nothing is posted or spent by Fanpoint. You launch in each platform after review." Every pack is labelled **Draft — ready for review**. Fanpoint holds no ad account, token or API access for any platform.
+  - *Receipts:* the **Receipts** section lists every ad interest by stop with its Qloo source.
 - **Receipts behind a toggle.** Every city considered (and why it was or wasn't booked) and the full agent trace with every Qloo call sit in one **Receipts** section, closed by default.
 
 ## Who it's for
@@ -264,6 +273,7 @@ Nothing in the default mode chooses or orders without Qloo, except two things: t
 - Venue counts reflect OpenStreetMap mapping, not a complete inventory. They don't feed the With Qloo score. They are used for the real-venue hard filter (at least one mapped venue) and as the tie-break in the Without Qloo proxy.
 - Night weights, the heat floors, the drive-distance cap and the co-headline weights are Fanpoint's assumptions. They are labelled in the UI, and the ones that matter most are adjustable in the form.
 - Mock mode is fictional and only demonstrates the flow.
+- Ad launch packs are drafts built in the browser. Fanpoint has no Meta, X or Snapchat ads API access (each needs an approved developer app and an ad account), so it creates no campaigns, posts nothing and spends nothing; interest names are plain keywords to verify in each Ads Manager. Qloo taste data describes an audience in aggregate, not individual people.
 - The rate limiter is per server process. Several server instances could together exceed it; the retries absorb short 429 bursts, but a shared limiter (e.g. Redis) would be needed at real scale. Qloo's kit also says serverless isn't a supported route, so host Fanpoint as a single long-running Node server.
 
 ## Scripts

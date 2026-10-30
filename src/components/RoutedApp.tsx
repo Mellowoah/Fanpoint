@@ -23,6 +23,7 @@ import WhyPopover from "./WhyPopover";
 import { BENCHMARK as B } from "@/lib/benchmark";
 import { PlanActions } from "./HoldDraft";
 import { CostCard } from "./CostCard";
+import { AdPacksCard, AdReceipts } from "./AdLaunch";
 
 type Tab = "fill" | "cohead";
 /** Two sides of the same system: the booking agent's routing tools, or the promoter's city-first view. */
@@ -232,12 +233,14 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
                 {q && <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{q.stops.map((s) => <FillStopCard key={s.date} s={s} q={q} />)}</div>}
                 {q && q.stops.length > 0 && <CostCard q={q} />}
                 {q && <div className="card card-pad grid gap-2" data-export-row><div className="text-sm"><b>Take the plan with you</b> <span className="text-plain">· every stop with its room, opener, fan neighborhoods, cross-domain picks and hold email, in one spreadsheet. Built in your browser; nothing is uploaded.</span></div><PlanActions q={q} /></div>}
+                {q && q.stops.length > 0 && <AdPacksCard q={q} />}
                 {q ? <details className="group card card-pad" data-receipts>
                   <summary className="cursor-pointer text-sm font-semibold list-none flex items-center gap-2"><span aria-hidden className="text-plain group-open:rotate-90 transition-transform">▸</span>Receipts: every city considered and every Qloo call the agent made <span className="font-normal text-plain">({q.qlooCalls.length} Qloo calls)</span></summary>
                   <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-4 items-start mt-3">
                     <CandidateFilter gaps={q.result.gaps} maxDriveMi={q.params.maxDriveMi} />
                     <AgentTrace events={qEv} title="What the agent did" />
                   </div>
+                  <AdReceipts q={q} />
                 </details> : <AgentTrace events={qEv} title="What the agent did" />}
               </div>
             )}
