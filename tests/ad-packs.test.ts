@@ -24,11 +24,18 @@ const ent = (id: string, name: string, kind: Entity["kind"], affinity?: number, 
 
 describe("sensitive-category filter", () => {
   it.each([
-    ["The Bible in a Year", [], "religion"], ["Pod Save America", ["Politics"], "politics"], ["Calm Mind", ["Mental Health"], "health"],
-    ["Queer Eye", [], "sexual orientation or gender identity"], ["Latino USA", [], "race or ethnicity"], ["Debt Free Living", [], "personal finances"],
-    ["Tito's Handmade Vodka", ["Spirits"], "age-restricted product"], ["Sierra Nevada", ["Beer", "Brewery"], "age-restricted product"],
-  ])("drops %s (%s)", (name, tags, reason) => {
-    expect(sensitiveReason({ name, tags, kind: "brand" })).toBe(reason);
+    ["The Bible in a Year", [], "podcast", "religion"], ["Pod Save America", ["Politics"], "podcast", "politics"], ["Calm Mind", ["Mental Health"], "podcast", "health"],
+    ["Queer Eye", [], "tv_show", "sexual orientation or gender identity"], ["Latino USA", [], "podcast", "race or ethnicity"], ["Debt Free Living", [], "book", "personal finances"],
+    ["Tito's Handmade", ["Vodka", "Spirits"], "brand", "age-restricted product"], ["Sierra Nevada", ["Beer", "Brewery"], "brand", "age-restricted product"],
+    ["Chime", ["Banking", "Credit"], "brand", "personal finances"],
+  ] as [string, string[], Entity["kind"], string][])("drops %s (%s)", (name, tags, kind, reason) => {
+    expect(sensitiveReason({ name, tags, kind })).toBe(reason);
+  });
+  it.each([
+    ["Glossier", ["Health & Beauty", "Skincare"], "brand"], ["Snail Mail", ["LGBTQ+", "Indie Rock"], "artist"], ["Phoebe Bridgers", ["Queer"], "person"],
+    ["The Border of Paradise", ["Mental Health", "Literary Fiction"], "book"], ["When We Were Sisters", ["LGBTQ"], "book"], ["Stardew Valley", ["Mental Health"], "videogame"],
+  ] as [string, string[], Entity["kind"]][])("does not drop %s for theme or identity tags", (name, tags, kind) => {
+    expect(sensitiveReason({ name, tags, kind })).toBeUndefined();
   });
   it.each([["Patagonia", ["Outdoor apparel"]], ["Black Sabbath", ["Metal"]], ["God of War", ["Action"]], ["Money Heist", ["Drama"]], ["Latin Grammys", []], ["Progressive Rock Weekly", []]])("keeps %s", (name, tags) => {
     expect(sensitiveReason({ name, tags, kind: "brand" })).toBeUndefined();

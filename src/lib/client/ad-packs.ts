@@ -65,10 +65,20 @@ const SENSITIVE: { reason: string; re: RegExp }[] = [
   { reason: "age-restricted product", re: /\b(alcohol\w*|beer\w*|wines?|winery|vodka|whiske?y|bourbon|tequila|liquor\w*|brewer(y|ies)|casino\w*|gambl\w*|betting|sportsbook\w*|tobacco|cigar\w*|vap(e|es|ing)|cannabis|marijuana|firearms?|ammunition)\b/i },
 ];
 
-/** Why an entity must not be used for targeting, or undefined if it's fine. Checks Qloo's name and tags (and a person's description). */
+/**
+ * Why an entity must not be used for targeting, or undefined if it's fine. The rule is about what the interest itself
+ * is, not who likes it or what a story touches on: the name is always checked; Qloo tags only where they define the
+ * topic (a podcast's genre; a brand's product type, for finance and age-restricted products); a person's description
+ * for politics and religion. Tags on artists, books, film, TV and games describe themes or identity, so they are never
+ * used (that would label people, or drop a novel for its subject).
+ */
 export function sensitiveReason(e: Pick<Entity, "name" | "tags" | "kind" | "description">): string | undefined {
-  const text = [e.name, ...e.tags, e.kind === "person" ? (e.description ?? "") : ""].join(" · ");
-  return SENSITIVE.find((s) => s.re.test(text))?.reason;
+  const hit = (text: string, only?: string[]) => SENSITIVE.find((s) => (!only || only.includes(s.reason)) && s.re.test(text))?.reason;
+  const tags = e.tags.join(" · ").replace(/\bhealth\s*(?:&|and)\s*beauty\b/gi, "beauty");
+  return hit(e.name)
+    ?? (e.kind === "podcast" ? hit(tags) : undefined)
+    ?? (e.kind === "brand" ? hit(tags, ["personal finances", "age-restricted product"]) : undefined)
+    ?? (e.kind === "person" ? hit(e.description ?? "", ["politics", "religion"]) : undefined);
 }
 
 /** Closest Snapchat lifestyle-style audience for each source (names vary in Ads Manager, so these are look-ups). */
