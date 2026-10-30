@@ -7,6 +7,7 @@ import fixtures from "./fixtures/mock-qloo.json";
 import { responseHash } from "./hash";
 import { cleanParams, type HeatCell, type LocalInsights, type LocalityHeat, type QlooCallLog, type QlooClient, type QlooParams, type QlooRawEntity } from "./types";
 import { parseInsights, parseLocalityHeat, parseSearch } from "./schemas";
+import { DINING_TAG } from "./crossdomain";
 import type { Demographics, TagScore } from "./taste";
 import { MOCK_SIMILARITY, mockAffinityAt } from "./fixtures/mock-geo";
 import { US_CITIES, findCity } from "../route/cities";
@@ -130,6 +131,11 @@ export class MockQlooClient implements QlooClient {
           name: x.name, entity_id: id, subtype: "urn:entity:artist", popularity: round(0.5 + 0.2 * hash(x.name)),
           tags: x.tags.map((t) => ({ name: t, type: "urn:tag:genre:music" })), query: { affinity: round(a) }, _mock: true,
         }));
+    } else if (type === "urn:entity:place" && String(p["filter.tags"] ?? "").split(",").includes(DINING_TAG)) {
+      // Restaurants ("Fans here also like"): no coordinates, so the distance filter keeps them.
+      const where = cityOf(p)?.name ?? city;
+      out = this.pick(fixtures.diningPool, artist.entity_id + where, take, "urn:entity:place", "place")
+        .map((e) => ({ ...e, name: e.name.replace(" (mock)", ` ${where} (mock)`), entity_id: `${e.entity_id}-${slug(where)}`, properties: { geocode: { name: where, country_code: "US" } } }));
     } else if (type === "urn:entity:place") {
       const c = cityOf(p);
       const where = c?.name ?? city;
@@ -158,6 +164,14 @@ export class MockQlooClient implements QlooClient {
       out = this.pick(fixtures.podcastPool, artist.entity_id + city, take, "urn:entity:podcast", "podcast");
     } else if (type === "urn:entity:tv_show") {
       out = this.pick(fixtures.tvPool, artist.entity_id + city, take, "urn:entity:tv_show", "tv");
+    } else if (type === "urn:entity:movie") {
+      out = this.pick(fixtures.moviePool, artist.entity_id + city, take, "urn:entity:movie", "movie");
+    } else if (type === "urn:entity:book") {
+      out = this.pick(fixtures.bookPool, artist.entity_id + city, take, "urn:entity:book", "book");
+    } else if (type === "urn:entity:videogame") {
+      out = this.pick(fixtures.gamePool, artist.entity_id + city, take, "urn:entity:videogame", "game");
+    } else if (type === "urn:entity:person") {
+      out = this.pick(fixtures.personPool, artist.entity_id + city, take, "urn:entity:person", "person");
     }
     this.log("/v2/insights", p, out);
     return parseInsights({ results: { entities: out } }).items; // same validator as live responses

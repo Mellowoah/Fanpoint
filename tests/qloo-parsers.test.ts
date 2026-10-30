@@ -49,7 +49,7 @@ describe("parseInsights (documented shape, synthetic values)", () => {
     const p = parseInsights(insightsDoc);
     expect(p.items).toHaveLength(1);
     const e = normalize(p.items[0]!);
-    expect(e).toMatchObject({ id: "00000000-0000-0000-0000-0000000000a1", name: "Example Movie (synthetic)", kind: "other", mock: false });
+    expect(e).toMatchObject({ id: "00000000-0000-0000-0000-0000000000a1", name: "Example Movie (synthetic)", kind: "movie", mock: false });
     expect(e.description).toMatch(/Synthetic placeholder entity/);
   });
   it("artist entities: popularity, affinity and tags come through", () => {

@@ -40,6 +40,7 @@ const LABELS: Record<string, string> = {
   resolve_artist: "Find the artist in Qloo", scan_corridor: "Map where the fans are along each drive", fill_gaps: "Fill the open dates (drive limits, no doubling back, busiest nights first)",
   get_city_intel: "Find an opening act, rooms and promo partners for each new date", submit_fill: "Check every name and number against the data, then finish the plan",
   find_peer_acts: "Find acts of similar popularity", compare_fan_geography: "Compare where each act's fans are, city by city", submit_cohead: "Check every name and number, then recommend", cohead_extras: "Shared taste, audience ages and a room for both acts", run_support: "Pick one opening act for the whole run",
+  cross_domain: "What these fans also like outside music, city by city",
 };
 /** Tool results longer than this are summarized before they go back to the model (keeps prompts bounded). */
 const MAX_TOOL_CHARS = 12000;
@@ -113,6 +114,18 @@ async function* loop(req: PlanRequest, { qloo: q, llm, maxTurns, deadlineMs }: A
         const before = q.calls.length;
         const r = await tools.runSupport(reg.artist.id, cities);
         yield { type: "tool", name: "run_support", args: { artist_id: reg.artist.id, cities, auto: true }, summary: `${r.summary} (chosen by Fanpoint)`, qlooCalls: q.calls.slice(before) };
+      }
+      if (!reg.crossDomain) {
+        // "Fans here also like": cross-domain taste for every filled city, fetched in code (no model turns).
+        const cities = reg.fill.calendar.flatMap((d) => (d.kind === "fill" && d.city ? [d.city] : []));
+        const before = q.calls.length;
+        try {
+          const r = await tools.crossDomain(reg.artist.id, cities);
+          yield { type: "tool", name: "cross_domain", args: { artist_id: reg.artist.id, cities, auto: true }, summary: `${r.summary} (fetched by Fanpoint)`, qlooCalls: q.calls.slice(before) };
+        } catch {
+          // Never costs the plan: the panel is simply left out.
+          reg.crossDomain = { status: {}, tour: [] };
+        }
       }
     }
     if (name === "submit_cohead" && req.task === "cohead" && reg.artist && reg.matches.length && !reg.cohead) {
@@ -252,6 +265,7 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
       aiNote: note.ok && note.text ? note.text : undefined,
       support: g.pickAll(support.map((e) => e.id)), venues: g.pickAll(venues.map((e) => e.id)), promo,
       neighborhoods: hoods, room,
+      alsoLike: reg.alsoLike.get(d.city.toLowerCase()),
     });
     prevCity = d.city;
   }
@@ -261,7 +275,7 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
   if (!ai.ok) warnings.push(`AI text dropped for the summary: it used numbers not in the data (${ai.offending.join(", ")}).`);
   return {
     task: "fill", mode: "qloo", artist: reg.artist, support: runAct && g.pick(runAct.entity.id) ? runAct : undefined, anchors, params: p, result: fill, stops, corridors: [...reg.corridors.values()], ranked: reg.ranked ?? [], rules: { ...RULE_VALUES },
-    summary, aiSummary: ai.ok && ai.text ? ai.text : undefined, routing, grounding: g.report(), warnings, qlooCalls: [...q.calls], providers,
+    summary, aiSummary: ai.ok && ai.text ? ai.text : undefined, crossDomain: reg.crossDomain, routing, grounding: g.report(), warnings, qlooCalls: [...q.calls], providers,
   };
 }
 

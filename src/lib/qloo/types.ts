@@ -26,7 +26,7 @@ export interface QlooCallLog {
 export interface Entity {
   id: string;
   name: string;
-  kind: "artist" | "destination" | "place" | "brand" | "podcast" | "tv_show" | "other";
+  kind: "artist" | "destination" | "place" | "brand" | "podcast" | "tv_show" | "movie" | "book" | "videogame" | "person" | "other";
   /** 0..1, from query.affinity */
   affinity?: number;
   /** 0..1 */

@@ -10,6 +10,7 @@ import type { RoadMatrixMeta } from "../route/road";
 import type { RankedGap } from "../route/rank";
 import type { FanHood } from "../qloo/venues";
 import type { Demographics, TagScore } from "../qloo/taste";
+import type { XdKey, XdStatus } from "../qloo/crossdomain";
 
 /** Overrides for adjustable touring assumptions (validated in api/plan-request.ts). */
 export interface RuleOverrides { maxDriveHours?: number; maxConsecutiveShows?: number; radiusMi?: number; nightFloor?: number; dowWeights?: number[]; holidaysOff?: 0 | 1 }
@@ -47,7 +48,17 @@ export interface FillStop {
   neighborhoods?: FanHood[];
   /** Why the top room (venues[0]) was picked, built from the data. */
   room?: RoomNote;
+  /**
+   * Cross-domain taste: what this artist's fans in this city also like outside music (Qloo results, Qloo's order).
+   * Only categories Qloo returned results for; labels and uses are fixed text (crossdomain.ts), never AI.
+   */
+  alsoLike?: AlsoLike[];
 }
+export interface AlsoLike { key: XdKey; items: Entity[] }
+/** Tour-wide view: items Qloo listed for these fans in two or more stops. */
+export interface TourAlsoLike { key: XdKey; items: { entity: Entity; cities: string[] }[] }
+/** What each cross-domain category returned this run. */
+export interface CrossDomainReport { status: Partial<Record<XdKey, XdStatus>>; tour: TourAlsoLike[] }
 export interface RoomNote {
   /** Great-circle miles from the stop's city centre. */
   mi?: number;
@@ -78,6 +89,8 @@ export interface FillPlan {
   rules: RuleSnapshot;
   /** Deterministic summary of the result; `aiSummary` is the model's, kept only if its numbers check out. */
   summary: string; aiSummary?: string;
+  /** Cross-domain taste for the filled cities (optional: older saved plans and failed lookups have none). */
+  crossDomain?: CrossDomainReport;
   routing: RoadMatrixMeta; grounding: GroundingReport; warnings: string[];
   qlooCalls: QlooCallLog[]; providers: Providers;
 }

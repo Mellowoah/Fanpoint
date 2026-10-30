@@ -23,6 +23,10 @@ const KIND: Record<string, Entity["kind"]> = {
   "urn:entity:brand": "brand",
   "urn:entity:podcast": "podcast",
   "urn:entity:tv_show": "tv_show",
+  "urn:entity:movie": "movie",
+  "urn:entity:book": "book",
+  "urn:entity:videogame": "videogame",
+  "urn:entity:person": "person",
 };
 
 /** Raw Qloo entity -> Entity. `fallbackType` is the type we asked for, used when the record has no type of its own. */

@@ -9,6 +9,8 @@
  *   /v2/analysis/compare                     co-headliners: taste tags the two acts share
  *   /v2/insights  urn:entity:artist          peers in a popularity band (co-headliners) and local support acts
  *   /v2/insights  urn:entity:brand / podcast cross-domain promo hooks for a city's audience
+ *   /v2/insights  restaurants / tv_show / movie / book / videogame / person / destination: "Fans here also like"
+ *                 (cross-domain taste per filled city, fetched by code after the routing, see crossDomain())
  *
  * Arguments from the model are validated with zod (the same schemas generate the JSON Schema the model sees).
  * Rankings and numbers are computed here, in code; the model only chooses which tool to call next and writes prose.
@@ -32,7 +34,8 @@ import { rankGaps, type RankedGap } from "../route/rank";
 import type { RoadFn } from "../route/road";
 import { RULE_VALUES } from "../touring/rules";
 import type { ToolDef } from "../llm/types";
-import type { CoheadExtras, Corridor, PeerMatch, RunSupport } from "./types";
+import { DINING_TAG, DINING_TAG_ALT, XD_CALL_CEILING, XD_FETCH, XD_ORDER, XD_TAKE, type XdFetch, type XdKey, type XdStatus } from "../qloo/crossdomain";
+import type { AlsoLike, CoheadExtras, Corridor, CrossDomainReport, PeerMatch, RunSupport, TourAlsoLike } from "./types";
 
 // ---------- Argument schemas (single source of truth for validation and for the model-facing JSON Schema) ----------
 const id = z.string().trim().min(1).max(200);
@@ -128,6 +131,9 @@ export class Registry {
   partnerId?: string;
   cohead?: CoheadExtras;
   runSupport?: RunSupport | null;
+  /** City (lower case) -> cross-domain taste; set once per run by Tools.crossDomain. */
+  readonly alsoLike = new Map<string, AlsoLike[]>();
+  crossDomain?: CrossDomainReport;
   add(list: Entity[]) { for (const e of list) this.entities.set(e.id, e); return list; }
   warn(msg: string) { if (!this.warnings.includes(msg)) this.warnings.push(msg); }
 }
@@ -314,6 +320,83 @@ export class Tools {
     };
   }
 
+  // ---------- Cross-domain taste ("Fans here also like") ----------
+  /**
+   * For every filled city: what the artist's fans there also like outside music (dining, TV, film, books, games,
+   * people, travel), plus the brands and podcasts get_city_intel already fetched. Runs in code after the routing, so
+   * it adds no model turns and cannot change a decision. The first city probes every category; a category the key
+   * does not allow (403) or that errors is dropped for the rest of the run. Every failure here is swallowed: the panel
+   * just shows fewer categories. Calls stop at XD_CALL_CEILING so the run's 150-call cap is never reached.
+   */
+  async crossDomain(artistId: string, cityNames: string[]): Promise<ToolResult<{ status: Partial<Record<XdKey, XdStatus>>; cities: number }>> {
+    const status: Partial<Record<XdKey, XdStatus>> = {};
+    const off = new Set<XdKey>();
+    let diningTag: string = DINING_TAG, diningRetried = false;
+    const cities = [...new Set(cityNames)].flatMap((n) => { const c = findCity(n); return c ? [c] : []; });
+    const one = async (c: NonNullable<ReturnType<typeof findCity>>, cats: readonly XdFetch[]) => {
+      const where = c.name.includes(",") ? c.name : `${c.name}, ${c.state}`;
+      const area = { "filter.location": pointWkt(c), "filter.location.radius": VENUE_RADIUS_M };
+      return Promise.all(cats.map(async (cat) => {
+        try {
+          let raw = await this.q.insights(cat.params({ artistId, where, area, tag: diningTag }));
+          if (cat.key === "dining" && !raw.length && !diningRetried) {
+            // Probe once with the restaurant genre tag; keep whichever tag returns restaurants for the rest of the run.
+            diningRetried = true;
+            raw = await this.q.insights(cat.params({ artistId, where, area, tag: DINING_TAG_ALT }));
+            if (raw.length) diningTag = DINING_TAG_ALT;
+          }
+          let items = raw.map((r) => normalize(r, cat.type)).filter((e) => e.id !== artistId && e.name.trim());
+          if (cat.key === "dining") items = items.filter((v) => v.lat === undefined || v.lon === undefined || gcMi({ lat: v.lat, lon: v.lon }, c) <= VENUE_MAX_MI);
+          if (cat.key === "travel") items = items.filter((d) => !sameName(d.name, c.name) && !sameName(d.name, where));
+          return { cat, items: items.slice(0, XD_TAKE) };
+        } catch (e) {
+          const code = isProviderError(e) ? e.code : undefined;
+          if (code === "rate_limited") { for (const x of XD_FETCH) off.add(x.key); status[cat.key] ??= "failed"; }
+          else if (code === "forbidden") { off.add(cat.key); status[cat.key] = "not enabled for this key"; }
+          else if (code === "bad_request" || code === "not_found" || code === "invalid_response" || code === "auth" || code === "budget") { off.add(cat.key); status[cat.key] ??= "failed"; }
+          return { cat, items: [] as Entity[] };
+        }
+      }));
+    };
+    const perCity = new Map<string, Map<XdKey, Entity[]>>();
+    const record = (cityName: string, res: { cat: XdFetch; items: Entity[] }[]) => {
+      const m = new Map<XdKey, Entity[]>();
+      for (const { cat, items } of res) {
+        if (items.length) { m.set(cat.key, this.reg.add(items)); status[cat.key] = "data"; }
+        else status[cat.key] ??= "empty";
+      }
+      perCity.set(cityName, m);
+    };
+    const live = () => XD_FETCH.filter((c) => !off.has(c.key));
+    const room = () => XD_CALL_CEILING - this.q.calls.length;
+    let i = 0;
+    // Probe with the first city, then fetch the rest in parallel with only the categories that worked or were empty.
+    if (cities[0] && room() >= live().length) { record(cities[0].name, await one(cities[0], live())); i = 1; }
+    const rest: typeof cities = [];
+    for (let left = room(); i < cities.length && left >= live().length && live().length; i++, left -= live().length) rest.push(cities[i]!);
+    if (i < cities.length) for (const cat of live()) if (status[cat.key] !== "data") status[cat.key] = "skipped (call cap)";
+    if (i < cities.length && live().length) this.reg.warn(`"Fans here also like" was skipped for ${cities.length - i} cit${cities.length - i === 1 ? "y" : "ies"} to stay under the Qloo call cap.`);
+    const restRes = await Promise.all(rest.map((c) => one(c, live())));
+    rest.forEach((c, k) => record(c.name, restRes[k]!));
+
+    // Assemble per city in display order, brands and podcasts from get_city_intel first.
+    for (const c of cities) {
+      const intel = this.reg.intel.get(c.name.toLowerCase());
+      const m = perCity.get(c.name) ?? new Map<XdKey, Entity[]>();
+      if (intel?.brands.length) m.set("brands", intel.brands.slice(0, XD_TAKE));
+      if (intel?.podcasts.length) m.set("podcasts", intel.podcasts.slice(0, XD_TAKE));
+      const list: AlsoLike[] = XD_ORDER.flatMap((k) => { const items = m.get(k); return items?.length ? [{ key: k, items }] : []; });
+      if (list.length) this.reg.alsoLike.set(c.name.toLowerCase(), list);
+    }
+    for (const k of ["brands", "podcasts"] as const) if ([...this.reg.alsoLike.values()].some((l) => l.some((x) => x.key === k))) status[k] = "data";
+    this.reg.crossDomain = { status, tour: tourAlsoLike(cities.map((c) => c.name), this.reg.alsoLike) };
+    const got = XD_ORDER.filter((k) => status[k] === "data");
+    return {
+      out: { status, cities: cities.length },
+      summary: `→ fans here also like: ${got.length ? got.join(", ") : "no categories returned data"}${Object.entries(status).some(([, v]) => v === "not enabled for this key") ? `; not enabled for this key: ${Object.entries(status).filter(([, v]) => v === "not enabled for this key").map(([k]) => k).join(", ")}` : ""}`,
+    };
+  }
+
   // ---------- Co-headliner matching ----------
   private async findPeers({ artist_id }: z.infer<typeof ToolArgs.find_peer_acts>): Promise<ToolResult<PeersOut>> {
     const bad = this.knownArtist(artist_id);
@@ -461,4 +544,20 @@ export class Tools {
     const rooms = Object.values(extras.byPeer).filter((p) => p.joint?.venue).length;
     return { extras, summary: `→ audience skews for ${Object.keys(extras.skews).length} acts, shared taste + joint rooms for ${ids.length} peers (${rooms} rooms found)` };
   }
+}
+
+/** Items Qloo listed for these fans in two or more filled cities, most cities first (top XD_TAKE per category). */
+export function tourAlsoLike(cities: string[], byCity: ReadonlyMap<string, AlsoLike[]>): TourAlsoLike[] {
+  const out: TourAlsoLike[] = [];
+  for (const key of XD_ORDER) {
+    const seen = new Map<string, { entity: Entity; cities: string[] }>();
+    for (const city of cities) for (const e of byCity.get(city.toLowerCase())?.find((x) => x.key === key)?.items ?? []) {
+      const hit = seen.get(e.id) ?? { entity: e, cities: [] };
+      if (!hit.cities.includes(city)) hit.cities.push(city);
+      seen.set(e.id, hit);
+    }
+    const items = [...seen.values()].filter((x) => x.cities.length >= 2).sort((a, b) => b.cities.length - a.cities.length).slice(0, XD_TAKE);
+    if (items.length) out.push({ key, items });
+  }
+  return out;
 }

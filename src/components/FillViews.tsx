@@ -15,6 +15,7 @@ import { CYAN } from "./palette";
 import ScoreLineText from "./ScoreLineText";
 import { FanHoods, RoomCard } from "./QlooPlus";
 import { FanScore } from "./FanScore";
+import { AlsoLikePanel } from "./AlsoLike";
 
 const pct = (a?: number) => (a === undefined ? "–" : `${Math.round(a * 100)}`);
 const md = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -148,7 +149,6 @@ function Chip({ e }: { e: Entity }) {
   const cap = e.place?.capacity;
   return <span title={cap ? `Holds ${cap.toLocaleString("en-US")} people, as stated by Qloo: "${e.place?.capacityQuote}"` : `Number = how strongly these fans overlap with the headliner's, 0–100 (Qloo)`} className="inline-flex items-center gap-1 bg-black/30 border border-line rounded-full px-2 py-0.5 text-xs">{e.name}{cap ? <span className="text-plain shrink-0">· holds {cap.toLocaleString("en-US")}</span> : null}{e.affinity !== undefined && <span className="text-accent-text font-mono shrink-0" title="Fan overlap with the headliner, 0–100 (Qloo)">{pct(e.affinity)}</span>}</span>;
 }
-const KIND: Record<string, string> = { brand: "Brand", podcast: "Podcast", tv_show: "TV" };
 const num = (n: number) => n.toLocaleString("en-US");
 const Src = ({ children, href }: { children: React.ReactNode; href?: string }) => href
   ? <a href={href} target="_blank" rel="noreferrer" className="text-xs text-plain underline underline-offset-2 hover:text-accent-text">{children}</a>
@@ -196,9 +196,7 @@ export function FillStopCard({ s, q }: { s: FillStop; q: FillPlan }) {
       {s.venues[0] ? <RoomCard v={s.venues[0]} note={s.room} stopCity={s.city} /> : <div className="text-xs text-plain">No Qloo show room matched near {s.city}.</div>}
       {s.venues.length > 1 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-plain w-20">Other rooms</span>{s.venues.slice(1).map((e) => <Chip key={e.id} e={e} />)}<Src>next best Qloo matches</Src></div>}
       <FanHoods hoods={s.neighborhoods} city={s.city} />
-      {s.promo.map((p) => (
-        <div key={p.entity.id} className="text-sm flex gap-2"><span className="text-xs mt-0.5 px-1.5 rounded bg-accent/15 text-accent-text h-fit">{KIND[p.entity.kind] ?? p.entity.kind}</span>{p.angleBy === "ai" ? <span className="flex items-center gap-1.5"><span>{p.entity.name}</span><WhyPopover label={`promo idea: ${p.entity.name}`} title="Promo idea (AI)">{p.angle}</WhyPopover></span> : <span>{p.angle}</span>}</div>
-      ))}
+      <AlsoLikePanel s={s} artist={q.artist.name} status={q.crossDomain?.status} />
       <HoldDraftButton q={q} s={s} />
     </article>
   );

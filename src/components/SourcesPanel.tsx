@@ -20,7 +20,7 @@ const fmt = (v: number | readonly number[]) => (Array.isArray(v) ? (v as number[
 const A = ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href} target="_blank" rel="noreferrer" className="text-accent-text underline underline-offset-2 break-words">{children}</a>;
 
 const DATASETS: { name: string; what: string; license: string; links: [string, string][] }[] = [
-  { name: "Qloo Taste AI™ Insights API", what: "Fan affinity (heatmaps), corridor ranks, support acts, rooms, brands, podcasts, peer acts. The only source of taste signals.", license: "Qloo API terms (hackathon key, server-side only)",
+  { name: "Qloo Taste AI™ Insights API", what: "Fan affinity (heatmaps), corridor ranks, support acts, rooms, brands, podcasts, peer acts, and what these fans also like outside music (restaurants, TV, film, books, games, people, travel: only the types the key returns). The only source of taste signals.", license: "Qloo API terms (hackathon key, server-side only)",
     links: [["Qloo docs", "https://docs.qloo.com/"]] },
   { name: "OSRM road routing on OpenStreetMap", what: `Road distance and drive time for every ordered pair of the ${MARKETS.length} markets, car profile, precomputed once (16 table requests at ≤1 req/s) and committed. No routing call at runtime.`, license: "Data © OpenStreetMap contributors, ODbL 1.0. OSRM is BSD-2. Demo server: FOSSGIS usage policy (light, non-commercial use).",
     links: [["OSRM", "https://project-osrm.org/"], ["Demo server policy", "https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server"], ["Fix the map", "https://www.openstreetmap.org/fixthemap"]] },

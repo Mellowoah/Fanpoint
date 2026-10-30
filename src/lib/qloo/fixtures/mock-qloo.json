@@ -79,5 +79,35 @@
     { "name": "The Lighthouse Keepers (mock series)", "tags": ["Comedy", "Small Town"] },
     { "name": "Paper Moons (mock series)", "tags": ["Animation", "Coming of Age"] },
     { "name": "Static Bloom (mock series)", "tags": ["Documentary", "Music"] }
+  ],
+  "diningPool": [
+    { "name": "Lantern Noodle Bar (mock)", "tags": ["Noodles", "Late Night"] },
+    { "name": "Second Shift Diner (mock)", "tags": ["Diner"] },
+    { "name": "Fig & Ember (mock)", "tags": ["New American"] },
+    { "name": "Taqueria Luz (mock)", "tags": ["Mexican"] },
+    { "name": "Juniper Bakehouse (mock)", "tags": ["Bakery", "Cafe"] }
+  ],
+  "moviePool": [
+    { "name": "Summer Static (mock film)", "tags": ["Indie", "Coming of Age"] },
+    { "name": "The Long Drive Home (mock film)", "tags": ["Road Movie"] },
+    { "name": "Paper Lanterns (mock film)", "tags": ["Drama"] },
+    { "name": "Night Bus (mock film)", "tags": ["Comedy"] }
+  ],
+  "bookPool": [
+    { "name": "Small Hours (mock novel)", "tags": ["Literary Fiction"] },
+    { "name": "Notes From the Van (mock memoir)", "tags": ["Memoir", "Music"] },
+    { "name": "The Orchard Year (mock novel)", "tags": ["Fiction"] },
+    { "name": "Tide Tables (mock poetry)", "tags": ["Poetry"] }
+  ],
+  "gamePool": [
+    { "name": "Lighthouse Valley (mock game)", "tags": ["Cozy", "Indie"] },
+    { "name": "Paper Planets (mock game)", "tags": ["Puzzle"] },
+    { "name": "Neon Courier (mock game)", "tags": ["Adventure"] }
+  ],
+  "personPool": [
+    { "name": "Rae Holloway (mock creator)", "tags": ["Comedian"] },
+    { "name": "Dev Okafor (mock creator)", "tags": ["Food Writer"] },
+    { "name": "Mina Sato (mock creator)", "tags": ["Photographer"] },
+    { "name": "Theo Brandt (mock creator)", "tags": ["Actor"] }
   ]
 }

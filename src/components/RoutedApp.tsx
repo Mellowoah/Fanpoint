@@ -12,6 +12,7 @@ import FillForm, { DEMO_FILL, Spinner, demoCohead, demoFill, type FillFormState 
 import ArtistInput from "./ArtistInput";
 import CoheadView from "./CoheadView";
 import { RunSupportCard } from "./QlooPlus";
+import { TourAlsoLikeCard } from "./AlsoLike";
 import { CandidateFilter, FillCalendar, FillCompare, FillStats, FillStopCard, FillSummary, PlainAudit, RankedLists, plainCalendar, useFillMap } from "./FillViews";
 import type { RankMode } from "@/lib/route/rank";
 import SourcesPanel from "./SourcesPanel";
@@ -225,6 +226,7 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
               <div className="grid gap-4 min-w-0">
                 {q && <FillCalendar days={q.result.calendar} legend />}
                 {q?.support && <RunSupportCard s={q.support} headliner={q.artist.name} />}
+                {q && <TourAlsoLikeCard x={q.crossDomain} artist={q.artist.name} stops={q.stops.length} />}
                 {q && <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{q.stops.map((s) => <FillStopCard key={s.date} s={s} q={q} />)}</div>}
                 <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-4 items-start">
                   {q ? <CandidateFilter gaps={q.result.gaps} maxDriveMi={q.params.maxDriveMi} /> : <div />}
