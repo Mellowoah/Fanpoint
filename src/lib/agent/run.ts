@@ -23,7 +23,8 @@ The tour has fixed ANCHOR shows (city + date). Fanpoint's tools fill the off day
 where this artist's Qloo fan heat is strongest, using OSRM road distances and cited touring rules. You orchestrate the
 tools and explain the result; you do not decide it.
 Process: 1) resolve_artist 2) scan_corridor for EACH consecutive anchor pair 3) fill_gaps 4) get_city_intel for EACH
-filled city 5) submit_fill.
+filled city 5) submit_fill. Batch independent calls: call scan_corridor for every pair in one turn and get_city_intel for
+every filled city in one turn (several tool calls in one response).
 In submit_fill write a short plain-language note per fill city and a one-line promo angle per brand/podcast id.
 Use only facts and numbers that appear in tool results; a note with any other number is discarded. Do not forecast
 ticket sales or claim venue capacities (no source has them). If a tool returns an error, continue without that data.`;
@@ -42,6 +43,12 @@ const LABELS: Record<string, string> = {
 };
 /** Tool results longer than this are summarized before they go back to the model (keeps prompts bounded). */
 const MAX_TOOL_CHARS = 12000;
+
+/**
+ * Model turns per run. A fill needs 4 + (fill cities) + 1 turns if the model makes one tool call per turn (8 fills -> 13),
+ * so 10 was too few for a model that does not batch; the wall-clock deadline still bounds the run.
+ */
+export const DEFAULT_MAX_TURNS = 16;
 
 export interface AgentDeps {
   qloo: QlooClient;
@@ -66,7 +73,7 @@ export function toolContent(out: unknown): string {
 
 export async function* runAgent(req: PlanRequest, deps: Partial<AgentDeps> = {}): AsyncGenerator<AgentEvent> {
   try {
-    yield* loop(req, { qloo: deps.qloo ?? createQlooClient(), llm: deps.llm ?? createLlmClient(), maxTurns: deps.maxTurns ?? 10, deadlineMs: deps.deadlineMs ?? 150_000 });
+    yield* loop(req, { qloo: deps.qloo ?? createQlooClient(), llm: deps.llm ?? createLlmClient(), maxTurns: deps.maxTurns ?? DEFAULT_MAX_TURNS, deadlineMs: deps.deadlineMs ?? 150_000 });
   } catch (e) {
     yield toErrorEvent(e);
   }
@@ -90,6 +97,39 @@ async function* loop(req: PlanRequest, { qloo: q, llm, maxTurns, deadlineMs }: A
   ];
   const providers: Providers = { qloo: q.mode, llm: llm.mode, model: llm.model };
 
+  /** Runs the code-side extras for a submit tool and assembles the plan (or an error to hand back to the model). */
+  async function* submit(name: string, value: unknown): AsyncGenerator<AgentEvent, FillPlan | CoheadPlan | { error: string }> {
+    if (name === "submit_fill" && req.task === "fill" && reg.fill && reg.artist) {
+      // Intel for every fill comes from Qloo whether or not the model asked for it.
+      for (const d of reg.fill.calendar) {
+        if (d.kind !== "fill" || !d.city || reg.intel.has(d.city.toLowerCase())) continue;
+        const before = q.calls.length;
+        const r = await tools.call("get_city_intel", { artist_id: reg.artist.id, city: d.city });
+        yield { type: "tool", name: "get_city_intel", args: { artist_id: reg.artist.id, city: d.city, auto: true }, summary: `${r.summary} (fetched by Fanpoint: the model skipped it)`, qlooCalls: q.calls.slice(before) };
+      }
+      if (reg.runSupport === undefined) {
+        // One opener for the whole run, chosen in code across every filled city.
+        const cities = reg.fill.calendar.flatMap((d) => (d.kind === "fill" && d.city ? [d.city] : []));
+        const before = q.calls.length;
+        const r = await tools.runSupport(reg.artist.id, cities);
+        yield { type: "tool", name: "run_support", args: { artist_id: reg.artist.id, cities, auto: true }, summary: `${r.summary} (chosen by Fanpoint)`, qlooCalls: q.calls.slice(before) };
+      }
+    }
+    if (name === "submit_cohead" && req.task === "cohead" && reg.artist && reg.matches.length && !reg.cohead) {
+      // Shared taste, audience skews and a joint room for the peers the plan recommends (plus the partner).
+      const ids = reg.matches.filter((m, i) => (m.score > 0 && i < 3) || m.requested).map((m) => m.entity.id);
+      const before = q.calls.length;
+      const r = await tools.coheadExtras(reg.artist.id, ids);
+      yield { type: "tool", name: "cohead_extras", args: { artist_id: reg.artist.id, peer_ids: ids, auto: true }, summary: `${r.summary} (fetched by Fanpoint)`, qlooCalls: q.calls.slice(before) };
+    }
+    const plan = name === "submit_fill" && req.task === "fill" ? buildFill(value, reg, anchors, q, providers, roads.meta)
+      : name === "submit_cohead" && req.task === "cohead" ? buildCohead(value, reg, q, providers)
+      : { error: `${name} does not match this request.` };
+    if ("error" in plan) return plan;
+    yield { type: "step", id: name, label: LABELS[name] ?? name, status: "done", detail: `${plan.grounding.grounded}/${plan.grounding.referenced} references grounded in Qloo results${plan.warnings.some((w) => w.startsWith("AI text")) ? "; some AI text dropped (numbers not in the data)" : ""}` };
+    return plan;
+  }
+
   for (let turn = 0; turn < maxTurns; turn++) {
     if (Date.now() - t0 > deadlineMs) { yield agentError(`The run took longer than ${Math.round(deadlineMs / 1000)} s and was stopped.`, "timeout"); return; }
     const res = await llm.chat(messages, defs);
@@ -108,34 +148,8 @@ async function* loop(req: PlanRequest, { qloo: q, llm, maxTurns, deadlineMs }: A
       if (!args.ok) { reply({ error: args.error }); continue; }
 
       if (name === "submit_fill" || name === "submit_cohead") {
-        if (name === "submit_fill" && req.task === "fill" && reg.fill && reg.artist) {
-          // Intel for every fill comes from Qloo whether or not the model asked for it.
-          for (const d of reg.fill.calendar) {
-            if (d.kind !== "fill" || !d.city || reg.intel.has(d.city.toLowerCase())) continue;
-            const before = q.calls.length;
-            const r = await tools.call("get_city_intel", { artist_id: reg.artist.id, city: d.city });
-            yield { type: "tool", name: "get_city_intel", args: { artist_id: reg.artist.id, city: d.city, auto: true }, summary: `${r.summary} (fetched by Fanpoint: the model skipped it)`, qlooCalls: q.calls.slice(before) };
-          }
-          if (reg.runSupport === undefined) {
-            // One opener for the whole run, chosen in code across every filled city.
-            const cities = reg.fill.calendar.flatMap((d) => (d.kind === "fill" && d.city ? [d.city] : []));
-            const before = q.calls.length;
-            const r = await tools.runSupport(reg.artist.id, cities);
-            yield { type: "tool", name: "run_support", args: { artist_id: reg.artist.id, cities, auto: true }, summary: `${r.summary} (chosen by Fanpoint)`, qlooCalls: q.calls.slice(before) };
-          }
-        }
-        if (name === "submit_cohead" && req.task === "cohead" && reg.artist && reg.matches.length && !reg.cohead) {
-          // Shared taste, audience skews and a joint room for the peers the plan recommends (plus the partner).
-          const ids = reg.matches.filter((m, i) => (m.score > 0 && i < 3) || m.requested).map((m) => m.entity.id);
-          const before = q.calls.length;
-          const r = await tools.coheadExtras(reg.artist.id, ids);
-          yield { type: "tool", name: "cohead_extras", args: { artist_id: reg.artist.id, peer_ids: ids, auto: true }, summary: `${r.summary} (fetched by Fanpoint)`, qlooCalls: q.calls.slice(before) };
-        }
-        const plan = name === "submit_fill" && req.task === "fill" ? buildFill(args.value, reg, anchors, q, providers, roads.meta)
-          : name === "submit_cohead" && req.task === "cohead" ? buildCohead(args.value, reg, q, providers)
-          : { error: `${name} does not match this request.` };
+        const plan = yield* submit(name, args.value);
         if ("error" in plan) { reply(plan); continue; }
-        yield { type: "step", id: name, label: LABELS[name] ?? name, status: "done", detail: `${plan.grounding.grounded}/${plan.grounding.referenced} references grounded in Qloo results${plan.warnings.some((w) => w.startsWith("AI text")) ? "; some AI text dropped (numbers not in the data)" : ""}` };
         yield { type: "result", plan };
         return;
       }
@@ -145,6 +159,19 @@ async function* loop(req: PlanRequest, { qloo: q, llm, maxTurns, deadlineMs }: A
       reply(r.out);
     }
     for (const nm of names) if (!nm.startsWith("submit_")) yield { type: "step", id: nm, label: LABELS[nm] ?? nm, status: "done" };
+  }
+  // Out of turns. If the deciding tool already ran (fill_gaps / compare_fan_geography), every city, date and ranking is
+  // already computed in code, so assemble the plan without the model's notes instead of failing the run.
+  const ready = req.task === "fill" ? !!(reg.fill && reg.artist) : !!(reg.artist && reg.matches.length);
+  if (ready) {
+    const name = req.task === "fill" ? "submit_fill" : "submit_cohead";
+    yield { type: "step", id: name, label: LABELS[name] ?? name, status: "running" };
+    const plan = yield* submit(name, {});
+    if (!("error" in plan)) {
+      plan.warnings.push(`The AI ran out of turns before writing its notes, so Fanpoint assembled this plan from the tool results (no AI notes).`);
+      yield { type: "result", plan };
+      return;
+    }
   }
   yield agentError(`The agent used all ${maxTurns} turns without submitting a plan.`);
 }

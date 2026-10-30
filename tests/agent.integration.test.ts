@@ -214,6 +214,33 @@ describe("agent loop guards", () => {
     expect(error(ev)).toMatchObject({ code: "agent", message: expect.stringMatching(/all 2 turns/) });
   });
 
+  it("out of turns after fill_gaps: Fanpoint assembles the plan instead of failing", async () => {
+    // A model that never batches and never submits (one tool call per turn), as gemini-3.5-flash-lite sometimes does live.
+    let artistId = "";
+    const llm: LlmClient = { mode: "mock", model: "t", json: async () => ({}), chat: async (m) => {
+      const tools = m.filter((x) => x.role === "tool");
+      if (!tools.length) return { content: null, toolCalls: [call("resolve_artist", '{"name":"Marigold Static"}')] };
+      if (!artistId) artistId = (JSON.parse(tools[0]!.content ?? "{}") as { artist: { id: string } }).artist.id;
+      const a = JSON.stringify(artistId);
+      const script = [call("scan_corridor", `{"artist_id":${a},"from_city":"New York","to_city":"Durham"}`, "s1"),
+        call("scan_corridor", `{"artist_id":${a},"from_city":"Durham","to_city":"Atlanta"}`, "s2"), call("fill_gaps", "{}")];
+      const next = script[tools.length - 1];
+      return { content: null, toolCalls: [next ?? call("get_city_intel", `{"artist_id":${a},"city":"Durham"}`, `i${tools.length}`)] };
+    } };
+    const ev = await collect(runAgent(DEMO, { qloo: new MockQlooClient([0, 0]), llm, maxTurns: 6 }));
+    expect(error(ev)).toBeUndefined();
+    const plan = result<FillPlan>(ev)!;
+    expect(plan.stops.length).toBe(plan.result.fills);
+    expect(plan.warnings.some((w) => /ran out of turns/.test(w))).toBe(true);
+  });
+
+  it("out of turns before fill_gaps still ends with the turn-limit error", async () => {
+    const llm: LlmClient = { mode: "mock", model: "t", json: async () => ({}), chat: async () => ({ content: null, toolCalls: [call("resolve_artist", '{"name":"Marigold Static"}')] }) };
+    const ev = await collect(runAgent(DEMO, { qloo: new MockQlooClient([0, 0]), llm, maxTurns: 3 }));
+    expect(result(ev)).toBeUndefined();
+    expect(error(ev)).toMatchObject({ code: "agent", message: expect.stringMatching(/all 3 turns/) });
+  });
+
   it("fill_gaps refuses to run before every corridor is scanned", async () => {
     let out = "";
     const llm: LlmClient = { mode: "mock", model: "t", json: async () => ({}), chat: async (m) => {
