@@ -7,6 +7,7 @@ const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH ?? "/
 const p = await b.newPage();
 await p.setViewport({ width: 1440, height: 1000 });
 await p.goto(`${BASE}/?auto=1`, { waitUntil: "networkidle0" });
+await p.addStyleTag({ content: "nav.sticky{position:static!important}" });
 await p.waitForFunction(() => document.body.innerText.includes("Connection problem"), { timeout: 60000 });
 await new Promise((r) => setTimeout(r, 2500));
 await p.screenshot({ path: `${OUT}/11-error-state-qloo-unreachable.png` });

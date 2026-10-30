@@ -13,10 +13,13 @@ p.setDefaultNavigationTimeout(300000);
 // ONLY=fill,sources,plain,cohead,mobile retakes just those sections (default: all).
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
 const want = (s) => !ONLY || ONLY.has(s);
+// The sticky nav would sit on top of element screenshots: make it static for captures.
+const unstick = () => p.addStyleTag({ content: "nav.sticky{position:static!important}" });
 const tab = async (label) => { const [el] = await p.$$(`xpath/.//button[normalize-space()='${label}']`); await el.click(); await wait(1500); };
 
 if (want("fill")) {
 await p.goto(BASE, { waitUntil: "networkidle0" });
+await unstick();
 await wait(800);
 await p.screenshot({ path: `${OUT}/01-landing.png` });
 
@@ -62,6 +65,7 @@ if (rules) await rules.screenshot({ path: `${OUT}/13-touring-rules.png` });
 if (want("sources")) {
 // Sources & methodology panel
 await p.goto(BASE + "/?sources=1", { waitUntil: "networkidle0" });
+await unstick();
 await wait(800);
 const src = await p.$("#sources");
 if (src) await src.screenshot({ path: `${OUT}/14-sources-methodology.png` });
@@ -70,14 +74,15 @@ if (src) await src.screenshot({ path: `${OUT}/14-sources-methodology.png` });
 
 if (want("plain")) {
 await p.goto(BASE + "/?auto=1&view=plain", { waitUntil: "networkidle0" });
-await p.waitForFunction(() => document.body.innerText.includes("passes drive rules") || document.body.innerText.includes("radius clause"), { timeout: 180000 });
+await unstick();
+await p.waitForFunction(() => document.body.innerText.includes("not a verified venue"), { timeout: 180000 });
 await wait(1800);
 // The plain-LLM baseline is a secondary panel below the results: scroll it into view.
-await p.evaluate(() => [...document.querySelectorAll("b")].find((n) => n.textContent?.startsWith("Secondary baseline"))?.scrollIntoView());
+await p.evaluate(() => document.getElementById("plain-compare")?.scrollIntoView());
 await wait(500);
 await p.screenshot({ path: `${OUT}/06-plain-ai-audit.png` });
-await tab("Compare");
-await p.evaluate(() => [...document.querySelectorAll("b")].find((n) => n.textContent?.startsWith("Secondary baseline"))?.scrollIntoView());
+await tab("Side by side");
+await p.evaluate(() => document.getElementById("plain-compare")?.scrollIntoView());
 await wait(500);
 await p.screenshot({ path: `${OUT}/07-compare.png` });
 
@@ -85,12 +90,13 @@ await p.screenshot({ path: `${OUT}/07-compare.png` });
 
 if (want("cohead")) {
 await p.goto(BASE + "/?tab=cohead&auto=1", { waitUntil: "networkidle0" });
+await unstick();
 await p.waitForFunction(() => document.body.innerText.includes("Most similar ≠ best partner"), { timeout: 180000 });
 await wait(1800);
 await p.screenshot({ path: `${OUT}/08-cohead-complementarity-map.png` });
 await p.screenshot({ path: `${OUT}/08b-cohead-full.png`, fullPage: true });
 // The most taste-similar peer is named in the "Most similar ≠ best partner." note; click its row.
-const simName = await p.evaluate(() => document.body.innerText.match(/Most similar ≠ best partner\.\s*(.+?) is the most taste-similar/)?.[1] ?? null);
+const simName = await p.evaluate(() => [...document.querySelectorAll("[role=note]")].map((n) => n.textContent ?? "").map((t) => t.match(/^(.+?) is the most similar act/)?.[1]).find(Boolean) ?? null);
 const [sim] = simName ? await p.$$(`xpath/.//button[contains(., ${JSON.stringify(simName)})]`) : [];
 if (!sim) console.log(`09: most-similar peer button not found (${simName}); screenshot not retaken`);
 if (sim) { await sim.click(); await wait(1500); await p.screenshot({ path: `${OUT}/09-cohead-most-similar-overlaps.png` }); }
@@ -102,6 +108,7 @@ await p.screenshot({ path: `${OUT}/08c-cohead-without-qloo.png` });
 if (want("mobile")) {
 await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
 await p.goto(BASE + "/?auto=1", { waitUntil: "networkidle0" });
+await unstick();
 await p.waitForSelector("[data-also-like]", { timeout: 180000 });
 await wait(1500);
 await p.screenshot({ path: `${OUT}/10-mobile-fill.png` });
