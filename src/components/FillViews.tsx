@@ -194,7 +194,7 @@ export function FillStopCard({ s, q }: { s: FillStop; q: FillPlan }) {
       {q.support && <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-plain w-20">Opening act</span><Chip e={q.support.entity} /><Src>same act every night</Src></div>}
       {s.support.length > 0 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-plain w-20">{q.support ? "Local option" : "Opening act"}</span>{s.support.map((e) => <Chip key={e.id} e={e} />)}<Src>{q.support ? "best local opener here" : "best Qloo match"}</Src></div>}
       {s.venues[0] ? <RoomCard v={s.venues[0]} note={s.room} stopCity={s.city} /> : <div className="text-xs text-plain">No Qloo show room matched near {s.city}.</div>}
-      {s.venues.length > 1 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-plain w-20">Next best room</span>{s.venues.slice(1, 2).map((e) => <Chip key={e.id} e={e} />)}<Src>{s.venues.length > 2 ? `Qloo's #2 match · all ${s.venues.length} in the CSV export` : "Qloo's #2 match"}</Src></div>}
+      {s.venues.length > 1 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-plain w-20">Next room</span>{s.venues.slice(1, 2).map((e) => <Chip key={e.id} e={e} />)}<Src>{s.venues.length > 2 ? `Qloo's #2 match · all ${s.venues.length} in the CSV export` : "Qloo's #2 match"}</Src></div>}
       <FanHoods hoods={s.neighborhoods} city={s.city} />
       <AlsoLikePanel s={s} artist={q.artist.name} status={q.crossDomain?.status} />
       <HoldDraftButton q={q} s={s} />

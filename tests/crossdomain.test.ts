@@ -8,6 +8,8 @@ import { MockLlmClient } from "@/lib/llm/mock";
 import { ProviderError, type ErrorCode } from "@/lib/net/errors";
 import { normalize } from "@/lib/qloo/normalize";
 import type { Entity, QlooParams } from "@/lib/qloo/types";
+import { MAX_HOOKS, sponsorHooks } from "@/lib/client/sponsor-hooks";
+import type { FillStop } from "@/lib/agent/types";
 import { DINING_TAG, isFashionBrand, isFoodDrink, XD_CALL_CEILING, XD_FETCH, XD_META, XD_ORDER } from "@/lib/qloo/crossdomain";
 
 const DEMO: FillRequest = {
@@ -139,5 +141,48 @@ describe("tour-wide view and labels", () => {
     expect(normalize({ entity_id: "1", name: "B", types: ["urn:entity:book"] } as never).kind).toBe("book");
     expect(normalize({ entity_id: "1", name: "P", types: ["urn:entity:person"] } as never).kind).toBe("person");
     expect(normalize({ entity_id: "1", name: "G", types: ["urn:entity:videogame"] } as never).kind).toBe("videogame");
+  });
+});
+
+describe("Sponsor & Ad Opportunities hooks", () => {
+  const ent = (id: string, kind: Entity["kind"], affinity?: number): Entity => ({ id, name: `N${id}`, kind, affinity } as Entity);
+  const stop = (promo: FillStop["promo"], alsoLike: AlsoLike[]): FillStop => ({ promo, alsoLike } as unknown as FillStop);
+
+  it("dedupes by entity id (promo angle kept), sorts by affinity, caps at 4, brands and podcasts only", () => {
+    const s = stop(
+      [{ entity: ent("b1", "brand", 0.7), angle: "AI idea", angleBy: "ai" }, { entity: ent("t1", "tv_show" as Entity["kind"], 0.99), angle: "tv", angleBy: "routed" }],
+      [
+        { key: "brands", items: [ent("b1", "brand", 0.7), ent("b2", "brand", 0.9), ent("b3", "brand")] },
+        { key: "podcasts", items: [ent("p1", "podcast", 0.8), ent("p2", "podcast", 0.6), ent("b2", "brand", 0.9)] },
+        { key: "tv", items: [ent("t2", "tv_show" as Entity["kind"], 0.95)] },
+      ],
+    );
+    const h = sponsorHooks(s);
+    expect(h.map((x) => x.entity.id)).toEqual(["b2", "p1", "b1", "p2"]);
+    expect(new Set(h.map((x) => x.entity.id)).size).toBe(h.length);
+    expect(h.length).toBeLessThanOrEqual(MAX_HOOKS);
+    const b1 = h.find((x) => x.entity.id === "b1")!;
+    expect(b1).toMatchObject({ angle: "AI idea", angleBy: "ai" });
+    expect(h.find((x) => x.entity.id === "b2")).toMatchObject({ angle: XD_META.brands.use, angleBy: "code" });
+  });
+
+  it("items without affinity go last in their original order; empty stop gives no hooks", () => {
+    const s = stop([], [{ key: "brands", items: [ent("x", "brand"), ent("y", "brand"), ent("z", "brand", 0.5)] }]);
+    expect(sponsorHooks(s).map((x) => x.entity.id)).toEqual(["z", "x", "y"]);
+    expect(sponsorHooks(stop([], []))).toEqual([]);
+    expect(sponsorHooks({ promo: [] } as unknown as FillStop)).toEqual([]);
+  });
+
+  it("on a full mock run every stop's hooks are unique and drawn from that stop's promo or cross-domain data", async () => {
+    const q = planOf(await collect(runAgent(DEMO, { qloo: new MockQlooClient([0, 0]), llm: new MockLlmClient(0) })))!;
+    for (const s of q.stops) {
+      const h = sponsorHooks(s);
+      const ids = h.map((x) => x.entity.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      const pool = new Set([...s.promo.map((p) => p.entity.id), ...(s.alsoLike ?? []).flatMap((r) => r.items.map((e) => e.id))]);
+      for (const id of ids) expect(pool.has(id)).toBe(true);
+      const aff = h.map((x) => x.entity.affinity ?? -1);
+      expect([...aff].sort((a, b) => b - a)).toEqual(aff);
+    }
   });
 });
