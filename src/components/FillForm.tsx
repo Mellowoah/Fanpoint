@@ -76,7 +76,7 @@ function Num({ k, value, onChange, step = 1, min, max }: { k: keyof typeof RULES
       <span className="flex items-center gap-1.5 flex-wrap"><label htmlFor={id}>{r.label}</label> <HelpTip label={r.label}>{r.why}</HelpTip> <KindBadge kind={r.kind} /></span>
       <span className="flex items-center gap-2">
         <input id={id} type="number" inputMode="decimal" step={step} min={min} max={max} value={value} aria-invalid={out || undefined} onChange={(e) => onChange(Number(e.target.value))} className={`${input} w-28 font-mono`} />
-        <span className="text-[11px] font-normal">{r.unit}</span>
+        <span className="text-xs font-normal">{r.unit}</span>
       </span>
       {out && <span className="field-error">Use {min} to {max}.</span>}
     </div>
@@ -111,7 +111,7 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
           onChange={(v) => { touch("artist"); onChange({ ...value, artist: v }); }} error={show("artist") ? errors.artist : undefined}
           hint={mode === "mock" ? "Mock mode: fictional demo acts only." : "Pick a suggestion to use the exact Qloo name."} />
         <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 [scrollbar-width:none]" role="group" aria-label="One-click examples" data-examples>
-          <span className="text-[11px] text-plain mr-0.5 shrink-0">{mode === "live" ? "One-click live examples:" : "One-click examples:"}</span>
+          <span className="text-xs text-plain mr-0.5 shrink-0">{mode === "live" ? "Or try another act (runs live, one click):" : "One-click examples:"}</span>
           {examples(mode).map((x) => (
             <button key={x.id} type="button" disabled={busy} className="chip" title={EXAMPLE_ANCHORS[x.anchors].map((a) => `${a.city} ${a.date.slice(5)}`).join(" → ")}
               onClick={() => { setAttempted(false); setSeen(new Set()); const f = exampleFill(x); onChange(f); onExample?.(f); }}>▶ {x.label}</button>
@@ -121,31 +121,30 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
 
       <fieldset className="grid gap-2.5 min-w-0">
         <legend className="flex items-baseline justify-between gap-2 w-full mb-2.5">
-          <span className="text-sm font-semibold text-foreground">Confirmed dates</span>
-          <span className="text-[11px] text-plain">Festival slots, support dates, hometown shows · {MARKETS.length} U.S. markets</span>
+          <span className="text-sm font-semibold text-foreground">Shows already booked</span>
+          <span className="text-xs text-plain">Fanpoint fills the open dates between them · {MARKETS.length} U.S. cities</span>
         </legend>
-        <ol className="grid md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-2.5">
+        <ol className="grid gap-2">
           {value.anchors.map((a, i) => {
             const e = errors.anchors[i] ?? {};
             return (
-              <li key={i} className="grid gap-2 rounded-xl border border-line bg-background/60 p-3 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-foreground"><span className="size-5 rounded-full bg-accent/15 text-accent-text grid place-items-center text-[10px]">{i + 1}</span>Stop {i + 1}</span>
-                  {value.anchors.length > CLIENT_LIMITS.minAnchors && (
-                    <button type="button" aria-label={`Remove stop ${i + 1}`} onClick={() => onChange({ ...value, anchors: value.anchors.filter((_, k) => k !== i) })} className="btn btn-ghost btn-sm -mr-1.5">Remove</button>
-                  )}
+              <li key={i} className="flex flex-wrap items-start gap-2 rounded-xl border border-line bg-background/60 p-2.5 min-w-0" aria-label={`Booked show ${i + 1}`}>
+                <span aria-hidden className="mt-7 size-6 shrink-0 rounded-full bg-accent/15 text-accent-text grid place-items-center text-xs font-semibold">{i + 1}</span>
+                <div className="flex-[1.3_1_9rem] min-w-0"><CityInput id={`anchor-${i}-city`} label="City" value={a.city} onChange={(c) => { touch(`city-${i}`); setA(i, { city: c }); }} error={show(`city-${i}`) ? e.city : undefined} /></div>
+                <div className="field flex-[1_1_8.5rem] min-w-0">
+                  <label htmlFor={`anchor-${i}-date`}>Date</label>
+                  <input id={`anchor-${i}-date`} aria-label={`Anchor ${i + 1} date`} type="date" min={bounds.min} max={bounds.max} value={a.date}
+                    aria-invalid={(show(`date-${i}`) && !!e.date) || undefined} aria-describedby={show(`date-${i}`) && e.date ? `anchor-${i}-date-err` : undefined}
+                    onChange={(ev) => { touch(`date-${i}`); setA(i, { date: ev.target.value }); }} className={`${input} font-mono`} />
+                  {show(`date-${i}`) && e.date && <span id={`anchor-${i}-date-err`} role="alert" className="field-error">{e.date}</span>}
                 </div>
-                <div className="grid grid-cols-1 min-[440px]:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-2">
-                  <CityInput id={`anchor-${i}-city`} label="City" value={a.city} onChange={(c) => { touch(`city-${i}`); setA(i, { city: c }); }} error={show(`city-${i}`) ? e.city : undefined} />
-                  <div className="field min-w-0">
-                    <label htmlFor={`anchor-${i}-date`}>Date</label>
-                    <input id={`anchor-${i}-date`} aria-label={`Anchor ${i + 1} date`} type="date" min={bounds.min} max={bounds.max} value={a.date}
-                      aria-invalid={(show(`date-${i}`) && !!e.date) || undefined} aria-describedby={show(`date-${i}`) && e.date ? `anchor-${i}-date-err` : undefined}
-                      onChange={(ev) => { touch(`date-${i}`); setA(i, { date: ev.target.value }); }} className={`${input} font-mono`} />
-                  </div>
+                <div className="field flex-[1_1_8rem] min-w-0">
+                  <label htmlFor={`anchor-${i}-label`}>What is it?</label>
+                  <input id={`anchor-${i}-label`} aria-label={`Stop ${i + 1}: what is it?`} value={a.label ?? ""} placeholder="optional" maxLength={40} onChange={(ev) => setA(i, { label: ev.target.value })} className={`${input} text-sm`} />
                 </div>
-                {show(`date-${i}`) && e.date && <span id={`anchor-${i}-date-err`} role="alert" className="field-error">{e.date}</span>}
-                <input aria-label={`Stop ${i + 1}: what is it?`} value={a.label ?? ""} placeholder="What is it? (optional)" maxLength={40} onChange={(ev) => setA(i, { label: ev.target.value })} className={`${input} text-sm`} />
+                {value.anchors.length > CLIENT_LIMITS.minAnchors && (
+                  <button type="button" aria-label={`Remove stop ${i + 1}`} title="Remove this show" onClick={() => onChange({ ...value, anchors: value.anchors.filter((_, k) => k !== i) })} className="btn btn-ghost btn-sm mt-[26px] !px-2">✕</button>
+                )}
               </li>
             );
           })}
@@ -163,8 +162,8 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
         <summary className="cursor-pointer text-sm flex items-center gap-2 flex-wrap list-none [&::-webkit-details-marker]:hidden">
           <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" className="text-plain transition-transform group-open:rotate-90"><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" /></svg>
           <span className="font-semibold">Touring rules</span>
-          <span className="text-xs text-plain">≤{value.maxDriveMi} mi and ≤{value.rules.maxDriveHours} h a day · ≤{value.rules.maxConsecutiveShows} shows in a row · {value.rules.radiusMi} mi radius clause{value.rules.holidaysOff ? " · holidays off" : ""} · fan heat ≥ {Math.round(value.minAffinity * 100)}</span>
-          {changed && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-text">changed</span>}
+          <span className="text-xs text-plain">Up to {value.maxDriveMi} mi / {value.rules.maxDriveHours} h of driving a day · up to {value.rules.maxConsecutiveShows} shows before a day off · no show within {value.rules.radiusMi} mi of a booked one{value.rules.holidaysOff ? " · holidays kept open" : ""} · fan strength at least {Math.round(value.minAffinity * 100)}/100</span>
+          {changed && <span className="text-xs px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-text">changed</span>}
           {onSources && <button type="button" onClick={(e) => { e.preventDefault(); onSources(); }} className="ml-auto text-xs text-accent-text underline underline-offset-2">Where these numbers come from</button>}
         </summary>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
@@ -182,7 +181,7 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
             <span className="flex items-center gap-1.5">{RULES.dowWeights.label} <HelpTip label={RULES.dowWeights.label}>{RULES.dowWeights.why}</HelpTip> <KindBadge kind={RULES.dowWeights.kind} /></span>
             <div className="grid grid-cols-7 gap-1">
               {value.rules.dowWeights.map((w, i) => (
-                <label key={i} className="grid gap-0.5 text-[10px] text-center">{DOW[i]}
+                <label key={i} className="grid gap-0.5 text-xs text-center">{DOW[i]}
                   <input type="number" inputMode="decimal" step={0.05} min={0} max={1} value={w} onChange={(e) => setR({ dowWeights: value.rules.dowWeights.map((x, j) => (j === i ? Number(e.target.value) : x)) })} className={`${input} !px-1 text-center font-mono !text-xs`} />
                 </label>
               ))}
@@ -191,7 +190,7 @@ export default function FillForm({ value, onChange, onSubmit, busy, onSources, m
         </div>
         <div className="flex gap-3 mt-3 text-xs flex-wrap items-center">
           <button type="button" onClick={() => onChange({ ...value, maxDriveMi: RULE_VALUES.maxDriveMi, minAffinity: RULE_VALUES.minAffinity, rules: DEFAULT_RULES })} className="btn btn-secondary btn-sm">Reset rules to defaults</button>
-          <span className="text-plain">Amber = Fanpoint&apos;s assumption with no solid source. Change it to match your act and contracts.</span>
+          <span className="text-plain">Amber badge = our own estimate, not from a published source. Change it to match your act and contracts.</span>
         </div>
       </details>
 

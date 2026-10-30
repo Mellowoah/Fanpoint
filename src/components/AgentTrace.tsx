@@ -4,6 +4,7 @@ import type { AgentEvent } from "@/lib/agent/types";
 
 /** Live trace of the agent: steps, the model's reasoning notes, and every exact Qloo request it made. */
 export default function AgentTrace({ events, title }: { events: AgentEvent[]; title: string }) {
+  const [show, setShow] = useState(false);
   // Ranking tools (heatmap reads) are expanded by default so their exact Qloo requests are visible.
   const [toggled, setToggled] = useState<Set<number>>(new Set());
   const isOpen = (i: number, name: string) => toggled.has(i) !== ["scan_corridor", "compare_fan_geography"].includes(name);
@@ -15,7 +16,7 @@ export default function AgentTrace({ events, title }: { events: AgentEvent[]; ti
     <div className="card bg-panel p-4 text-sm">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-semibold">{title}</h3>
-        {totalCalls > 0 && <span className="text-xs text-plain font-mono">{totalCalls} Qloo calls</span>}
+        {totalCalls > 0 && <span className="text-xs text-plain">{totalCalls} requests to Qloo</span>}
       </div>
       <ol className="grid gap-1.5 mb-3">
         {[...steps.values()].map((s) => (
@@ -27,7 +28,11 @@ export default function AgentTrace({ events, title }: { events: AgentEvent[]; ti
           </li>
         ))}
       </ol>
-      <div className="grid gap-1 max-h-72 overflow-auto font-mono text-[11px] leading-relaxed">
+      <div className="grid gap-2 border-t border-line pt-3">
+        <p className="text-xs text-plain">Every Qloo API call this run made, in order, with the exact request and what came back.</p>
+        <button type="button" aria-expanded={show} aria-controls="trace-log" onClick={() => setShow((v) => !v)} className="btn btn-secondary btn-sm justify-self-start" data-show-trace>{show ? "Hide trace" : "Show trace"}</button>
+      </div>
+      {show && <div id="trace-log" className="grid gap-1 max-h-72 overflow-auto font-mono text-xs leading-relaxed mt-3">
         {events.map((e, i) => {
           if (e.type === "thought") return <div key={i} className="text-plain italic">{e.text}</div>;
           if (e.type === "error") return <div key={i} className="text-red-400">error: {e.message}</div>;
@@ -50,7 +55,7 @@ export default function AgentTrace({ events, title }: { events: AgentEvent[]; ti
             </div>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }

@@ -31,7 +31,7 @@ export function ErrorPanel({ error, onRetry, context }: { error: ErrorEvent; onR
     <div role="alert" className="rounded-2xl border border-red-500/35 bg-red-500/[0.07] p-4 sm:p-5 text-sm flex gap-3">
       <span aria-hidden className="mt-0.5 size-7 shrink-0 rounded-full bg-red-500/15 text-red-300 grid place-items-center font-bold">!</span>
       <div className="grid gap-1.5 min-w-0">
-        <div className="font-semibold text-red-200">{context ? `${context}: ` : ""}{TITLES[error.code] ?? "Error"}{who && <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-500/20 align-middle">{who}</span>}</div>
+        <div className="font-semibold text-red-200">{context ? `${context}: ` : ""}{TITLES[error.code] ?? "Error"}{who && <span className="ml-2 text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-500/20 align-middle">{who}</span>}</div>
         <div className="text-foreground/90">{error.message}</div>
         {next && <div className="text-xs text-plain">{next}</div>}
         {error.retryable && onRetry && <button onClick={onRetry} className="btn btn-secondary btn-sm justify-self-start mt-1">Try again</button>}

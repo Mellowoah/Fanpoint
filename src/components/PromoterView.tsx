@@ -6,7 +6,6 @@ import WhyPopover from "./WhyPopover";
 import { CYAN } from "./palette";
 import CityInput from "./CityInput";
 import { Spinner } from "./FillForm";
-import ScoreLineText from "./ScoreLineText";
 
 export const DEMO_PROMOTER_CITY = "Nashville";
 
@@ -57,7 +56,7 @@ export default function PromoterView({ onPlan, live, onSources }: { onPlan: (art
             <div className="field min-w-0">
               <label htmlFor="promoter-genre">Genre (optional)</label>
               <input id="promoter-genre" className="input" value={genre} maxLength={40} placeholder={live ? "e.g. country, indie rock" : "e.g. shoegaze, dream pop"} onChange={(e) => setGenre(e.target.value)} />
-              <span className="text-[11px] font-normal">Matched to a Qloo music genre tag.</span>
+              <span className="text-xs font-normal">Matched to one of Qloo&apos;s music genres.</span>
             </div>
             <div className="flex gap-2 md:pt-[22px]">
               <button type="submit" disabled={busy || !city.trim()} className="btn btn-primary px-6 py-[11px] w-full md:w-auto">{busy && <Spinner />}{busy ? "Finding…" : "Find acts"}</button>
@@ -77,24 +76,24 @@ export default function PromoterView({ onPlan, live, onSources }: { onPlan: (art
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between gap-3 flex-wrap px-4 py-2.5 border-b border-line">
               <h3 className="text-sm font-semibold">Top {res.acts.length} acts for {res.city}{res.genre?.name ? ` · ${res.genre.name}` : ""}</h3>
-              <span className="text-[11px] text-plain">{res.signal?.kind === "locality" ? `Qloo locality: ${res.signal.name}` : res.signal ? "Qloo location: city centre point" : ""}</span>
+              <span className="text-xs text-plain">{res.signal?.kind === "locality" ? `Area Qloo matched: ${res.signal.name}` : res.signal ? "Area Qloo matched: the city centre" : ""}</span>
             </div>
             {!!res.taste?.length && (
               <div className="flex flex-wrap items-center gap-1.5 px-4 py-2.5 border-b border-line text-xs" data-city-taste>
-                <span className="text-[10px] uppercase tracking-wide text-plain">{res.city} leans</span>
+                <span className="text-xs text-plain">{res.city}&apos;s crowd leans toward</span>
                 {res.taste.map((t) => <span key={t} className="rounded-full border px-2 py-0.5" style={{ borderColor: `${CYAN}66` }}>{t}</span>)}
                 <WhyPopover label={`taste of ${res.city}`} title="How">Music genres {res.city}&apos;s audience over-indexes on, strongest first (Qloo taste analysis with the city as the signal).</WhyPopover>
               </div>
             )}
             <ActList acts={res.acts} onPlan={onPlan} />
-            <div className="px-4 py-2.5 border-t border-line text-[11px] text-plain">Order and scores are Qloo&apos;s; Fanpoint only removes duplicates. Scores often sit close to 1, so the rank carries more information than the two decimals.</div>
+            <div className="px-4 py-2.5 border-t border-line text-xs text-plain flex items-center gap-1.5">Order and scores come straight from Qloo. <WhyPopover label="how acts are ranked" title="How">Order and scores are Qloo&apos;s; Fanpoint only removes duplicates. Scores often sit close to 100, so the rank tells you more than the score itself.</WhyPopover></div>
           </div>
         )}
         {res && !!res.rooms?.length && (
           <div className="card overflow-hidden" data-room-fit>
             <div className="flex items-center justify-between gap-3 flex-wrap px-4 py-2.5 border-b border-line">
               <h3 className="text-sm font-semibold">Who fits this room?</h3>
-              <span className="text-[11px] text-plain">Qloo ranks artists by their fans&apos; affinity for the room <WhyPopover label="who fits this room" title="How">The room itself is the Qloo taste signal (with {res.city} as the location). Only acts with a music genre tag are kept: a room&apos;s crowd also likes TV personalities and podcasters.</WhyPopover></span>
+              <span className="text-xs text-plain flex items-center gap-1.5">Acts whose fans like this room most <WhyPopover label="who fits this room" title="How">The room itself is the Qloo taste signal (with {res.city} as the location). Only acts with a music genre tag are kept: a room&apos;s crowd also likes TV personalities and podcasters.</WhyPopover></span>
             </div>
             <form noValidate onSubmit={(e) => { e.preventDefault(); void fitRoom(); }} className="flex flex-wrap gap-2 px-4 py-3 items-end">
               <div className="field min-w-0 flex-1">
@@ -107,7 +106,7 @@ export default function PromoterView({ onPlan, live, onSources }: { onPlan: (art
             </form>
             {fit?.error && <div role="alert" className="px-4 pb-3 text-sm text-red-200">{fit.error}</div>}
             {fit && !fit.error && (fit.acts.length
-              ? <><div className="px-4 pb-1 text-[11px] text-plain">Top {fit.acts.length} music acts for {fit.room?.name}{fit.room?.address ? ` (${fit.room.address})` : ""}{fit.dropped ? ` · ${fit.dropped} non-music results dropped` : ""}</div><ActList acts={fit.acts} onPlan={onPlan} /></>
+              ? <><div className="px-4 pb-1 text-xs text-plain">Top {fit.acts.length} music acts for {fit.room?.name}{fit.room?.address ? ` (${fit.room.address})` : ""}{fit.dropped ? ` · ${fit.dropped} results that weren't musicians left out` : ""}</div><ActList acts={fit.acts} onPlan={onPlan} roomMode /></>
               : <div className="px-4 pb-3 text-sm text-plain">Qloo returned no music acts for this room.</div>)}
           </div>
         )}
@@ -117,7 +116,7 @@ export default function PromoterView({ onPlan, live, onSources }: { onPlan: (art
   );
 }
 
-function ActList({ acts, onPlan }: { acts: PromoterAct[]; onPlan: (artist: string) => void }) {
+function ActList({ acts, onPlan, roomMode }: { acts: PromoterAct[]; onPlan: (artist: string) => void; roomMode?: boolean }) {
   return (
     <ol className="divide-y divide-line">
       {acts.map((a, i) => (
@@ -128,8 +127,8 @@ function ActList({ acts, onPlan }: { acts: PromoterAct[]; onPlan: (artist: strin
             <img src={a.image} alt="" width={44} height={44} loading="lazy" className="size-11 rounded-lg object-cover bg-background shrink-0" />
           ) : <span aria-hidden className="size-11 rounded-lg bg-accent/15 text-accent-text grid place-items-center text-sm font-semibold shrink-0">{a.name.slice(0, 1)}</span>}
           <div className="min-w-[11rem] flex-1 grid gap-0.5">
-            <div className="font-semibold truncate">{a.name}{a.mock && <span className="ml-2 text-[10px] uppercase tracking-wide text-plain">mock</span>}</div>
-            <div className="text-xs font-mono text-accent-text"><ScoreLineText text={a.scoreLine} /></div>
+            <div className="font-semibold truncate">{a.name}{a.mock && <span className="ml-2 text-xs text-plain">demo act</span>}</div>
+            <div className="text-xs text-accent-text" data-score-line title={a.scoreLine}>How strongly these fans favor this {roomMode ? "room" : "city"}: <b className="font-mono">{a.affinity === undefined ? "no reading" : `${Math.round(a.affinity * 100)} / 100`}</b></div>
             {a.detail && <div className="text-xs text-plain truncate">{a.detail}</div>}
           </div>
           <button onClick={() => onPlan(a.name)} className="btn btn-secondary btn-sm shrink-0 max-sm:w-full">Plan a routing</button>

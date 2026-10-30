@@ -64,7 +64,7 @@ describe("Fill the gaps: code decides, the model explains", () => {
       ? { summary: "This routing will sell 4,000 tickets.", fills: (a.fills as { city: string }[]).map((f) => ({ city: f.city, note: "Sells out a 900-cap room.", promo: [] })) }
       : a));
     expect(p.aiSummary).toBeUndefined();
-    expect(p.summary).toMatch(/off days filled/);
+    expect(p.summary).toMatch(/Filled \d+ of \d+ open dates/);
     expect(p.stops.length).toBeGreaterThan(0);
     for (const s of p.stops) { expect(s.aiNote).toBeUndefined(); expect(s.why).toMatch(/road mi .* \(OSRM\)/); }
     expect(p.warnings.filter((w) => w.startsWith("AI text dropped"))).toHaveLength(p.stops.length + 1);

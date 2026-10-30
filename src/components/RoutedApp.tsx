@@ -18,6 +18,7 @@ import SourcesPanel from "./SourcesPanel";
 import PromoterView from "./PromoterView";
 import { CYAN, PLAIN } from "./palette";
 import BenchmarkCard from "./BenchmarkCard";
+import WhyPopover from "./WhyPopover";
 import { BENCHMARK as B } from "@/lib/benchmark";
 import { PlanActions } from "./HoldDraft";
 
@@ -94,6 +95,34 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
   const qMap = useFillMap(q);
   const started = tab === "fill" ? qEv.length > 0 || busy : cEv.length > 0 || busy;
 
+  // The co-headliner view brings its own map, so once it runs the form takes the full width.
+  const showMap = !(tab === "cohead" && started);
+  // The map beside the form: the route once there is one, otherwise an empty US map with the next step on it.
+  const fillMap = tab === "fill" && q;
+  const mapProps = !fillMap ? {} : rank === "with"
+    ? { rings: qMap?.rings, cells: qMap?.cells, paths: qMap?.paths, markers: qMap?.markers, fit: qMap?.fit }
+    : { rings: qMap?.rings, fit: qMap?.fit, markers: [...q.anchors.map((a) => ({ lat: a.lat, lon: a.lon, color: "#ffffff", radius: 8, label: `★ ${a.city}`, short: "★", dir: "left" as const, priority: 1 })),
+      ...q.ranked.flatMap((g) => g.withoutQloo.slice(0, 5).map((c, i) => ({ lat: c.lat, lon: c.lon, color: PLAIN, label: `${i + 1}. ${c.name}`, short: `${i + 1}`, tooltip: `${i + 1}. ${c.name} (by city size and venues)` })))] };
+  const mapTitle = fillMap ? (rank === "with" ? `Route for ${q.artist.name}` : "Biggest cities, no fan data") : tab === "fill" ? "Your route will appear here" : "Co-headliner fan maps appear below";
+  const mapLegend = fillMap && rank === "with"
+    ? <><Dot c="#ffffff" />Booked show <Dot c={CYAN} />Date we filled (number = order · fan strength) <span className="inline-block h-1.5 w-8 rounded-full bg-[linear-gradient(90deg,rgb(30,41,59),rgb(6,182,212),rgb(124,58,237),rgb(221,214,254))]" aria-hidden />Where fans are</>
+    : fillMap ? <><Dot c="#ffffff" />Booked show <Dot c={PLAIN} />Biggest cities by population</> : <span>{modes?.qloo === "live" ? "Real acts, live Qloo data" : "Fictional demo acts (mock mode)"}</span>;
+  const demoF = fill.artist.trim() ? fill : demoFill(modes?.qloo), demoC = co.artist.trim() ? co : demoCohead(modes?.qloo);
+  const mapOverlay = fillMap ? null : tab === "fill" && busy ? (
+    <div className="rounded-2xl border border-line bg-panel/90 backdrop-blur px-5 py-4 text-center grid gap-1.5 shadow-2xl shadow-black/50 max-w-sm" role="status">
+      <div className="text-sm font-semibold flex items-center justify-center gap-2"><Spinner className="text-accent-text" />Mapping where {demoF.artist}&apos;s fans are…</div>
+      <div className="text-xs text-plain">Live Qloo data; this takes about half a minute.</div>
+    </div>
+  ) : tab === "fill" && qErr ? (
+    <div className="rounded-2xl border border-line bg-panel/90 backdrop-blur px-5 py-4 text-center text-sm max-w-sm">No route this time. The message below the form says why.</div>
+  ) : tab === "cohead" && started ? null : (
+    <div className="pointer-events-auto rounded-2xl border border-line bg-panel/90 backdrop-blur px-5 py-4 text-center grid gap-2.5 shadow-2xl shadow-black/50 max-w-sm">
+      <div className="text-sm font-semibold">{tab === "fill" ? "The demo is ready to run" : "The demo pair is ready to run"}</div>
+      <div className="text-xs text-plain">{tab === "fill" ? `${demoF.artist} · ${demoF.anchors.map((a) => a.city).filter(Boolean).join(" → ")}` : `${demoC.artist} × ${demoC.partner}`}</div>
+      <button type="button" disabled={busy} onClick={() => { if (tab === "fill") { setFill(demoF); void runFill(demoF); } else { setCo(demoC); void runCo(demoC); } }} className="btn btn-primary">{tab === "fill" ? `Route ${demoF.artist}` : `Match ${demoC.artist} with co-headliners`}</button>
+    </div>
+  );
+
   return (
     <div className="flex flex-col min-h-screen">
       <ModeBanner modes={modes} />
@@ -114,24 +143,24 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
 
       <header className="relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-40 h-[420px] bg-[radial-gradient(60%_60%_at_50%_0%,rgba(124,58,237,0.18),transparent_70%)]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-10 sm:pt-14 pb-6 sm:pb-8 grid gap-4">
-          <a href="https://www.qloo.com/" target="_blank" rel="noreferrer" className="justify-self-start inline-flex items-center gap-2 rounded-full border border-line bg-panel/80 px-3 py-1 text-[11px] font-medium text-plain hover:text-foreground">
-            <span className="size-1.5 rounded-full bg-accent" aria-hidden />Powered by Qloo Taste AI™
-          </a>
-          {role === "agent" ? (<>
-          <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Fill the empty nights <span className="text-accent">between your booked shows.</span></h1>
-          <p className="text-[15px] sm:text-lg text-plain max-w-3xl leading-relaxed">An empty night on tour still costs a hotel, a van and a crew, and earns nothing.</p>
-          <p className="text-[15px] sm:text-lg text-plain max-w-3xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint + Qloo books more nights than the same LLM with no tools, with zero rule breaks</b> (median {B.fanpoint.nights.median} vs {B.plainAi.nights.median} of {B.offDaysPerAct} open nights; {B.fanpoint.ruleBreaks} vs {B.plainAi.actsWithBreaks} of {B.acts} plans breaking a rule; longest run {B.fanpoint.longestRun.min}–{B.fanpoint.longestRun.max} vs up to {B.plainAi.longestRun.max} shows).</p>
-          <p className="text-[15px] text-plain max-w-3xl leading-relaxed">Every decision is computed in code from Qloo fan data and sourced touring rules. The LLM only calls tools and explains; any number it writes that isn&apos;t in the data is dropped, and the agent trace shows every Qloo call. Pin your confirmed shows and get ranked gap cities, drive times and a sourced &ldquo;why this city&rdquo; for each. Try a one-click example below.</p>
-          </>) : (<>
-          <h1 className="text-[34px] leading-[1.08] sm:text-5xl font-semibold tracking-[-0.025em] max-w-3xl">Book the acts <span className="text-accent">your city already loves.</span></h1>
-          <p className="text-[15px] sm:text-lg text-plain max-w-2xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint is a decision tool for booking agents and promoters.</b> Promoters get the other side: the acts their city&apos;s fans love most. Pick your city; get the artists whose fans Qloo ranks strongest there, then hand one to the routing desk.</p>
-          </>)}
-          <div role="tablist" aria-label="Your role" className="seg justify-self-start mt-1">
-            {([["agent", "I'm an agent"], ["promoter", "I'm a promoter"]] as [Role, string][]).map(([r, l]) => (
-              <button key={r} role="tab" aria-selected={role === r} onClick={() => setRole(r)} className="seg-accent">{l}</button>
-            ))}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 pb-4 grid gap-2.5">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <a href="https://www.qloo.com/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-line bg-panel/80 px-3 py-1 text-xs font-medium text-plain hover:text-foreground">
+              <span className="size-1.5 rounded-full bg-accent" aria-hidden />Powered by Qloo Taste AI™
+            </a>
+            <div role="tablist" aria-label="Your role" className="seg">
+              {([["agent", "I'm an agent"], ["promoter", "I'm a promoter"]] as [Role, string][]).map(([r, l]) => (
+                <button key={r} role="tab" aria-selected={role === r} onClick={() => setRole(r)} className="seg-accent">{l}</button>
+              ))}
+            </div>
           </div>
+          {role === "agent" ? (<>
+          <h1 className="text-[30px] leading-[1.1] sm:text-[38px] font-semibold tracking-[-0.025em]">Fill the empty nights <span className="text-accent">between your booked shows.</span></h1>
+          <p className="text-[15px] sm:text-base text-plain max-w-6xl leading-relaxed" data-hero>An empty night on tour still costs a hotel, a van and a crew, and earns nothing. Fanpoint uses Qloo fan data to book those open dates in the cities where the act&apos;s fans are strongest, and never breaks a touring limit. <b className="text-foreground font-semibold">In tests it filled more open dates than a plain AI chatbot (typically {B.fanpoint.nights.median} vs {B.plainAi.nights.median} of {B.offDaysPerAct}), with {B.fanpoint.ruleBreaks} shows that broke touring limits.</b></p>
+          </>) : (<>
+          <h1 className="text-[30px] leading-[1.1] sm:text-[38px] font-semibold tracking-[-0.025em]">Book the acts <span className="text-accent">your city already loves.</span></h1>
+          <p className="text-[15px] sm:text-base text-plain max-w-6xl leading-relaxed"><b className="text-foreground font-semibold">Fanpoint is a decision tool for booking agents and promoters.</b> Promoters get the other side: the acts their city&apos;s fans love most. Pick your city; get the artists whose fans Qloo ranks strongest there, then hand one to the routing desk.</p>
+          </>)}
         </div>
       </header>
 
@@ -141,46 +170,47 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
           <PromoterView onPlan={planFor} live={modes?.qloo === "live"} onSources={openSources} />
         </main>
       ) : (<>
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-5 grid gap-2">
-        <p className="text-sm" data-qloo-line><b className="text-accent-text">How Qloo changes the result:</b> same rules, Qloo turned off, the demo routing books {B.withVsWithout.demo.withoutQloo} of {B.withVsWithout.demo.offDays} open nights instead of {B.withVsWithout.demo.withQloo}.</p>
-        <BenchmarkCard />
-      </div>
-      <section id="planner" aria-label="Planner" className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-6 scroll-mt-16">
-        <div className="card">
+      <section id="planner" aria-label="Planner" className={`max-w-7xl w-full mx-auto px-4 sm:px-6 pb-6 scroll-mt-16 grid gap-5 items-start ${showMap ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)]" : ""}`}>
+        <div className="card min-w-0">
           <div className="flex items-center justify-between gap-3 flex-wrap border-b border-line px-4 sm:px-5 py-3">
             <div role="tablist" aria-label="Tool" className="seg w-full sm:w-auto">
               {([["fill", "Fill the gaps"], ["cohead", "Co-headliner match"]] as [Tab, string][]).map(([t, l]) => (
                 <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{l}</button>
               ))}
             </div>
-            <span className="text-xs text-plain">{tab === "fill" ? "Fixed dates in → gap cities + drive times out" : "Two acts in → complementary fan map out"}</span>
+            <span className="text-xs text-plain">{tab === "fill" ? "Booked dates in → shows for the open dates out" : "Two acts in → where each one brings the crowd"}</span>
           </div>
           <div className="p-4 sm:p-5">
             {tab === "fill" ? <FillForm value={fill} onChange={setFill} onSubmit={() => runFill(fill)} busy={busy} onSources={openSources} mode={modes?.qloo} onReset={() => setFill(demoFill(modes?.qloo))} onExample={(f) => { setRank("with"); void runFill(f); }} /> : (
-              <form noValidate onSubmit={(e) => { e.preventDefault(); if (!co.artist.trim()) { setCoTried(true); return; } runCo(co); }} className="grid md:grid-cols-[1fr_1fr_auto] gap-4 items-start">
+              <form noValidate onSubmit={(e) => { e.preventDefault(); if (!co.artist.trim()) { setCoTried(true); return; } runCo(co); }} className="grid sm:grid-cols-2 gap-4 items-start">
                 <ArtistInput id="co-artist" label="Your act" value={co.artist} onChange={(v) => setCo({ ...co, artist: v })} error={coTried && !co.artist.trim() ? "Enter your act's name." : undefined} placeholder="Search Qloo artists" />
                 <ArtistInput id="co-partner" label="Proposed co-headliner (optional)" value={co.partner} onChange={(v) => setCo({ ...co, partner: v })} hint="Leave empty and Fanpoint scans peer acts." placeholder="Search Qloo artists" />
-                <div className="flex gap-2 md:pt-[22px]">
-                  <button type="submit" disabled={busy} className="btn btn-primary px-6 py-[11px] w-full md:w-auto">{busy && <Spinner />}{busy ? "Comparing…" : "Match co-headliners"}</button>
+                <div className="flex gap-2 sm:col-span-2">
+                  <button type="submit" disabled={busy} className="btn btn-primary px-6 py-[11px] w-full sm:w-auto">{busy && <Spinner />}{busy ? "Comparing…" : "Match co-headliners"}</button>
                   <button type="button" disabled={busy} onClick={() => { setCoTried(false); setCo(demoCohead(modes?.qloo)); }} className="btn btn-ghost">Reset</button>
                 </div>
               </form>
             )}
           </div>
         </div>
+        {showMap && <div className="min-w-0" data-hero-map>
+          <MapCard title={mapTitle} legend={mapLegend}>
+            <div className="relative">
+              <MapView {...mapProps} height="clamp(360px, calc(100vh - 400px), 550px)" />
+              {mapOverlay && <div className="absolute inset-0 grid place-items-center p-4 pointer-events-none">{mapOverlay}</div>}
+            </div>
+          </MapCard>
+        </div>}
       </section>
 
       <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-16 grid gap-5">
         {sources && <SourcesPanel onClose={() => setSources(false)} />}
-        {!started && <Landing tab={tab} live={modes?.qloo === "live"} onDemo={() => {
-          if (tab === "fill") { const f = fill.artist.trim() ? fill : demoFill(modes?.qloo); setFill(f); void runFill(f); }
-          else { const c = co.artist.trim() ? co : demoCohead(modes?.qloo); setCo(c); void runCo(c); }
-        }} />}
+        {!started && <Landing />}
 
         {started && tab === "fill" && (
           <>
             <div className={`flex justify-between items-center flex-wrap gap-3 ${q ? "card card-pad" : ""}`}>
-              {q ? (rank === "with" ? <FillStats q={q} /> : <div className="text-sm text-plain max-w-xl">Without Qloo: the same filtered cities, ordered by Census population and OSM venues. No fan signal, so no schedule is built.</div>) : <div className="text-sm text-plain">{qErr ? "No routing." : <span className="sr-only">Agent is routing…</span>}</div>}
+              {q ? (rank === "with" ? <FillStats q={q} /> : <div className="text-sm text-plain max-w-xl">Without Qloo: the same cities, ordered by population and number of venues. With no fan data, no schedule is built.</div>) : <div className="text-sm text-plain">{qErr ? "No routing." : <span className="sr-only">Agent is routing…</span>}</div>}
               <div className="flex items-center gap-2 flex-wrap">
                 <QlooToggle value={rank} onChange={setRank} />
                 {q && <button type="button" data-compare-plain onClick={() => { setBaseline("compare"); setTimeout(() => document.getElementById("plain-compare")?.scrollIntoView({ behavior: "smooth" }), 0); }} className="btn btn-secondary btn-sm">Compare with plain AI</button>}
@@ -192,30 +222,22 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             {q && <RankedLists ranked={q.ranked} mode={rank} picked={new Set(q.stops.map((x) => x.city))} />}
             {q && rank === "with" && <div className="grid gap-3"><FillSummary q={q} /><PlanActions q={q} /></div>}
             {rank === "with" && (
-              <div className="grid lg:grid-cols-[1fr_370px] gap-5">
-                <div className="grid gap-4 content-start min-w-0">
-                  {q && <FillCalendar days={q.result.calendar} />}
-                  <MapCard title="Route map" legend={<><Dot c="#ffffff" />Anchor <Dot c={CYAN} />Fill <span className="inline-block h-1.5 w-8 rounded-full bg-[linear-gradient(90deg,rgb(30,41,59),rgb(6,182,212),rgb(124,58,237),rgb(221,214,254))]" aria-hidden />Qloo fan heat</>}>
-                    <MapView rings={qMap?.rings} cells={qMap?.cells} paths={qMap?.paths} markers={qMap?.markers} fit={qMap?.fit} height={420} />
-                  </MapCard>
-                  {q && <CandidateFilter gaps={q.result.gaps} maxDriveMi={q.params.maxDriveMi} />}
-                  {q?.support && <RunSupportCard s={q.support} headliner={q.artist.name} />}
-                  <div className="grid md:grid-cols-2 gap-4">{q?.stops.map((s) => <FillStopCard key={s.date} s={s} q={q} />)}</div>
+              <div className="grid gap-4 min-w-0">
+                {q && <FillCalendar days={q.result.calendar} legend />}
+                {q?.support && <RunSupportCard s={q.support} headliner={q.artist.name} />}
+                {q && <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{q.stops.map((s) => <FillStopCard key={s.date} s={s} q={q} />)}</div>}
+                <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-4 items-start">
+                  {q ? <CandidateFilter gaps={q.result.gaps} maxDriveMi={q.params.maxDriveMi} /> : <div />}
+                  <AgentTrace events={qEv} title="What the agent did" />
                 </div>
-                <AgentTrace events={qEv} title="Agent trace · Qloo calls" />
               </div>
-            )}
-            {rank === "without" && q && (
-              <MapView rings={qMap?.rings} fit={qMap?.fit} height={360}
-                markers={[...q.anchors.map((a) => ({ lat: a.lat, lon: a.lon, color: "#ffffff", radius: 8, label: `★ ${a.city}`, dir: "left" as const })),
-                  ...q.ranked.flatMap((g) => g.withoutQloo.slice(0, 5).map((c, i) => ({ lat: c.lat, lon: c.lon, color: PLAIN, label: `${i + 1}. ${c.name}` })))]} />
             )}
 
             <section id="plain-compare" className="grid gap-3 border-t border-line pt-5 mt-2 scroll-mt-16">
               <div className="flex justify-between items-center flex-wrap gap-2">
-                <div className="text-sm"><b>Fanpoint vs the same LLM with no tools.</b> <span className="text-plain">The same anchors given to a plain LLM (no Qloo, no rules), audited in code; red = breaks a rule.</span></div>
+                <div className="text-sm flex items-center gap-1.5 flex-wrap"><b>Fanpoint vs a plain AI chatbot</b> <span className="text-plain">Red = breaks a touring limit.</span><WhyPopover label="the plain AI comparison" title="How">The same booked shows go to the same AI model with no tools, no Qloo and no touring limits, answering from general knowledge. Fanpoint then checks its picks in code against real road distances (OSRM) and the same touring limits.</WhyPopover></div>
                 <div role="tablist" aria-label="Plain AI baseline" className="seg">
-                  {([["off", "Hide"], ["plain", "Plain AI"], ["compare", "Compare"]] as [Baseline, string][]).map(([v, l]) => (
+                  {([["off", "Hide"], ["plain", "Plain AI"], ["compare", "Side by side"]] as [Baseline, string][]).map(([v, l]) => (
                     <button key={v} role="tab" aria-selected={baseline === v} onClick={() => setBaseline(v)}>{l}</button>
                   ))}
                 </div>
@@ -227,8 +249,8 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
                 const markers = pc.days.filter((d) => d.kind !== "off" && d.lat !== undefined).map((d) => ({ lat: d.lat!, lon: d.lon!, color: d.kind === "anchor" ? "#fff" : pc.flagged.has(d.date) ? "#ef4444" : PLAIN, label: d.kind === "anchor" ? `★ ${d.city}` : d.city, dir: (d.kind === "anchor" ? "left" : "right") as "left" | "right" }));
                 return (
                   <div className="grid gap-4">
-                    <div className="text-sm text-plain">{p.simulated && <span className="mr-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200">SIMULATED</span>}Baseline for comparison only: the same anchors given to an LLM with no tools, no Qloo and no rules, answering from general knowledge. Its picks are then audited in code with OSRM road data and Fanpoint&apos;s touring rules; red = breaks a rule.</div>
-                    <FillCalendar days={pc.days} plain flagged={pc.flagged} />
+                    <div className="text-sm text-plain">{p.simulated && <span className="mr-2 text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200">SIMULATED</span>}For comparison only: what a plain AI chatbot books for the same dates.</div>
+                    <FillCalendar days={pc.days} plain flagged={pc.flagged} legend />
                     <div className="grid lg:grid-cols-2 gap-4"><MapView paths={[{ pts, color: PLAIN, dash: "6 6" }]} markers={markers} fit={qMap?.fit} height={380} /><PlainAudit p={p} q={q} /></div>
                   </div>
                 );
@@ -252,9 +274,13 @@ export default function RoutedApp({ initialModes }: { initialModes?: NonNullable
             {c && <WarningList warnings={c.warnings} />}
             {(c || busy) && <div className="flex justify-end"><QlooToggle value={rank} onChange={setRank} /></div>}
             {c ? <CoheadView plan={c} mode={rank} /> : !cErr && <Progress events={cEv} label="Comparing fan geography…" />}
-            <AgentTrace events={cEv} title="Agent trace · Qloo calls" />
+            <AgentTrace events={cEv} title="What the agent did" />
           </div>
         )}
+        <section aria-label="How Fanpoint compares" className="grid gap-2 pt-2" data-benchmark-section>
+          <p className="text-sm" data-qloo-line><b className="text-accent-text">What Qloo adds:</b> with the same touring limits but Qloo turned off, the demo route fills {B.withVsWithout.demo.withoutQloo} of {B.withVsWithout.demo.offDays} open dates instead of {B.withVsWithout.demo.withQloo}.</p>
+          <BenchmarkCard />
+        </section>
       </main>
       </>)}
       <footer className="border-t border-line bg-panel/40">
@@ -287,7 +313,7 @@ function MapCard({ title, legend, children }: { title: string; legend?: React.Re
     <div className="card overflow-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap px-4 py-2.5 border-b border-line">
         <h3 className="text-sm font-semibold">{title}</h3>
-        {legend && <div className="flex items-center gap-1.5 text-[11px] text-plain">{legend}</div>}
+        {legend && <div className="flex items-center gap-1.5 text-xs text-plain">{legend}</div>}
       </div>
       <div className="p-1.5">{children}</div>
     </div>
@@ -306,14 +332,14 @@ function Progress({ events, label = "Agent is routing…" }: { events: AgentEven
     <div className="card card-pad grid gap-4" role="status" aria-live="polite">
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 text-sm font-semibold"><Spinner className="text-accent-text" />{label}</span>
-        <span className="text-xs text-plain font-mono">{done}/{Math.max(list.length, 1)} steps{calls ? ` · ${calls} Qloo calls` : ""}</span>
+        <span className="text-xs text-plain font-mono">{done} of {Math.max(list.length, 1)} steps{calls ? ` · ${calls} requests to Qloo` : ""}</span>
       </div>
       <div className="h-1.5 rounded-full bg-background overflow-hidden" aria-hidden><div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
       <ol className="grid gap-2 text-sm">
         {list.length === 0 && <li className="text-plain">Connecting to the agent…</li>}
         {list.map((s) => (
           <li key={s.id} className="flex gap-2.5 items-start">
-            <span aria-hidden className={`mt-0.5 size-4 shrink-0 rounded-full grid place-items-center text-[10px] ${s.status === "done" ? "bg-emerald-500/20 text-emerald-300" : s.status === "error" ? "bg-red-500/20 text-red-300" : "bg-accent/20 text-accent-text animate-pulse"}`}>{s.status === "done" ? "✓" : s.status === "error" ? "✗" : "•"}</span>
+            <span aria-hidden className={`mt-0.5 size-4 shrink-0 rounded-full grid place-items-center text-xs ${s.status === "done" ? "bg-emerald-500/20 text-emerald-300" : s.status === "error" ? "bg-red-500/20 text-red-300" : "bg-accent/20 text-accent-text animate-pulse"}`}>{s.status === "done" ? "✓" : s.status === "error" ? "✗" : "•"}</span>
             <span className={s.status === "done" ? "text-plain" : ""}>{s.label}{s.detail && <span className="text-plain">: {s.detail}</span>}</span>
           </li>
         ))}
@@ -327,7 +353,7 @@ function Progress({ events, label = "Agent is routing…" }: { events: AgentEven
 function QlooToggle({ value, onChange }: { value: RankMode; onChange: (m: RankMode) => void }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="eyebrow hidden sm:inline">Ranking</span>
+      <span className="text-xs text-plain hidden sm:inline">Rank cities</span>
       <div role="tablist" aria-label="Ranking signal" className="seg">
         {([["with", "With Qloo"], ["without", "Without Qloo"]] as [RankMode, string][]).map(([v, l]) => (
           <button key={v} role="tab" aria-selected={value === v} onClick={() => onChange(v)} className={v === "with" ? "seg-accent" : ""}>{l}</button>
@@ -337,39 +363,24 @@ function QlooToggle({ value, onChange }: { value: RankMode; onChange: (m: RankMo
   );
 }
 
-function Landing({ tab, live, onDemo }: { tab: Tab; live: boolean; onDemo: () => void }) {
-  const f = demoFill(live ? "live" : "mock"), c = demoCohead(live ? "live" : "mock");
+function Landing() {
   const steps = [
-    ["Pin the anchors", "Enter the shows that are already confirmed: festival slots, support dates, a hometown show."],
-    ["Qloo reads the corridor", "Fanpoint reads the act's Qloo fan heatmap along each drive and drops cities that break touring rules: radius clauses, backtracking, road miles and hours per day."],
-    ["Book with receipts", "Off days fill with the strongest markets left. Every number links to its source; the LLM only explains."],
+    ["Enter the booked shows", "The dates already confirmed: festival slots, support dates, a hometown show."],
+    ["Qloo shows where the fans are", "Fanpoint maps the act's fans along each drive and drops any city that breaks a touring limit: too close to a booked show, doubling back, or too far to drive in a day."],
+    ["Book with proof", "Open dates fill with the strongest fan cities left. Every number links to its source; the AI only explains."],
   ];
   return (
-    <div className="grid gap-5">
-      <MapCard title={tab === "fill" ? "Your route will appear here" : "Your fan map will appear here"} legend={<span>{live ? "Real acts, live Qloo data" : "Fictional demo acts (mock mode)"}</span>}>
-        <div className="relative">
-          <MapView height={300} />
-          <div className="absolute inset-0 grid place-items-center p-4 pointer-events-none">
-            <div className="pointer-events-auto rounded-2xl border border-line bg-panel/90 backdrop-blur px-5 py-4 text-center grid gap-2.5 shadow-2xl shadow-black/50 max-w-sm">
-              <div className="text-sm font-semibold">{tab === "fill" ? "The demo is prefilled" : "The demo pair is prefilled"}</div>
-              <div className="text-xs text-plain">{tab === "fill" ? `${f.artist} · New York → Durham → Atlanta` : `${c.artist} × ${c.partner}`}</div>
-              <button onClick={onDemo} className="btn btn-primary">{tab === "fill" ? `Route ${f.artist}'s 3 anchors` : `Match ${c.artist} with co-headliners`}</button>
-            </div>
-          </div>
-        </div>
-      </MapCard>
-      <section id="how" aria-labelledby="how-title" className="grid gap-3 pt-2">
-        <h2 id="how-title" className="eyebrow">How it works</h2>
-        <ol className="grid md:grid-cols-3 gap-3">
-          {steps.map(([t, d], i) => (
-            <li key={t} className="card card-pad grid gap-1.5 content-start">
-              <span className="size-7 rounded-lg bg-accent/15 text-accent-text grid place-items-center text-xs font-semibold font-mono">{i + 1}</span>
-              <div className="font-semibold mt-1">{t}</div>
-              <div className="text-sm text-plain leading-relaxed">{d}</div>
-            </li>
-          ))}
-        </ol>
-      </section>
-    </div>
+    <section id="how" aria-labelledby="how-title" className="grid gap-3">
+      <h2 id="how-title" className="eyebrow">How it works</h2>
+      <ol className="grid md:grid-cols-3 gap-3">
+        {steps.map(([t, d], i) => (
+          <li key={t} className="card card-pad grid gap-1.5 content-start">
+            <span className="size-7 rounded-lg bg-accent/15 text-accent-text grid place-items-center text-xs font-semibold font-mono">{i + 1}</span>
+            <div className="font-semibold mt-1">{t}</div>
+            <div className="text-sm text-plain leading-relaxed">{d}</div>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }

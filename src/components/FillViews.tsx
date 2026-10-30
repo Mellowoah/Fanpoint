@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import type { Entity } from "@/lib/qloo/types";
 import type { FillPlan, FillStop, PlainFillPlan } from "@/lib/agent/types";
-import type { Day, GapPlan } from "@/lib/route/fill";
+import type { CandidateStatus, Day, GapPlan } from "@/lib/route/fill";
 import { censusUrl, findMarket, MARKETS_META, marketById, osmUrl } from "@/lib/data/markets";
 import { RULES } from "@/lib/touring/rules";
 import { KindBadge } from "./SourcesPanel";
@@ -14,6 +14,7 @@ import { HoldDraftButton } from "./HoldDraft";
 import { CYAN } from "./palette";
 import ScoreLineText from "./ScoreLineText";
 import { FanHoods, RoomCard } from "./QlooPlus";
+import { FanScore } from "./FanScore";
 
 const pct = (a?: number) => (a === undefined ? "–" : `${Math.round(a * 100)}`);
 const md = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -26,24 +27,32 @@ export function corridorHeat(q?: FillPlan) {
 }
 
 // ---------- Calendar (signature strip) ----------
-export function FillCalendar({ days, plain, flagged }: { days: Day[]; plain?: boolean; flagged?: Set<string> }) {
+export function FillCalendar({ days, plain, flagged, legend }: { days: Day[]; plain?: boolean; flagged?: Set<string>; legend?: boolean }) {
   return (
+    <div className="grid gap-1.5">
+    {legend && <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-plain" data-calendar-legend>
+      <span className="text-foreground font-medium">One box per date:</span>
+      <span className="inline-flex items-center gap-1"><span aria-hidden className="size-3 rounded-sm border border-white/60 bg-white/10" />already booked</span>
+      <span className="inline-flex items-center gap-1"><span aria-hidden className="size-3 rounded-sm border border-accent/70 bg-accent/15" />{plain ? "date filled" : "date we filled"} (fans = fan strength out of 100)</span>
+      <span className="inline-flex items-center gap-1"><span aria-hidden className="size-3 rounded-sm border border-line bg-[repeating-linear-gradient(135deg,var(--panel),var(--panel)_3px,var(--background)_3px,var(--background)_6px)]" />still open</span>
+      {flagged && <span className="inline-flex items-center gap-1"><span aria-hidden className="size-3 rounded-sm border border-red-500" />breaks a touring limit</span>}
+    </div>}
     <div className="overflow-x-auto">
-      <div className="grid grid-flow-col auto-cols-[minmax(68px,1fr)] gap-1 min-w-max">
+      <div className="grid grid-flow-col auto-cols-[minmax(80px,1fr)] gap-1 min-w-max">
         {days.map((d) => {
           const bad = flagged?.has(d.date);
           const cls = d.kind === "anchor" ? "bg-white/10 border-white/60" : d.kind === "fill" ? (plain ? `bg-plain/10 ${bad ? "border-red-500" : "border-plain/50"}` : "bg-accent/15 border-accent/70") : "border-line bg-[repeating-linear-gradient(135deg,var(--panel),var(--panel)_6px,var(--background)_6px,var(--background)_12px)]";
           return (
-            <div key={d.date} className={`border rounded-md p-1.5 text-[11px] leading-tight h-[92px] flex flex-col ${cls}`}>
+            <div key={d.date} className={`border rounded-md p-1.5 text-xs leading-tight h-[100px] flex flex-col ${cls}`}>
               <div className="flex justify-between text-plain"><span>{d.dow}</span><span>{md(d.date)}</span></div>
               {d.kind === "off" ? (d.holiday
-                ? <div className="m-auto text-center leading-tight" title={`${d.holiday}: kept off by the holidays rule (adjustable in Touring rules)`}><div className="text-plain/70 font-mono">OFF</div><div className="text-[10px] text-amber-300/90">holiday</div><div className="text-[9px] text-plain truncate max-w-[60px]">{d.holiday}</div></div>
-                : <div className="m-auto text-plain/70 font-mono">OFF</div>) : (
+                ? <div className="m-auto text-center leading-tight" title={`${d.holiday}: kept open by the holidays rule (you can change it in Touring rules)`}><div className="text-plain">open</div><div className="text-xs text-amber-300/90">holiday</div><div className="text-xs text-plain truncate max-w-[70px]">{d.holiday}</div></div>
+                : <div className="m-auto text-plain" title="No show booked on this date">open</div>) : (
                 <>
                   <div className="font-semibold mt-1 truncate" title={d.city}>{d.city}</div>
-                  {d.kind === "anchor" ? <div className="text-[10px] text-plain truncate">{d.label ?? "anchor"}</div>
-                    : d.affinity !== undefined ? <div className={`font-mono ${plain ? "text-plain" : "text-accent-text"}`}>heat {pct(d.affinity)}</div> : <div className="text-[10px] text-plain">no data</div>}
-                  {d.driveMi !== undefined && <div className={`mt-auto text-[10px] ${bad ? "text-red-400" : "text-plain"}`}>{d.driveMi} mi{d.driveHours !== undefined ? ` · ${d.driveHours}h` : ""}{d.driveDays && d.driveDays > 1 ? ` / ${d.driveDays}d` : ""}</div>}
+                  {d.kind === "anchor" ? <div className="text-xs text-plain truncate">{d.label ?? "anchor"}</div>
+                    : d.affinity !== undefined ? <div className={plain ? "text-plain" : "text-accent-text"} title="Fan strength: how concentrated this act's fans are here, 0–100 (Qloo)">fans <b className="font-mono">{pct(d.affinity)}</b></div> : <div className="text-xs text-plain">no fan data</div>}
+                  {d.driveMi !== undefined && <div className={`mt-auto text-xs ${bad ? "text-red-400" : "text-plain"}`}><span title="Drive from the previous show">{d.driveMi} mi{d.driveHours !== undefined ? ` · ${d.driveHours} h` : ""}{d.driveDays && d.driveDays > 1 ? ` / ${d.driveDays} days` : ""}</span></div>}
                 </>
               )}
             </div>
@@ -51,29 +60,40 @@ export function FillCalendar({ days, plain, flagged }: { days: Day[]; plain?: bo
         })}
       </div>
     </div>
+    </div>
   );
 }
 
 export function FillStats({ q }: { q: FillPlan }) {
   const r = q.result;
   const items: [string, string][] = [
-    ["Off days", `${r.offBefore} → ${r.offAfter}`],
-    ["Fills", `${r.fills}`],
-    ["Longest drive day", `${r.maxDayDrive} mi · ${r.maxDayHours} h`],
-    ["Most shows in a row", `${r.longestRun}`],
-    ["Rules", `≤${q.params.maxDriveMi} mi & ≤${q.params.maxDriveHours} h/day · ≤${q.params.maxConsecutiveShows} in a row · no backtracking · ${q.params.radiusMi} mi radius${q.params.holidaysOff ? " · holidays off" : ""}`],
+    ["Open dates we filled", `${r.fills} of ${r.offBefore}`],
+    ["Dates still open", `${r.offAfter}`],
+    ["Longest day of driving", `${r.maxDayDrive} mi · ${r.maxDayHours} h`],
+    ["Most shows before a day off", `${r.longestRun}`],
   ];
   return (
-    <div className="grid gap-2">
-      <div className="grid grid-cols-2 md:grid-cols-[auto_auto_auto_auto_1fr] gap-x-6 gap-y-1 text-sm">
-        {items.map(([k, v]) => <div key={k} className={k === "Rules" ? "col-span-2 md:col-span-1" : undefined}><div className="text-[10px] uppercase tracking-wide text-plain">{k}</div><div className={k === "Off days" ? "text-xl font-bold text-accent-text font-mono" : "font-mono"}>{v}</div></div>)}
+    <div className="grid gap-2" data-fill-stats>
+      <div className="grid grid-cols-2 md:grid-cols-[auto_auto_auto_auto_1fr] gap-x-6 gap-y-2 text-sm items-end">
+        {items.map(([k, v], i) => <div key={k}><div className="text-xs text-plain">{k}</div><div className={i === 0 ? "text-xl font-bold text-accent-text font-mono" : "font-mono text-base"}>{v}</div></div>)}
+        <div className="col-span-2 md:col-span-1 flex items-center gap-1.5 text-xs text-plain">
+          <span>Shows that broke touring limits: <b className="font-mono text-foreground">0</b></span>
+          <WhyPopover label="touring limits used" title="Limits">
+            Every filled date respects: at most {q.params.maxDriveMi} road miles and {q.params.maxDriveHours} hours of driving a day; at most {q.params.maxConsecutiveShows} shows before a day off; no doubling back toward a city already played; no show within {q.params.radiusMi} miles of a booked show (the &ldquo;radius clause&rdquo; in most show contracts){q.params.holidaysOff ? "; major travel holidays kept open" : ""}. Road miles and hours come from OSRM (car route on OpenStreetMap roads, no stops).
+          </WhyPopover>
+        </div>
       </div>
-      <div className="text-[11px] text-plain">Road miles and hours: OSRM car profile on OpenStreetMap data (free-flow, no stops).</div>
     </div>
   );
 }
 
 // ---------- The filter that removes unrealistic cities ----------
+/** Plain-English names for why a city was or wasn't booked (the status values come from fill.ts). */
+export const STATUS_LABEL: Record<CandidateStatus, string> = {
+  picked: "booked", "didn't fit schedule": "no open date left for it", "below heat floor": "too few fans",
+  "radius clause": "too close to a booked show", "off route / backtrack": "off the route (would double back)", "used elsewhere": "already booked on another date",
+  "no road route": "no road route", "no mapped venue": "no music venue nearby",
+};
 const STATUS_STYLE: Record<string, string> = {
   picked: "text-accent-text", "didn't fit schedule": "text-plain", "below heat floor": "text-plain line-through",
   "radius clause": "text-red-300 line-through", "off route / backtrack": "text-red-300 line-through", "used elsewhere": "text-plain line-through",
@@ -83,19 +103,21 @@ export function CandidateFilter({ gaps, maxDriveMi }: { gaps: GapPlan[]; maxDriv
   return (
     <div className="card bg-panel p-4 grid gap-3 text-sm">
       <div className="flex justify-between flex-wrap gap-2">
-        <h3 className="font-semibold">Corridor candidates → realistic fills</h3>
-        <span className="text-xs text-plain">Ranked by Qloo heatmap fan heat · filtered in code: radius clause, backtracking, real venue (OSM), heat floor, ≤{maxDriveMi} road mi/day (OSRM)</span>
+        <h3 className="font-semibold">Every city we considered, and why it was or wasn&apos;t booked</h3>
+        <span className="flex items-center gap-1.5 text-xs text-plain">Number = fan strength (0–100). Crossed out = ruled out.
+          <WhyPopover label="how cities were filtered" title="How">Cities along each drive are ranked by Qloo fan strength, then checked in code: not too close to a booked show (radius clause), no doubling back, a real music venue nearby (OpenStreetMap), enough fans, and at most {maxDriveMi} road miles of driving a day (OSRM).</WhyPopover>
+        </span>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         {gaps.map((g) => (
           <div key={g.from + g.to} className="grid gap-1">
-            <div className="text-xs text-plain">{g.from} → {g.to} · direct {g.directMi} road mi ({g.directHours} h) · {g.offDays} off days · {g.considered.length} cities scanned</div>
+            <div className="text-xs text-plain">{g.from} → {g.to}: {g.directMi} road mi ({g.directHours} h) direct · {g.offDays} open dates · {g.considered.length} cities checked</div>
             <div className="grid grid-cols-[1fr_44px_1.3fr] gap-x-2 text-xs">
               {g.considered.slice(0, 12).map((c) => (
                 <div key={c.name} className="contents">
                   <span className={STATUS_STYLE[c.status]}>{c.name}</span>
                   <span className="font-mono text-right">{pct(c.affinity)}</span>
-                  <span className={c.status === "picked" ? "text-accent-text" : c.status === "didn't fit schedule" ? "text-plain" : "text-red-300"}>{c.status}{c.detail ? ` (${c.detail})` : ""}</span>
+                  <span className={c.status === "picked" ? "text-accent-text" : c.status === "didn't fit schedule" ? "text-plain" : "text-red-300"}>{STATUS_LABEL[c.status]}{c.detail ? ` (${c.detail})` : ""}</span>
                 </div>
               ))}
             </div>
@@ -115,8 +137,8 @@ export function useFillMap(q?: FillPlan) {
     const seq = q.result.calendar.filter((d) => d.kind !== "off" && d.lat !== undefined).map((d) => ({ lat: d.lat!, lon: d.lon! }));
     let n = 0;
     const markers: Marker[] = q.result.calendar.filter((d) => d.kind !== "off").map((d) => d.kind === "anchor"
-      ? { lat: d.lat!, lon: d.lon!, color: "#ffffff", radius: 8, label: `★ ${d.city} · ${md(d.date)}`, dir: "left" as const }
-      : { lat: d.lat!, lon: d.lon!, color: CYAN, label: `${++n}. ${d.city} ${pct(d.affinity)}` });
+      ? { lat: d.lat!, lon: d.lon!, color: "#ffffff", radius: 8, label: `★ ${d.city} · ${md(d.date)}`, short: "★", dir: "left" as const, priority: 1 }
+      : { lat: d.lat!, lon: d.lon!, color: CYAN, label: `${++n}. ${d.city} · ${pct(d.affinity)}`, short: `${n}`, tooltip: `${n}. ${d.city}: fan strength ${pct(d.affinity)} of 100` });
     return { cells, rings, paths: [{ pts: seq, color: CYAN, dash: "6 6" }], markers, fit: rings.flat() };
   }, [q]);
 }
@@ -124,29 +146,29 @@ export function useFillMap(q?: FillPlan) {
 // ---------- Stop card ----------
 function Chip({ e }: { e: Entity }) {
   const cap = e.place?.capacity;
-  return <span title={cap ? `Capacity ${cap.toLocaleString("en-US")}, stated by Qloo: "${e.place?.capacityQuote}"` : e.id} className="inline-flex items-center gap-1 bg-black/30 border border-line rounded-full px-2 py-0.5 text-xs">{e.name}{cap ? <span className="text-plain shrink-0">· cap {cap.toLocaleString("en-US")}</span> : null}{e.affinity !== undefined && <span className="text-accent-text font-mono shrink-0">{pct(e.affinity)}</span>}</span>;
+  return <span title={cap ? `Holds ${cap.toLocaleString("en-US")} people, as stated by Qloo: "${e.place?.capacityQuote}"` : `Number = how strongly these fans overlap with the headliner's, 0–100 (Qloo)`} className="inline-flex items-center gap-1 bg-black/30 border border-line rounded-full px-2 py-0.5 text-xs">{e.name}{cap ? <span className="text-plain shrink-0">· holds {cap.toLocaleString("en-US")}</span> : null}{e.affinity !== undefined && <span className="text-accent-text font-mono shrink-0" title="Fan overlap with the headliner, 0–100 (Qloo)">{pct(e.affinity)}</span>}</span>;
 }
 const KIND: Record<string, string> = { brand: "Brand", podcast: "Podcast", tv_show: "TV" };
 const num = (n: number) => n.toLocaleString("en-US");
 const Src = ({ children, href }: { children: React.ReactNode; href?: string }) => href
-  ? <a href={href} target="_blank" rel="noreferrer" className="text-[10px] text-plain underline underline-offset-2 hover:text-accent-text">{children}</a>
-  : <span className="text-[10px] text-plain">{children}</span>;
+  ? <a href={href} target="_blank" rel="noreferrer" className="text-xs text-plain underline underline-offset-2 hover:text-accent-text">{children}</a>
+  : <span className="text-xs text-plain">{children}</span>;
 
 /** The facts behind one recommendation, each with its source. */
 function WhyFacts({ s }: { s: FillStop }) {
   const m = marketById(s.cityId) ?? findMarket(s.city);
   const rows: { k: string; v: React.ReactNode; src: React.ReactNode }[] = [
-    { k: "Fan heat", v: <><b className="text-accent-text">{pct(s.affinity)}</b>{s.rankInCorridor ? <> · #{s.rankInCorridor} of {s.corridorSize} in corridor</> : null}</>, src: <Src href="https://docs.qloo.com/">Qloo heatmap</Src> },
-    { k: "Road", v: <>{s.driveMi} mi · {s.driveHours ?? "–"} h from {s.prevCity}{s.driveDays > 1 ? ` (${s.driveDays} days)` : ""}</>, src: <Src href="https://project-osrm.org/">OSRM · © OSM</Src> },
-    { k: "Night", v: <>{s.dow} weight {s.dowWeight}{s.run ? ` · show ${s.run} in a row` : ""}</>, src: <KindBadge kind={RULES.dowWeights.kind} /> },
+    { k: "Fans", v: <>fan strength <b className="text-accent-text">{pct(s.affinity)}</b> of 100{s.rankInCorridor ? <> · #{s.rankInCorridor} of {s.corridorSize} cities on this drive</> : null}</>, src: <Src href="https://docs.qloo.com/">Qloo heatmap</Src> },
+    { k: "Drive", v: <>{s.driveMi} mi · {s.driveHours ?? "–"} h from {s.prevCity}{s.driveDays > 1 ? ` (${s.driveDays} days)` : ""}</>, src: <Src href="https://project-osrm.org/">OSRM · © OSM</Src> },
+    { k: "Night", v: <>{s.dow}: busy-night score {s.dowWeight} of 1{s.run ? ` · show ${s.run} since the last day off` : ""}</>, src: <KindBadge kind={RULES.dowWeights.kind} /> },
   ];
   if (m) {
     rows.push({ k: "Population", v: <>{num(m.population)} city · {num(m.metro.population)} metro <span className="text-plain">({m.metro.title})</span></>, src: <Src href={censusUrl(m)}>Census V2025</Src> });
-    rows.push({ k: "Venues", v: <>{m.venues.total} mapped within {MARKETS_META.venueRadiusMi} mi <span className="text-plain">({m.venues.theatre} theatres, {m.venues.nightclub} clubs, {m.venues.music_venue + m.venues.live_music} music)</span></>, src: <Src href={osmUrl(m)}>OpenStreetMap</Src> });
+    rows.push({ k: "Venues", v: <>{m.venues.total} music venues and theatres within {MARKETS_META.venueRadiusMi} mi <span className="text-plain">({m.venues.theatre} theatres, {m.venues.nightclub} clubs, {m.venues.music_venue + m.venues.live_music} music)</span></>, src: <Src href={osmUrl(m)}>OpenStreetMap</Src> });
   }
   return (
-    <dl className="grid grid-cols-[72px_minmax(0,1fr)] sm:grid-cols-[72px_minmax(0,1fr)_auto] gap-x-2 gap-y-1 text-xs bg-black/20 border border-line rounded-lg p-2.5">
-      {rows.map(({ k, v, src }) => <div key={k} className="contents"><dt className="text-plain">{k}</dt><dd className="min-w-0 break-words">{v}</dd><dd className="col-start-2 sm:col-start-auto -mt-0.5 mb-1 sm:m-0 sm:text-right">{src}</dd></div>)}
+    <dl className="grid grid-cols-[64px_minmax(0,1fr)] gap-x-2 gap-y-1 text-xs">
+      {rows.map(({ k, v, src }) => <div key={k} className="contents"><dt className="text-plain">{k}</dt><dd className="min-w-0 break-words">{v}</dd><dd className="col-start-2 -mt-0.5 mb-1">{src}</dd></div>)}
     </dl>
   );
 }
@@ -161,19 +183,21 @@ export function FillStopCard({ s, q }: { s: FillStop; q: FillPlan }) {
         </div>
         <div className="text-right shrink-0">
           <div className="text-2xl font-bold text-accent-text font-mono">{pct(s.affinity)}</div>
-          <div className="text-[10px] text-plain uppercase tracking-wide">fan heat{s.rankInCorridor ? ` · #${s.rankInCorridor}/${s.corridorSize}` : ""}</div>
+          <div className="text-xs text-plain">fan strength / 100</div>
         </div>
       </header>
-      <div className="text-xs font-mono text-accent-text" data-score-line><ScoreLineText text={scoreLine("with", s.affinity)} /></div>
-      <div className="grid gap-1"><div className="text-[10px] uppercase tracking-wide text-plain">Why this stop</div><WhyFacts s={s} /></div>
-      {s.aiNote && <div className="text-sm leading-snug flex items-center gap-1.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-line text-plain" title="Written by the LLM; every number in it was checked against the data above">AI note</span><WhyPopover label={`AI note for ${s.city}`}>{s.aiNote}</WhyPopover></div>}
-      {q.support && <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Support</span><Chip e={q.support.entity} /><Src>whole run</Src></div>}
-      {s.support.length > 0 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">{q.support ? "Local alt." : "Support"}</span>{s.support.map((e) => <Chip key={e.id} e={e} />)}<Src>{q.support ? "this city's own top match" : "top Qloo match"}</Src></div>}
+      <div className="text-sm flex items-center gap-1.5 flex-wrap" data-why-stop>
+        <span className="text-plain">{s.rankInCorridor === 1 ? "The strongest fan city on this drive" : s.rankInCorridor ? `#${s.rankInCorridor} fan city on this drive` : "Strong fan city"}, within the drive limits.</span>
+        <WhyPopover label={`why ${s.city}`} title="Why this stop" wide><WhyFacts s={s} /><div className="mt-2 pt-2 border-t border-line font-mono text-xs text-accent-text" data-score-line><ScoreLineText text={scoreLine("with", s.affinity)} /></div></WhyPopover>
+      </div>
+      {s.aiNote && <div className="text-sm leading-snug flex items-center gap-1.5"><span className="text-xs px-1.5 py-0.5 rounded bg-white/5 border border-line text-plain" title="Written by the AI; every number in it was checked against the data">AI note</span><WhyPopover label={`AI note for ${s.city}`} title="Read">{s.aiNote}</WhyPopover></div>}
+      {q.support && <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-plain w-20">Opening act</span><Chip e={q.support.entity} /><Src>same act every night</Src></div>}
+      {s.support.length > 0 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-plain w-20">{q.support ? "Local option" : "Opening act"}</span>{s.support.map((e) => <Chip key={e.id} e={e} />)}<Src>{q.support ? "best local opener here" : "best Qloo match"}</Src></div>}
       {s.venues[0] ? <RoomCard v={s.venues[0]} note={s.room} stopCity={s.city} /> : <div className="text-xs text-plain">No Qloo show room matched near {s.city}.</div>}
-      {s.venues.length > 1 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-[10px] uppercase tracking-wide text-plain w-14">Also</span>{s.venues.slice(1).map((e) => <Chip key={e.id} e={e} />)}<Src>next Qloo matches</Src></div>}
+      {s.venues.length > 1 && <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-plain w-20">Other rooms</span>{s.venues.slice(1).map((e) => <Chip key={e.id} e={e} />)}<Src>next best Qloo matches</Src></div>}
       <FanHoods hoods={s.neighborhoods} city={s.city} />
       {s.promo.map((p) => (
-        <div key={p.entity.id} className="text-sm flex gap-2"><span className="text-[10px] mt-0.5 px-1.5 rounded bg-accent/15 text-accent-text h-fit">{KIND[p.entity.kind] ?? p.entity.kind}</span>{p.angleBy === "ai" ? <span className="flex items-center gap-1.5"><span className="text-[10px] text-plain">(AI)</span><WhyPopover label={`promo angle: ${p.entity.name}`} title="Angle">{p.angle}</WhyPopover></span> : <span>{p.angle}</span>}</div>
+        <div key={p.entity.id} className="text-sm flex gap-2"><span className="text-xs mt-0.5 px-1.5 rounded bg-accent/15 text-accent-text h-fit">{KIND[p.entity.kind] ?? p.entity.kind}</span>{p.angleBy === "ai" ? <span className="flex items-center gap-1.5"><span>{p.entity.name}</span><WhyPopover label={`promo idea: ${p.entity.name}`} title="Promo idea (AI)">{p.angle}</WhyPopover></span> : <span>{p.angle}</span>}</div>
       ))}
       <HoldDraftButton q={q} s={s} />
     </article>
@@ -185,7 +209,7 @@ export function FillSummary({ q }: { q: FillPlan }) {
   return (
     <div className="grid gap-1 text-sm">
       <p>{q.summary}</p>
-      {q.aiSummary && <p className="text-plain"><span className="text-[10px] mr-1.5 px-1.5 py-0.5 rounded bg-white/5 border border-line align-middle">AI summary</span>{q.aiSummary}</p>}
+      {q.aiSummary && <div className="text-plain flex items-center gap-1.5"><span className="text-xs px-1.5 py-0.5 rounded bg-white/5 border border-line">AI summary</span><WhyPopover label="AI summary of the route" title="Read">{q.aiSummary} <span className="text-plain">(Written by the AI; every number in it was checked against the data.)</span></WhyPopover></div>}
     </div>
   );
 }
@@ -211,20 +235,20 @@ export function PlainAudit({ p, q }: { p: PlainFillPlan; q?: FillPlan }) {
   const heat = corridorHeat(q);
   return (
     <div className="card bg-panel border-dashed overflow-hidden text-sm">
-      <div className="grid grid-cols-[90px_1.2fr_1.5fr_90px_2fr] bg-black/30 text-[10px] uppercase tracking-wide text-plain">
-        <div className="p-2">Date</div><div className="p-2">City</div><div className="p-2">Venue (as suggested)</div><div className="p-2">Qloo heat</div><div className="p-2">Audit</div>
+      <div className="grid grid-cols-[90px_1.2fr_1.5fr_90px_2fr] bg-black/30 text-xs uppercase tracking-wide text-plain">
+        <div className="p-2">Date</div><div className="p-2">City</div><div className="p-2">Venue it suggested</div><div className="p-2">Fan strength</div><div className="p-2">Touring-limit check</div>
       </div>
       {p.stops.map((s) => {
         const a = p.audit.find((x) => x.date === s.date && x.city === s.city);
         const h = heat.get(s.city);
-        const flags = [a?.dateConflict, a?.radiusConflict && `inside ${a.radiusConflict} radius clause`, a?.doublesBack && "doubles back", a?.overDrive && `${a.perDay} mi/day${a.driveHours !== undefined ? ` (${a.driveHours} h)` : ""}`, a?.noRoute && "no road route", !a?.mapped && "unknown city"]
+        const flags = [a?.dateConflict, a?.radiusConflict && `too close to the ${a.radiusConflict} show`, a?.doublesBack && "doubles back", a?.overDrive && `${a.perDay} mi of driving a day${a.driveHours !== undefined ? ` (${a.driveHours} h)` : ""}`, a?.noRoute && "no road route", !a?.mapped && "unknown city"]
           .filter((f): f is string => typeof f === "string" && f.length > 0);
         return (
           <div key={s.date + s.city} className="grid grid-cols-[90px_1.2fr_1.5fr_90px_2fr] border-t border-line">
             <div className="p-2 text-plain">{md(s.date)}</div><div className="p-2">{s.city}</div>
-            <div className="p-2 text-plain italic">{s.venue} <span className="not-italic text-[10px] text-red-300">· not a Qloo entity</span></div>
-            <div className="p-2 font-mono">{h ? pct(h.affinity) : <span className="text-plain text-xs">not in corridor</span>}</div>
-            <div className="p-2 text-xs">{flags.length ? <span className="text-red-400">{flags.join(" · ")}</span> : <span className="text-plain">passes drive rules</span>}</div>
+            <div className="p-2 text-plain italic">{s.venue} <span className="not-italic text-xs text-red-300">· not a verified venue</span></div>
+            <div className="p-2 font-mono">{h ? pct(h.affinity) : <span className="text-plain text-xs">off the route</span>}</div>
+            <div className="p-2 text-xs">{flags.length ? <span className="text-red-400">{flags.join(" · ")}</span> : <span className="text-plain">within the drive limits</span>}</div>
           </div>
         );
       })}
@@ -242,19 +266,19 @@ export function FillCompare({ q, p }: { q?: FillPlan; p?: PlainFillPlan }) {
   const weak = pScored.filter((x) => x !== undefined && x < q.params.minAffinity).length;
   const cnt = (f: (a: PlainFillPlan["audit"][number]) => unknown) => p.audit.filter((a) => !a.anchor && f(a)).length;
   const rows: [string, string, string, boolean?][] = [
-    ["Off days filled", `${q.result.fills} of ${q.result.offBefore}`, `${p.stops.length} of ${q.result.offBefore}`],
-    ["Avg Qloo fan heat of fills (same corridor read)", avg(q.stops.map((s) => s.affinity)), `${avg(pScored)}${outside ? ` · ${outside} outside corridor` : ""}${weak ? ` · ${weak} below floor` : ""}`],
-    ["Fills inside an anchor's radius clause", "0 (enforced)", `${cnt((a) => a.radiusConflict)}`, cnt((a) => a.radiusConflict) > 0],
-    ["Legs that double back", "0 (enforced)", `${cnt((a) => a.doublesBack)}`, cnt((a) => a.doublesBack) > 0],
-    ["Days over max drive (OSRM miles or hours)", "0 (enforced)", `${cnt((a) => a.overDrive)}`, cnt((a) => a.overDrive) > 0],
-    ["Longest run of shows in a row", `${q.result.longestRun} (limit ${q.params.maxConsecutiveShows})`, p.longestRun !== undefined ? `${p.longestRun}` : "–", (p.longestRun ?? 0) > (q.params.maxConsecutiveShows ?? Infinity)],
-    ["Stops not on an off day", "0 (enforced)", `${cnt((a) => a.dateConflict)}`, cnt((a) => a.dateConflict) > 0],
-    ["Rooms / support acts that are real Qloo entities", `${q.grounding.grounded}/${q.grounding.referenced}`, `0/${p.stops.length} (generic names)`],
+    ["Open dates filled", `${q.result.fills} of ${q.result.offBefore}`, `${p.stops.length} of ${q.result.offBefore}`],
+    ["Average fan strength of the new cities (0–100)", avg(q.stops.map((s) => s.affinity)), `${avg(pScored)}${outside ? ` · ${outside} off the route` : ""}${weak ? ` · ${weak} with too few fans` : ""}`],
+    ["Shows too close to a booked show (radius clause)", "0 (enforced)", `${cnt((a) => a.radiusConflict)}`, cnt((a) => a.radiusConflict) > 0],
+    ["Drives that double back", "0 (enforced)", `${cnt((a) => a.doublesBack)}`, cnt((a) => a.doublesBack) > 0],
+    ["Days with too much driving", "0 (enforced)", `${cnt((a) => a.overDrive)}`, cnt((a) => a.overDrive) > 0],
+    ["Most shows before a day off", `${q.result.longestRun} (limit ${q.params.maxConsecutiveShows})`, p.longestRun !== undefined ? `${p.longestRun}` : "–", (p.longestRun ?? 0) > (q.params.maxConsecutiveShows ?? Infinity)],
+    ["Shows on a date that was already booked", "0 (enforced)", `${cnt((a) => a.dateConflict)}`, cnt((a) => a.dateConflict) > 0],
+    ["Rooms and opening acts that really exist (checked in Qloo)", `${q.grounding.grounded} of ${q.grounding.referenced}`, `0 of ${p.stops.length} (generic names)`],
   ];
   return (
     <div className="card bg-panel overflow-hidden text-sm">
       <div className="grid grid-cols-[1.6fr_1fr_1.3fr] bg-black/30 text-xs uppercase tracking-wide">
-        <div className="p-2.5 text-plain">Same anchors, two planners</div><div className="p-2.5 text-accent-text">Fanpoint + Qloo</div><div className="p-2.5 text-plain">Plain AI{p.simulated ? " (simulated)" : ""}</div>
+        <div className="p-2.5 text-plain">Same booked shows, two planners</div><div className="p-2.5 text-accent-text">Fanpoint + Qloo</div><div className="p-2.5 text-plain">Plain AI chatbot{p.simulated ? " (simulated)" : ""}</div>
       </div>
       {rows.map(([k, a, b, bad]) => (
         <div key={k} className="grid grid-cols-[1.6fr_1fr_1.3fr] border-t border-line"><div className="p-2.5 text-plain">{k}</div><div className="p-2.5 font-mono">{a}</div><div className={`p-2.5 font-mono ${bad ? "text-red-400 font-semibold" : "text-plain"}`}>{b}</div></div>
@@ -269,34 +293,36 @@ export function RankedLists({ ranked, mode, picked, top = 5 }: { ranked: RankedG
   return (
     <section className={`border rounded-xl p-4 grid gap-3 text-sm ${mode === "with" ? "bg-panel border-accent/50" : "bg-panel border-dashed border-line"}`} aria-label="Ranked gap cities">
       <div className="flex justify-between flex-wrap gap-2 items-baseline">
-        <h3 className="font-semibold">{mode === "with" ? "Gap cities, ranked by Qloo affinity" : "Gap cities, ranked without Qloo"}</h3>
-        <span className="text-xs text-plain">Same cities in both modes (hard filters only: Census market floor, radius clause, no backtracking, a mapped OSM venue, OSRM drive limits). Only the order changes.</span>
+        <h3 className="font-semibold">{mode === "with" ? "Best cities for the open dates, ranked by fan strength" : "Best cities for the open dates, ranked without fan data"}</h3>
+        <span className="flex items-center gap-1.5 text-xs text-plain">Same cities with or without Qloo; only the order changes.
+          <WhyPopover label="which cities are listed" title="How">Both lists hold the same cities: those big enough (Census), not too close to a booked show (radius clause), on the way without doubling back, with a real music venue (OpenStreetMap) and within the drive limits (OSRM). With Qloo they are ordered by fan strength; without it, by population and venue count.</WhyPopover>
+        </span>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         {ranked.map((g) => {
           const list = mode === "with" ? g.withQloo : g.withoutQloo;
           return (
             <div key={g.from + g.to} className="grid gap-1.5 content-start">
-              <div className="text-xs text-plain">{g.from} → {g.to} · {g.eligible} of {g.inCorridor} corridor cities pass the hard filters{g.note ? ` · ${g.note}` : ""}</div>
+              <div className="text-xs text-plain">{g.from} → {g.to}: {g.eligible} of {g.inCorridor} cities on this drive pass the touring limits{g.note ? ` · ${g.note}` : ""}</div>
               <ol className="grid gap-1.5">
                 {list.slice(0, top).map((c, i) => (
                   <li key={c.id} className="grid grid-cols-[22px_1fr] gap-x-1">
                     <span className="font-mono text-plain">{i + 1}.</span>
                     <span>
                       <span className="font-medium">{c.name}</span>{!c.name.endsWith(`, ${c.region}`) && <span className="text-plain">, {c.region}</span>}
-                      {mode === "with" && picked?.has(c.name) && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent-text align-middle">on the route</span>}
-                      {mode === "without" && <span className="ml-1.5 text-[11px] text-plain">pop {num(c.population)} · {c.venues} venues</span>}
-                      <span className={`block text-[11px] font-mono ${mode === "with" ? "text-accent-text" : "text-plain"}`} data-score-line><ScoreLineText text={scoreLine(mode, c.affinity)} /></span>
+                      {mode === "with" && picked?.has(c.name) && <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-accent/20 text-accent-text align-middle">booked on this tour</span>}
+                      {mode === "without" && <span className="ml-1.5 text-xs text-plain">{num(c.population)} people · {c.venues} venues</span>}
+                      <FanScore mode={mode} affinity={c.affinity} />
                     </span>
                   </li>
                 ))}
               </ol>
-              {list.length > top && <div className="text-[11px] text-plain">+{list.length - top} more pass the filters</div>}
+              {list.length > top && <div className="text-xs text-plain">+{list.length - top} more cities pass the touring limits</div>}
             </div>
           );
         })}
       </div>
-      {mode === "without" && <div className="text-xs text-plain">Without Qloo there is no fan signal, so Fanpoint builds no schedule: a population-first list is all the hard filters and Census/OSM data can give. Switch to <b>With Qloo</b> for the routed calendar.</div>}
+      {mode === "without" && <div className="text-xs text-plain">Without Qloo there is no fan data, so Fanpoint can&apos;t build a schedule: biggest cities first is the best it can do. Switch to <b>With Qloo</b> for the routed calendar.</div>}
     </section>
   );
 }

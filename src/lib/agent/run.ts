@@ -37,9 +37,9 @@ In each pitch, name the cities each side gains and contrast with the most simila
 tool results; a pitch with any other number is discarded. No ticket forecasts.`;
 
 const LABELS: Record<string, string> = {
-  resolve_artist: "Resolve artist in Qloo", scan_corridor: "Scan fan heat along each drive corridor", fill_gaps: "Fill off days (drive, no-backtrack, night-of-week rules)",
-  get_city_intel: "Support acts, rooms & promo hooks per fill", submit_fill: "Grounding & number check, final routing",
-  find_peer_acts: "Find peer acts in your popularity band", compare_fan_geography: "Compare nationwide fan geography", submit_cohead: "Grounding & number check, recommendation", cohead_extras: "Shared taste, audience skews & joint rooms", run_support: "One support act for the whole run",
+  resolve_artist: "Find the artist in Qloo", scan_corridor: "Map where the fans are along each drive", fill_gaps: "Fill the open dates (drive limits, no doubling back, busiest nights first)",
+  get_city_intel: "Find an opening act, rooms and promo partners for each new date", submit_fill: "Check every name and number against the data, then finish the plan",
+  find_peer_acts: "Find acts of similar popularity", compare_fan_geography: "Compare where each act's fans are, city by city", submit_cohead: "Check every name and number, then recommend", cohead_extras: "Shared taste, audience ages and a room for both acts", run_support: "Pick one opening act for the whole run",
 };
 /** Tool results longer than this are summarized before they go back to the model (keeps prompts bounded). */
 const MAX_TOOL_CHARS = 12000;
@@ -126,7 +126,7 @@ async function* loop(req: PlanRequest, { qloo: q, llm, maxTurns, deadlineMs }: A
       : name === "submit_cohead" && req.task === "cohead" ? buildCohead(value, reg, q, providers)
       : { error: `${name} does not match this request.` };
     if ("error" in plan) return plan;
-    yield { type: "step", id: name, label: LABELS[name] ?? name, status: "done", detail: `${plan.grounding.grounded}/${plan.grounding.referenced} references grounded in Qloo results${plan.warnings.some((w) => w.startsWith("AI text")) ? "; some AI text dropped (numbers not in the data)" : ""}` };
+    yield { type: "step", id: name, label: LABELS[name] ?? name, status: "done", detail: `${plan.grounding.grounded} of ${plan.grounding.referenced} names checked against Qloo results${plan.warnings.some((w) => w.startsWith("AI text")) ? "; some AI notes hidden (they used numbers not in the data)" : ""}` };
     return plan;
   }
 
@@ -255,8 +255,8 @@ export function buildFill(args: unknown, reg: Registry, anchors: Anchor[], q: Pi
     });
     prevCity = d.city;
   }
-  const summary = `${stops.length} of ${fill.offBefore} off days filled (${fill.offAfter} left). Longest drive day ${fill.maxDayDrive} road mi / ${fill.maxDayHours} h; `
-    + `total ${fill.totalMi} mi; at most ${fill.longestRun} shows in a row. Limits: ${p.maxDriveMi} mi and ${p.maxDriveHours} h per day, ${p.maxConsecutiveShows} shows in a row, fan heat at least ${pct(p.minAffinity)}.`;
+  const summary = `Filled ${stops.length} of ${fill.offBefore} open dates (${fill.offAfter} still open). Longest day of driving: ${fill.maxDayDrive} road mi / ${fill.maxDayHours} h; ${fill.totalMi} mi in total; at most ${fill.longestRun} shows before a day off. `
+    + `Limits used: ${p.maxDriveMi} mi and ${p.maxDriveHours} h of driving a day, ${p.maxConsecutiveShows} shows before a day off, fan strength at least ${pct(p.minAffinity)} out of 100.`;
   const ai = vetText(parsed.data.summary, allFacts);
   if (!ai.ok) warnings.push(`AI text dropped for the summary: it used numbers not in the data (${ai.offending.join(", ")}).`);
   return {

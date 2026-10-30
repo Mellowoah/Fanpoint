@@ -17,9 +17,9 @@ export default function HelpTip({ label, children }: { label: string; children: 
     <span ref={ref} className="relative inline-flex" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <button type="button" aria-label={`About: ${label}`} aria-expanded={open} aria-describedby={open ? id : undefined}
         onClick={(e) => { e.preventDefault(); setOpen((o) => !o); }} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
-        className="size-4 rounded-full border border-line text-[10px] leading-none text-plain hover:text-foreground hover:border-plain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 grid place-items-center">?</button>
+        className="size-4 rounded-full border border-line text-xs leading-none text-plain hover:text-foreground hover:border-plain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 grid place-items-center">?</button>
       {open && (
-        <span id={id} role="tooltip" className="absolute z-40 left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 max-w-[80vw] rounded-lg border border-line bg-panel-2 p-2.5 text-[11px] font-normal leading-relaxed text-foreground shadow-2xl shadow-black/60 normal-case tracking-normal">
+        <span id={id} role="tooltip" className="absolute z-40 left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 max-w-[80vw] rounded-lg border border-line bg-panel-2 p-2.5 text-xs font-normal leading-relaxed text-foreground shadow-2xl shadow-black/60 normal-case tracking-normal">
           {children}
         </span>
       )}

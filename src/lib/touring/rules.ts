@@ -38,37 +38,37 @@ const OSM_VENUES: Citation = { title: "Overpass API: live-performance venues (am
 
 export const RULES = {
   maxDriveMi: {
-    value: 350, unit: "road mi/day", label: "Max drive per show day (miles)", kind: "assumption", adjustable: true,
+    value: 350, unit: "road mi/day", label: "Most miles of driving in a day", kind: "assumption", adjustable: true,
     why: "A booking preference, not a law. Measured on OSRM road distances. Touring guides recommend much shorter van drives (2-4 h).",
     sources: [ROADI],
   },
   maxDriveHours: {
-    value: 7.5, unit: "h/day", label: "Max drive time per day", kind: "sourced", adjustable: true,
+    value: 7.5, unit: "h/day", label: "Most hours of driving in a day", kind: "sourced", adjustable: true,
     why: "General driver-fatigue guidance from a government road-safety body; the federal ceiling for hired passenger-vehicle drivers is 10 h. Times are OSRM car-profile, free-flow, with no stops, traffic or trailer, so real van times run longer.",
     sources: [RSS, FMCSA],
   },
   maxConsecutiveShows: {
-    value: 6, unit: "shows", label: "Max shows in a row before a day off", kind: "adapted", adjustable: true,
+    value: 6, unit: "shows", label: "Most shows before a day off", kind: "adapted", adjustable: true,
     why: "The AFM's touring agreement for theatrical musicals requires one day off each week, i.e. at most 6 show days in 7. Club tours aren't bound by it; Fanpoint uses it as a default.",
     sources: [AFM, ROADI],
   },
   radiusMi: {
-    value: 60, unit: "mi (straight line)", label: "Radius clause around each anchor", kind: "sourced", adjustable: true,
+    value: 60, unit: "mi (straight line)", label: "No other show this close to a booked show (radius clause)", kind: "sourced", adjustable: true,
     why: "Industry guides put club-show radius clauses at roughly 30-100 mi for 30-60 days; 60 mi (100 km) is the \"standard club radius\" template. Every fill sits within days of an anchor, so the time window always applies. Measured as a straight line. Real clauses are per contract: check yours.",
     sources: [SYSTEMONE, HOWTO, INFRACT, LOLLA],
   },
   dowWeights: {
-    value: [0.7, 0.55, 0.65, 0.75, 0.9, 1.0, 1.0] as const, unit: "Sun..Sat, 0-1", label: "Night-of-week demand weights", kind: "assumption", adjustable: true,
+    value: [0.7, 0.55, 0.65, 0.75, 0.9, 1.0, 1.0] as const, unit: "Sun..Sat, 0-1", label: "How busy each night of the week is (0 = dead, 1 = best)", kind: "assumption", adjustable: true,
     why: "Research supports the direction (weekend nights draw more), but no public dataset gives club-show weights by night, so the exact values are Fanpoint's.",
     sources: [TSENG, AAM],
   },
   nightFloor: {
-    value: 0.45, unit: "heat x weight", label: "A show must beat a night off by", kind: "assumption", adjustable: true,
+    value: 0.45, unit: "fan strength × night weight", label: "Only book a night that scores at least (fan strength × how busy the night is)", kind: "assumption", adjustable: true,
     why: "A fill is only booked if Qloo fan heat x night weight exceeds this. Lower it to fill more nights. Not retuned on 2026-10-21: with the 0.94 heat floor it no longer refuses any night on its own (0.94 x the lowest weight 0.55 = 0.52), so the weights now only choose which night each city gets. There's no data-based way to map a heat x weight product onto the live scale; raise it if weak weeknights should stay dark.",
     sources: [],
   },
   minAffinity: {
-    value: 0.94, unit: "Qloo affinity 0-1", label: "Fan-heat floor", kind: "assumption", adjustable: true,
+    value: 0.94, unit: "Qloo fan strength, 0–1", label: "Lowest fan strength worth booking (0–1)", kind: "assumption", adjustable: true,
     why: `Candidates below this Qloo heat value are not considered. Was 0.6, written for city reads spread like percentiles (keep the top 40%). ${LIVE_2026_10_21} 0.94 is set as the 60th percentile of live corridor city reads at the 5 mi read radius, so the floor keeps the same top 40% it was designed to keep.`,
     sources: [QLOO_HEATMAPS],
   },
@@ -156,4 +156,4 @@ export const RULE_VALUES = Object.fromEntries(Object.entries(RULES).map(([k, r])
 /** Keys the user may override (form + API). */
 export const ADJUSTABLE: readonly RuleKey[] = (Object.keys(RULES) as RuleKey[]).filter((k) => RULES[k].adjustable);
 
-export const KIND_LABEL: Record<RuleKind, string> = { sourced: "Sourced", adapted: "Adapted from a source", assumption: "Adjustable assumption", internal: "Implementation detail" };
+export const KIND_LABEL: Record<RuleKind, string> = { sourced: "From a published source", adapted: "Based on a published source", assumption: "Our estimate", internal: "Internal setting" };

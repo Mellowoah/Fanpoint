@@ -35,7 +35,7 @@ export async function httpErrorEvent(res: Response): Promise<ErrorEvent> {
   return err("internal", `The server answered HTTP ${res.status}${message ? `: ${message}` : ""}. Try again.`);
 }
 
-const FIELD: Record<string, string> = { artist: "Artist", partner: "Co-headliner", anchors: "Dates", maxDriveMi: "Max drive per day", minAffinity: "Fan-heat floor", rules: "Touring rules" };
+const FIELD: Record<string, string> = { artist: "Artist", partner: "Co-headliner", anchors: "Dates", maxDriveMi: "Most miles of driving a day", minAffinity: "Lowest fan strength", rules: "Touring rules" };
 /** "anchors.0.city: pick a city…" -> "Stop 1 city: pick a city…"; "artist: required" -> "Artist: enter a name". */
 export function friendlyIssue(i: { path: string; message: string }): string {
   const [head = "", idx, leaf] = i.path.split(".");

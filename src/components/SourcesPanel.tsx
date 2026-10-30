@@ -13,7 +13,7 @@ export const KIND_STYLE: Record<RuleKind, string> = {
   internal: "bg-white/5 text-plain border-line",
 };
 export function KindBadge({ kind }: { kind: RuleKind }) {
-  return <span className={`text-[10px] px-1.5 py-0.5 rounded border inline-block max-w-full sm:whitespace-nowrap ${KIND_STYLE[kind]}`}>{KIND_LABEL[kind]}</span>;
+  return <span className={`text-xs px-1.5 py-0.5 rounded border inline-block max-w-full sm:whitespace-nowrap ${KIND_STYLE[kind]}`}>{KIND_LABEL[kind]}</span>;
 }
 
 const fmt = (v: number | readonly number[]) => (Array.isArray(v) ? (v as number[]).join(" · ") : String(v));
@@ -62,10 +62,10 @@ export default function SourcesPanel({ onClose }: { onClose?: () => void }) {
         <div className="grid gap-0 border border-line rounded-xl overflow-hidden">
           {rules.map(([k, r]) => (
             <div key={k} className="grid md:grid-cols-[220px_110px_1fr] gap-x-3 gap-y-1 p-3 border-t border-line first:border-t-0">
-              <div><div className="font-medium">{r.label}</div><code className="text-[10px] text-plain">{k}</code></div>
-              <div className="grid content-start gap-1"><span className="font-mono">{fmt(r.value)}</span><span className="text-[10px] text-plain">{r.unit}</span></div>
+              <div><div className="font-medium">{r.label}</div><code className="text-xs text-plain">{k}</code></div>
+              <div className="grid content-start gap-1"><span className="font-mono">{fmt(r.value)}</span><span className="text-xs text-plain">{r.unit}</span></div>
               <div className="grid gap-1">
-                <div className="flex flex-wrap gap-1.5 items-center"><KindBadge kind={r.kind} />{r.adjustable ? <span className="text-[10px] text-plain">adjustable in the form</span> : <span className="text-[10px] text-plain">set in src/lib/touring/rules.ts</span>}</div>
+                <div className="flex flex-wrap gap-1.5 items-center"><KindBadge kind={r.kind} />{r.adjustable ? <span className="text-xs text-plain">adjustable in the form</span> : <span className="text-xs text-plain">set in src/lib/touring/rules.ts</span>}</div>
                 <div className="text-plain">{r.why}</div>
                 {r.sources.length > 0 && <ul className="text-xs grid gap-0.5">{r.sources.map((s) => <li key={s.url}><A href={s.url}>{s.title}</A> <span className="text-plain">({s.publisher}){s.note ? `: ${s.note}` : ""}</span></li>)}</ul>}
               </div>

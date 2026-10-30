@@ -62,9 +62,9 @@ export default function Combobox({ id, label, value, onInput, onPick, options, s
               {o.image !== undefined && (o.image
                 // eslint-disable-next-line @next/next/no-img-element -- remote thumbnail from Qloo; next/image would need a host allow-list
                 ? <img src={o.image} alt="" width={28} height={28} loading="lazy" referrerPolicy="no-referrer" className="size-7 rounded-md object-cover bg-panel shrink-0" />
-                : <span aria-hidden className="size-7 rounded-md bg-panel border border-line grid place-items-center text-[11px] font-semibold text-plain shrink-0">{o.label.slice(0, 1).toUpperCase()}</span>)}
+                : <span aria-hidden className="size-7 rounded-md bg-panel border border-line grid place-items-center text-xs font-semibold text-plain shrink-0">{o.label.slice(0, 1).toUpperCase()}</span>)}
               <span className="min-w-0 grid">
-                <span className="truncate font-medium">{o.label}{o.badge && <span className="ml-1.5 text-[10px] font-normal text-plain">{o.badge}</span>}</span>
+                <span className="truncate font-medium">{o.label}{o.badge && <span className="ml-1.5 text-xs font-normal text-plain">{o.badge}</span>}</span>
                 {o.detail && <span className="truncate text-xs text-plain">{o.detail}</span>}
               </span>
             </li>
@@ -72,7 +72,7 @@ export default function Combobox({ id, label, value, onInput, onPick, options, s
           {status && <li role="presentation" className="px-2.5 py-2 text-xs text-plain">{status}</li>}
         </ul>
       </div>
-      {error ? <span id={errId} className="field-error" role="alert">{error}</span> : hint ? <span id={hintId} className="text-[11px] font-normal text-plain">{hint}</span> : null}
+      {error ? <span id={errId} className="field-error" role="alert">{error}</span> : hint ? <span id={hintId} className="text-xs font-normal text-plain">{hint}</span> : null}
     </div>
   );
 }
