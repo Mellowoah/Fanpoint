@@ -8,11 +8,11 @@
 
 **Try it out:** Live demo https://routed-kt93.onrender.com · Repo https://github.com/Mellowoah/Fanpoint (MIT license, visible in About) · (no demo video required)
 
-**Tagline:** Fill the empty nights on a tour. Fanpoint reads Qloo fan data to book more shows between an act's fixed dates, with zero touring-rule breaks.
+**Tagline:** Fill the empty nights on a tour. Fanpoint reads Qloo fan data to book more shows between an act's fixed dates, with zero touring-rule breaks — and surfaces ready-to-pitch sponsor & ad hooks from the same taste data.
 
 An empty night on tour still costs a hotel, a van and a crew, and earns nothing. When an act lands a festival slot or a support date, its agent has to fill the days in between, usually by gut feel about which cities hold fans.
 
-Fanpoint fills those nights. Enter the act and 2–3 booked dates. It reads where the act's fans are along each drive from Qloo, cuts every city that would break a touring rule, and returns a bookable run with named rooms, one support act and hold-request drafts.
+Fanpoint fills those nights. Enter the act and 2–3 booked dates. It reads where the act's fans are along each drive from Qloo, cuts every city that would break a touring rule, and returns a bookable run with named rooms, one support act, hold-request drafts, and **Sponsor & Ad Opportunities** drawn from the same Qloo taste graph.
 
 **The result**, measured on 10 acts: a median of 7 of 13 open nights booked versus 5 for the same LLM with no tools, and 0 versus 3 of 10 plans breaking a touring rule. With Qloo turned off and the same rules, the demo books 0 of 13 nights instead of 8.
 
@@ -45,6 +45,7 @@ With vs without Qloo on the same filtered cities: on the 34 legs with more than 
 - An optimiser fills open days by fan heat × night-of-week weight, or leaves the night off.
 - One support act opens the whole run: the Qloo match that is a local fit in the most filled cities and clearly smaller than the headliner, with the taste they share.
 - Each stop names a Qloo venue (address, website, size tier, capacity where Qloo's text states one), the top 3 fan neighbourhoods and promo partners. **Why this stop** cites a source for every line.
+- **Sponsor & Ad Opportunities:** each stop highlights ready-to-pitch sponsor and ad hooks (strongest brands and podcasts from Qloo taste data) so promoters can turn the same fan signals into outreach.
 - **Fans here also like:** each stop lists what the act's fans in that city like outside music (Qloo cross-domain taste): brands (fashion brands marked), podcasts, food and drink, TV, film, books, video games, people and travel, each row with a plain-English use (sponsor, merch, promo, pre-show). **Across the tour** lists picks that come up in two or more cities. Names are Qloo results picked in code; these lookups add no AI turns and change no routing pick.
 - Each stop shows Qloo's top room and the next best one, with **Copy hold request** and a hold-request draft (nothing is sent).
 - **What the empty nights would have cost:** nights filled × (hotel × rooms + per diem × people), minus fuel for the extra road miles; defaults visible and editable, labelled as assumptions, not Qloo data.
