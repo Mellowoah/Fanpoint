@@ -1,4 +1,19 @@
-# Demo video script, about 2:00 (DRAFT)
+# Demo video script
+
+## Final (used in the published video, 2:14): https://youtu.be/hYqWay1lRb8
+
+Recorded on the live site with live Qloo data (Japanese Breakfast: New York 11/13, Durham 11/21, Atlanta 11/28; co-headliner pair Black Pumas × Men I Trust). The voice-over and subtitles are these lines, verbatim:
+
+1. **Booked shows.** An empty night on tour still costs hotel rooms, per diems and fuel. Fanpoint is a routing desk: enter the shows you've already booked, and it fills the nights in between.
+2. **Fill the gaps (live run).** One click runs a live agent on Qloo. It maps where Japanese Breakfast's fans are along each drive, drops any city that breaks a touring rule, and fills the open dates: 8 of 13, with zero shows that break touring limits. Each stop gets a room, an opener and what those fans also like.
+3. **Receipts.** Every pick has a receipt. Why this stop cites its sources, and Receipts lists every city considered, why it was or wasn't booked, and every Qloo request the agent made.
+4. **With vs without Qloo.** Turn Qloo off and you get the biggest cities, with no fans behind them. Next to a plain AI chatbot on the same dates, Fanpoint fills 8 of 13 open dates; the chatbot fills 5.
+5. **Co-headliner match.** Co-headliner match compares two acts' fan maps city by city, so you can see where each one brings the crowd the other lacks.
+6. **The routing desk.** Then it's a desk you can work from. The empty nights it filled would have cost about seven thousand dollars at the default planning numbers, which you can edit. Export every stop to CSV, copy a hold request, see sponsor ideas from Qloo taste data, and open a draft ad pack for Meta, X and Snapchat. Nothing is posted or spent.
+7. **Wrap-up.** So from one screen, you can find the right room and send the hold, see what this audience is paying attention to, and plan your ads and local events around it.
+8. **Close.** Fanpoint, a tour routing desk built on Qloo. It's live now, and the code is open source.
+
+## Earlier draft, about 2:00 (superseded)
 
 *Audience: a Live Nation-style promoter or booking exec. Format: a live screen capture of the deployed app with live Qloo
 data, no slides. Write the final voice-over in your own words. Upload as public and "Not for Kids", and check it once in

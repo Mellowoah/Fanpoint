@@ -1,5 +1,7 @@
 # Fanpoint
 
+**Live:** https://routed-kt93.onrender.com · **Demo video (2:14):** https://youtu.be/hYqWay1lRb8
+
 **Fanpoint is a tour routing desk for booking agents and promoters.** It fills the empty nights between an act's booked shows. An empty night still costs hotel rooms, per diems and fuel, and earns nothing. Fanpoint turns Qloo taste intelligence into booked nights, avoided cost, **and ready-to-pitch sponsor & ad opportunities**: Qloo data ranks the fan cities, rooms, openers and cross-domain sponsor hooks, code enforces the touring rules, and the plan leaves as a CSV and hold requests. It is not a fan-facing tour finder. It answers two routing questions with
 [Qloo Taste AI™](https://docs.qloo.com/) data:
 

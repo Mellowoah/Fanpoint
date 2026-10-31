@@ -6,7 +6,7 @@
 
 **Project name:** Fanpoint
 
-**Try it out:** Live demo https://routed-kt93.onrender.com · Repo https://github.com/Mellowoah/Fanpoint (MIT license, visible in About) · (no demo video required)
+**Try it out:** Live demo https://routed-kt93.onrender.com · Repo https://github.com/Mellowoah/Fanpoint (MIT license, visible in About) · Demo video (2:14) https://youtu.be/hYqWay1lRb8
 
 **Tagline:** Fill the empty nights on a tour. Fanpoint reads Qloo fan data to book more shows between an act's fixed dates, with zero touring-rule breaks — and surfaces ready-to-pitch sponsor & ad hooks from the same taste data.
 
@@ -139,7 +139,7 @@ With mock heat, Fanpoint books 4 of 13 open days (Camden, Baltimore, Richmond, A
 ---
 
 ### Submission checklist (Mellow)
-Required by [qloo.devpost.com](https://qloo.devpost.com) (checked 2026-10-21): hosted demo, public repo with run instructions, a description, an open-source license in About. **No video.**
+Required by [qloo.devpost.com](https://qloo.devpost.com) (checked 2026-10-21): hosted demo, public repo with run instructions, a description, an open-source license in About. A video is not required; ours is at https://youtu.be/hYqWay1lRb8.
 - [ ] `QLOO_API_KEY` set on the host (verified locally 2026-10-21: `scripts/verify-qloo-live.mjs`)
 - [ ] `LLM_API_KEY` (Gemini) set on the host; free-tier limits checked (verified locally 2026-10-21: `npm run verify:llm`)
 - [ ] Public repo; MIT license in About; no live Qloo data committed
